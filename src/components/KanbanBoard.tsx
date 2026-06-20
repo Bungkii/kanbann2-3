@@ -52,8 +52,46 @@ export default function KanbanBoard({ initialTasks }: { initialTasks: Task[] }) 
   }, []);
 
   useEffect(() => {
-    setTasks(initialTasks);
+    let localStatuses: Record<string, string> = {};
+    try {
+      const saved = localStorage.getItem('personalTaskStatus');
+      if (saved) {
+        localStatuses = JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error('Failed to parse personal status', e);
+    }
+
+    const mergedTasks = initialTasks.map(task => {
+      if (localStatuses[task.id]) {
+        return { ...task, status: localStatuses[task.id] };
+      }
+      return task;
+    });
+
+    setTasks(mergedTasks);
   }, [initialTasks]);
+
+  const updateLocalStatus = (taskId: string, newStatus: string) => {
+    setTasks((prevTasks) => {
+      const newTasks = prevTasks.map((t) =>
+        t.id === taskId ? { ...t, status: newStatus } : t
+      );
+      
+      try {
+        const saved = localStorage.getItem('personalTaskStatus');
+        const localStatuses = saved ? JSON.parse(saved) : {};
+        localStatuses[taskId] = newStatus;
+        localStorage.setItem('personalTaskStatus', JSON.stringify(localStatuses));
+      } catch (e) {
+        console.error('Failed to save personal status', e);
+      }
+      
+      return newTasks;
+    });
+    
+    toast.success(newStatus === 'done' ? 'เคลียร์งานส่วนตัวสำเร็จ!' : 'อัปเดตสถานะส่วนตัวแล้ว');
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -87,26 +125,7 @@ export default function KanbanBoard({ initialTasks }: { initialTasks: Task[] }) 
 
     const taskToMove = tasks.find((t) => t.id === taskId);
     if (taskToMove && taskToMove.status !== newStatus) {
-      setTasks((prevTasks) => {
-        const newTasks = prevTasks.map((t) =>
-          t.id === taskId ? { ...t, status: newStatus } : t
-        );
-        try {
-          localStorage.setItem('kanbanTasks', JSON.stringify(newTasks));
-        } catch (e) {
-          console.error('Failed to save tasks to local storage:', e);
-        }
-        return newTasks;
-      });
-
-      toast.promise(
-        updateTaskStatus(taskId, newStatus),
-        {
-          loading: 'กำลังย้ายการบ้าน...',
-          success: 'อัปเดตสถานะสำเร็จ',
-          error: 'เกิดข้อผิดพลาด กรุณาลองใหม่',
-        }
-      );
+      updateLocalStatus(taskId, newStatus);
     }
   };
 
@@ -127,19 +146,7 @@ export default function KanbanBoard({ initialTasks }: { initialTasks: Task[] }) 
 
   const handleToggleTaskStatus = (task: Task) => {
     const newStatus = task.status === 'done' ? 'todo' : 'done';
-    setTasks((prevTasks) =>
-      prevTasks.map((t) =>
-        t.id === task.id ? { ...t, status: newStatus } : t
-      )
-    );
-    toast.promise(
-      updateTaskStatus(task.id, newStatus),
-      {
-        loading: 'กำลังอัปเดตงาน...',
-        success: newStatus === 'done' ? 'เคลียร์งานสำเร็จ!' : 'ย้ายกลับมาต้องทำ',
-        error: 'เกิดข้อผิดพลาด กรุณาลองใหม่',
-      }
-    );
+    updateLocalStatus(task.id, newStatus);
   };
 
   // Sort tasks by urgency
