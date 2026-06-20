@@ -44,6 +44,7 @@ export async function updateTaskDetails(
     due_date: string;
     details: string;
     teacher_name: string | null;
+    submission_method: string | null;
     image_url?: string | null;
   }
 ) {

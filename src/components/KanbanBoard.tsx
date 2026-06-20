@@ -28,6 +28,7 @@ export type Task = {
   details: string;
   image_url: string | null;
   teacher_name: string | null;
+  submission_method: string | null;
   status: string;
 };
 
@@ -158,6 +159,7 @@ export default function KanbanBoard({ initialTasks, isAuthenticated = false }: {
       const due_date = formData.get('due_date') as string;
       const details = formData.get('details') as string;
       const teacher_name = formData.get('teacher_name') as string;
+      const submission_method = formData.get('submission_method') as string;
       const imageFile = formData.get('image') as File | null;
 
       let image_url = selectedTask.image_url;
@@ -187,6 +189,7 @@ export default function KanbanBoard({ initialTasks, isAuthenticated = false }: {
         due_date: new Date(due_date).toISOString(),
         details,
         teacher_name: teacher_name || null,
+        submission_method: submission_method || null,
         image_url
       };
 
@@ -403,6 +406,10 @@ export default function KanbanBoard({ initialTasks, isAuthenticated = false }: {
                     </div>
                   </div>
                   <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1">วิธีการส่งงาน</label>
+                    <input name="submission_method" defaultValue={selectedTask.submission_method || ''} placeholder="เช่น ส่งที่โต๊ะ, ส่งในไก่ทวง" className="w-full border border-slate-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none" />
+                  </div>
+                  <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-1">รายละเอียด</label>
                     <textarea required name="details" defaultValue={selectedTask.details} rows={3} className="w-full border border-slate-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none resize-none" />
                   </div>
@@ -461,15 +468,21 @@ export default function KanbanBoard({ initialTasks, isAuthenticated = false }: {
                 <p className="text-slate-700 whitespace-pre-wrap leading-relaxed">{selectedTask.details}</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col justify-center">
                   <span className="text-slate-500 block mb-1 font-medium text-xs uppercase tracking-wider">กำหนดส่ง</span>
-                  <span className="font-bold text-slate-800 text-base">{new Date(selectedTask.due_date).toLocaleDateString('th-TH', { dateStyle: 'long' })}</span>
+                  <span className="font-bold text-slate-800 text-base">{new Date(selectedTask.due_date).toLocaleDateString('th-TH', { dateStyle: 'short' })}</span>
                 </div>
                 {selectedTask.teacher_name && (
                   <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col justify-center">
                     <span className="text-slate-500 block mb-1 font-medium text-xs uppercase tracking-wider">คุณครูผู้สอน</span>
-                    <span className="font-bold text-slate-800 text-base">{selectedTask.teacher_name}</span>
+                    <span className="font-bold text-slate-800 text-base line-clamp-1">{selectedTask.teacher_name}</span>
+                  </div>
+                )}
+                {selectedTask.submission_method && (
+                  <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex flex-col justify-center">
+                    <span className="text-orange-600 block mb-1 font-medium text-xs uppercase tracking-wider">วิธีส่ง</span>
+                    <span className="font-bold text-orange-900 text-base line-clamp-1">{selectedTask.submission_method}</span>
                   </div>
                 )}
               </div>

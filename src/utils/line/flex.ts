@@ -5,6 +5,7 @@ export type Task = {
   details: string;
   image_url: string | null;
   teacher_name: string | null;
+  submission_method: string | null;
   status: string;
 };
 
@@ -47,7 +48,14 @@ export function createMorningFlexMessage(tasks: Task[]) {
       margin: "md",
     });
   } else {
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0);
+
     tasks.forEach((task, index) => {
+      const dueDate = new Date(task.due_date);
+      dueDate.setHours(0, 0, 0, 0);
+      const isOverdue = dueDate.getTime() < todayDate.getTime();
+
       bodyContents.push({
         type: "box",
         layout: "vertical",
@@ -56,11 +64,11 @@ export function createMorningFlexMessage(tasks: Task[]) {
         contents: [
           {
             type: "text",
-            text: `📝 ${task.subject}`,
+            text: `${isOverdue ? '🚨 [เลยกำหนด]' : '📝'} ${task.subject}`,
             weight: "bold",
             size: "md",
             wrap: true,
-            color: "#111827",
+            color: isOverdue ? "#EF4444" : "#111827",
           },
           {
             type: "text",
@@ -78,6 +86,15 @@ export function createMorningFlexMessage(tasks: Task[]) {
           text: `สั่งโดย: ${task.teacher_name}`,
           size: "xs",
           color: "#9CA3AF",
+        });
+      }
+      if (task.submission_method) {
+        bodyContents[bodyContents.length - 1].contents.push({
+          type: "text",
+          text: `วิธีส่ง: ${task.submission_method}`,
+          size: "xs",
+          color: "#D97706",
+          weight: "bold",
         });
       }
     });
@@ -121,13 +138,17 @@ export function createMorningFlexMessage(tasks: Task[]) {
 }
 
 export function createEveningFlexMessage(tasks: Task[]) {
-  const total = tasks.length;
-  // Note: 'status' is tracked via localStorage by clients.
-  // The server only knows Supabase status. If we use this for all users, 
-  // we might want to just show global stats or just "งานทั้งหมด".
-  // For now, let's show global tasks that are 'todo' and 'in_progress'.
+  // Evening: We want to show tasks due today or overdue.
+  const todayDate = new Date();
+  todayDate.setHours(0, 0, 0, 0);
 
-  const activeTasks = tasks.filter(t => t.status !== 'done');
+  const dueTasks = tasks.filter(task => {
+    const dueDate = new Date(task.due_date);
+    dueDate.setHours(0, 0, 0, 0);
+    return dueDate.getTime() <= todayDate.getTime();
+  });
+
+  const hasTasks = dueTasks.length > 0;
   
   const header = {
     type: "box",
@@ -151,58 +172,67 @@ export function createEveningFlexMessage(tasks: Task[]) {
     ],
   };
 
+  const bodyContents: any[] = [];
+
+  if (!hasTasks) {
+    bodyContents.push({
+      type: "text",
+      text: "วันนี้ไม่มีงานค้างจ้า พักผ่อนได้เลย! 😴",
+      weight: "bold",
+      size: "md",
+      color: "#10B981",
+      wrap: true,
+      align: "center",
+      margin: "md",
+    });
+  } else {
+    bodyContents.push({
+      type: "text",
+      text: "วันนี้มีงานที่ต้องทำ/ค้างอยู่นะ!",
+      weight: "bold",
+      color: "#EF4444",
+      size: "md",
+      margin: "md",
+    });
+
+    dueTasks.forEach((task, index) => {
+      const dueDate = new Date(task.due_date);
+      dueDate.setHours(0, 0, 0, 0);
+      const isOverdue = dueDate.getTime() < todayDate.getTime();
+
+      bodyContents.push({
+        type: "box",
+        layout: "vertical",
+        margin: index === 0 ? "md" : "lg",
+        spacing: "sm",
+        contents: [
+          {
+            type: "text",
+            text: `${isOverdue ? '🚨 [เลยกำหนด]' : '📌'} ${task.subject}`,
+            weight: "bold",
+            size: "sm",
+            wrap: true,
+            color: isOverdue ? "#DC2626" : "#374151",
+          }
+        ],
+      });
+      if (task.submission_method) {
+        bodyContents[bodyContents.length - 1].contents.push({
+          type: "text",
+          text: `วิธีส่ง: ${task.submission_method}`,
+          size: "xs",
+          color: "#D97706",
+          weight: "bold",
+        });
+      }
+    });
+  }
+
   const body = {
     type: "box",
     layout: "vertical",
     spacing: "md",
-    contents: [
-      {
-        type: "text",
-        text: "ภาระงานที่รอคุณอยู่:",
-        weight: "bold",
-        color: "#374151",
-      },
-      {
-        type: "box",
-        layout: "horizontal",
-        contents: [
-          {
-            type: "text",
-            text: "งานทั้งหมดในระบบ:",
-            color: "#6B7280",
-            size: "sm",
-          },
-          {
-            type: "text",
-            text: `${total} งาน`,
-            weight: "bold",
-            align: "end",
-            color: "#111827",
-            size: "sm",
-          },
-        ],
-      },
-      {
-        type: "box",
-        layout: "horizontal",
-        contents: [
-          {
-            type: "text",
-            text: "งานที่ยังไม่เสร็จ (รอเคลียร์):",
-            color: "#EF4444",
-            size: "sm",
-          },
-          {
-            type: "text",
-            text: `${activeTasks.length} งาน`,
-            weight: "bold",
-            align: "end",
-            color: "#DC2626",
-            size: "sm",
-          },
-        ],
-      },
-    ],
+    contents: bodyContents,
   };
 
   const footer = {
@@ -216,7 +246,7 @@ export function createEveningFlexMessage(tasks: Task[]) {
         height: "sm",
         action: {
           type: "uri",
-          label: "ไปเคลียร์งานกันเลย!",
+          label: "คลิกเคลียร์งาน",
           uri: "https://your-domain.com", // TODO: Replace with actual domain
         },
       },

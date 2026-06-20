@@ -35,6 +35,7 @@ export default function AddTaskPage() {
     const dueDate = formData.get('due_date') as string;
     const details = formData.get('details') as string;
     const teacherName = formData.get('teacher_name') as string;
+    const submissionMethod = formData.get('submission_method') as string;
     const imageFile = formData.get('image') as File | null;
 
     let imageUrl = null;
@@ -69,6 +70,7 @@ export default function AddTaskPage() {
           due_date: new Date(dueDate).toISOString(),
           details,
           teacher_name: teacherName || null,
+          submission_method: submissionMethod || null,
           image_url: imageUrl,
           status: 'todo'
         }]);
@@ -125,6 +127,11 @@ export default function AddTaskPage() {
             </div>
           </div>
           
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">วิธีการส่งงาน (Submission Method)</label>
+            <input name="submission_method" placeholder="เช่น ส่งที่โต๊ะ, ส่งในไก่ทวง, ส่งกับครู" className="w-full border border-slate-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm" />
+          </div>
+
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-2">รายละเอียดงาน (Details) *</label>
             <textarea required name="details" rows={4} placeholder="อธิบายรายละเอียดให้เพื่อนๆ เข้าใจ..." className="w-full border border-slate-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm resize-none" />
