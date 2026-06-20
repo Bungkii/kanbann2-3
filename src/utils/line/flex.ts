@@ -390,3 +390,84 @@ export function createEveningFlexMessage(tasks: Task[]) {
     },
   };
 }
+
+export function createMenuFlexMessage() {
+  return {
+    type: "flex",
+    altText: "เมนูคำสั่งของชามนพิ",
+    contents: {
+      type: "bubble",
+      size: "mega",
+      header: {
+        type: "box",
+        layout: "vertical",
+        backgroundColor: "#1E3A8A",
+        contents: [
+          {
+            type: "text",
+            text: "พริมจ๋า เมนู",
+            weight: "bold",
+            size: "xl",
+            color: "#FFFFFF",
+          },
+          {
+            type: "text",
+            text: "เลือกคำสั่งที่ต้องการได้เลยคราบ",
+            color: "#BFDBFE",
+            size: "sm",
+            margin: "sm",
+          },
+        ],
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        spacing: "sm",
+        contents: [
+          {
+            type: "button",
+            style: "primary",
+            color: "#4F46E5",
+            margin: "sm",
+            action: {
+              type: "uri",
+              label: "เพิ่ม/ลบ งานใหม่",
+              uri: "https://kanbann.bungkii.vercel.app/add",
+            },
+          },
+          {
+            type: "button",
+            style: "primary",
+            color: "#4F46E5",
+            margin: "sm",
+            action: {
+              type: "uri",
+              label: "ตรวจสอบงาน",
+              uri: "https://kanbann.bungkii.vercel.app/kanban",
+            },
+          },
+          {
+            type: "button",
+            style: "secondary",
+            margin: "sm",
+            action: {
+              type: "message",
+              label: "คำสั่งเพิ่มเติม",
+              text: "คำสั่งเพิ่มเติม",
+            },
+          },
+          {
+            type: "button",
+            style: "link",
+            margin: "sm",
+            action: {
+              type: "uri",
+              label: "เข้าสู่ระบบ / สมัครสมาชิก",
+              uri: "https://kanbann.bungkii.vercel.app/login",
+            },
+          },
+        ],
+      },
+    },
+  };
+}
