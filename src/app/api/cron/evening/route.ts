@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+
+export const dynamic = 'force-dynamic';
 import { createEveningFlexMessage, Task } from '@/utils/line/flex';
 
 export async function GET(request: Request) {
@@ -33,16 +35,23 @@ export async function GET(request: Request) {
 
     const flexMessage = createEveningFlexMessage(tasks as Task[]);
 
-    // Send Broadcast to LINE
-    const response = await fetch('https://api.line.me/v2/bot/message/broadcast', {
+    const groupId = process.env.LINE_GROUP_ID;
+    const apiUrl = groupId 
+      ? 'https://api.line.me/v2/bot/message/push'
+      : 'https://api.line.me/v2/bot/message/broadcast';
+      
+    const bodyPayload = groupId
+      ? { to: groupId, messages: [flexMessage] }
+      : { messages: [flexMessage] };
+
+    // Send to LINE
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${lineToken}`,
       },
-      body: JSON.stringify({
-        messages: [flexMessage],
-      }),
+      body: JSON.stringify(bodyPayload),
     });
 
     if (!response.ok) {

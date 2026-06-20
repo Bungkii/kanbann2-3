@@ -20,6 +20,25 @@ export async function POST(request: Request) {
       if (event.type === 'message' && event.message.type === 'text') {
         const text = event.message.text.trim();
         
+        // ถ้าพิมพ์คำว่า "พริมจ๋า ดูไอดี"
+        if (text === 'พริมจ๋า ดูไอดี') {
+          const groupId = event.source.groupId || event.source.roomId;
+          const replyText = groupId ? `Group ID ของกลุ่มนี้คือ:\n${groupId}` : 'ไม่ได้อยู่ในกลุ่มจ้า (นี่คือแชทส่วนตัว)';
+          
+          await fetch('https://api.line.me/v2/bot/message/reply', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${lineToken}`,
+            },
+            body: JSON.stringify({
+              replyToken: event.replyToken,
+              messages: [{ type: 'text', text: replyText }],
+            }),
+          });
+          continue;
+        }
+
         // ถ้าพิมพ์คำว่า "พริมจ๋า"
         if (text === 'พริมจ๋า') {
           const flexMessage = createMenuFlexMessage();
