@@ -15,19 +15,19 @@ export function createMorningFlexMessage(tasks: Task[]) {
   const header = {
     type: "box",
     layout: "vertical",
-    backgroundColor: "#FCD34D",
+    backgroundColor: "#DC2626",
     contents: [
       {
         type: "text",
-        text: "อรุณสวัสดิ์! ☀️",
+        text: "📢 งานที่ต้องส่งวันนี้",
         weight: "bold",
         size: "xl",
-        color: "#1F2937",
+        color: "#FFFFFF",
       },
       {
         type: "text",
-        text: "แจ้งเตือนงานที่ต้องส่งวันนี้",
-        color: "#4B5563",
+        text: new Date().toLocaleDateString('th-TH', { dateStyle: 'long' }),
+        color: "#FEE2E2",
         size: "sm",
         margin: "sm",
       },
@@ -126,7 +126,132 @@ export function createMorningFlexMessage(tasks: Task[]) {
 
   return {
     type: "flex",
-    altText: "อรุณสวัสดิ์! แจ้งเตือนงานที่ต้องส่งวันนี้",
+    altText: hasTasks ? `มีงานต้องส่งวันนี้ ${tasks.length} รายการ!` : "วันนี้ไม่มีงานต้องส่ง",
+    contents: {
+      type: "bubble",
+      size: "kilo",
+      header,
+      body,
+      footer,
+    },
+  };
+}
+
+export function createTodayAddedFlexMessage(tasks: Task[]) {
+  // Show tasks added to the system today
+  const hasTasks = tasks.length > 0;
+  const todayStr = new Date().toLocaleDateString('th-TH', { dateStyle: 'long' });
+
+  const header = {
+    type: "box",
+    layout: "vertical",
+    backgroundColor: "#1E3A8A",
+    contents: [
+      {
+        type: "text",
+        text: "📋 สรุปงานทั้งหมดในระบบ",
+        weight: "bold",
+        size: "xl",
+        color: "#FFFFFF",
+      },
+      {
+        type: "text",
+        text: todayStr,
+        color: "#BFDBFE",
+        size: "sm",
+        margin: "sm",
+      },
+    ],
+  };
+
+  const bodyContents: any[] = [];
+
+  if (!hasTasks) {
+    bodyContents.push({
+      type: "text",
+      text: "ยังไม่มีงานถูกบันทึกในระบบ",
+      weight: "bold",
+      size: "md",
+      color: "#6B7280",
+      wrap: true,
+      align: "center",
+      margin: "md",
+    });
+  } else {
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0);
+
+    tasks.forEach((task, index) => {
+      const dueDate = new Date(task.due_date);
+      dueDate.setHours(0, 0, 0, 0);
+      const isOverdue = dueDate.getTime() < todayDate.getTime();
+      const isDueToday = dueDate.getTime() === todayDate.getTime();
+
+      const icon = isOverdue ? '🚨' : isDueToday ? '⚠️' : '📝';
+      const color = isOverdue ? '#DC2626' : isDueToday ? '#D97706' : '#111827';
+
+      bodyContents.push({
+        type: "box",
+        layout: "vertical",
+        margin: index === 0 ? "none" : "lg",
+        spacing: "xs",
+        contents: [
+          {
+            type: "text",
+            text: `${icon} ${task.subject}`,
+            weight: "bold",
+            size: "md",
+            wrap: true,
+            color,
+          },
+          {
+            type: "text",
+            text: `กำหนดส่ง: ${new Date(task.due_date).toLocaleDateString('th-TH', { dateStyle: 'short' })}`,
+            size: "xs",
+            color: "#6B7280",
+          },
+        ],
+      });
+      if (task.submission_method) {
+        bodyContents[bodyContents.length - 1].contents.push({
+          type: "text",
+          text: `วิธีส่ง: ${task.submission_method}`,
+          size: "xs",
+          color: "#D97706",
+          weight: "bold",
+        });
+      }
+    });
+  }
+
+  const body = {
+    type: "box",
+    layout: "vertical",
+    spacing: "md",
+    contents: bodyContents,
+  };
+
+  const footer = {
+    type: "box",
+    layout: "vertical",
+    contents: [
+      {
+        type: "button",
+        style: "primary",
+        color: "#4F46E5",
+        height: "sm",
+        action: {
+          type: "uri",
+          label: "ดูรายละเอียดบนเว็บ",
+          uri: "https://your-domain.com",
+        },
+      },
+    ],
+  };
+
+  return {
+    type: "flex",
+    altText: hasTasks ? `สรุปงานในระบบทั้งหมด ${tasks.length} รายการ` : "ยังไม่มีงานในระบบ",
     contents: {
       type: "bubble",
       size: "kilo",
