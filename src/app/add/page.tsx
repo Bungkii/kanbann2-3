@@ -101,7 +101,11 @@ export default function AddTaskPage() {
           <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-600"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
           บันทึกงานใหม่ (ม.2/3)
         </h2>
-        <p className="text-slate-500 mb-8 ml-10">จดไว้นะ จะขึ้นให้ทุกคนเห็นเลยเพราะทำเพื่อเช็คงานว่ามีไรเข้าใจไหม 👀</p>
+        <p className="text-slate-500 text-center flex items-center justify-center gap-1 mb-8">
+          จดไว้นะ (จะขึ้นบอร์ดให้เพื่อนเห็นเพื่อเช็คงานด้วยกัน
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+          )
+        </p>
         
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

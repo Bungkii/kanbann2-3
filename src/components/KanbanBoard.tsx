@@ -37,6 +37,7 @@ const COLUMNS = [
 export default function KanbanBoard({ initialTasks }: { initialTasks: Task[] }) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
+  const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
 
   useEffect(() => {
     setTasks(initialTasks);
@@ -94,7 +95,7 @@ export default function KanbanBoard({ initialTasks }: { initialTasks: Task[] }) 
   const handleDeleteTask = async (taskId: string) => {
     if (confirm('🚨 คำเตือน: คุณกำลังจะลบงานนี้\nแน่ใจหรือไม่? (ระวังลบผิดของเพื่อนนะ!)')) {
       setTasks((prevTasks) => prevTasks.filter((t) => t.id !== taskId));
-      
+
       toast.promise(
         deleteTask(taskId),
         {
@@ -106,6 +107,23 @@ export default function KanbanBoard({ initialTasks }: { initialTasks: Task[] }) 
     }
   };
 
+  const handleToggleTaskStatus = (task: Task) => {
+    const newStatus = task.status === 'done' ? 'todo' : 'done';
+    setTasks((prevTasks) =>
+      prevTasks.map((t) =>
+        t.id === task.id ? { ...t, status: newStatus } : t
+      )
+    );
+    toast.promise(
+      updateTaskStatus(task.id, newStatus),
+      {
+        loading: 'กำลังอัปเดตงาน...',
+        success: newStatus === 'done' ? 'เคลียร์งานสำเร็จ!' : 'ย้ายกลับมาต้องทำ',
+        error: 'เกิดข้อผิดพลาด กรุณาลองใหม่',
+      }
+    );
+  };
+
   // Sort tasks by urgency
   const sortedTasks = useMemo(() => {
     return [...tasks].sort((a, b) => {
@@ -114,11 +132,11 @@ export default function KanbanBoard({ initialTasks }: { initialTasks: Task[] }) 
       const bUrgency = getUrgency(b)?.level || 'chill';
       if (a.status === 'done') return 1;
       if (b.status === 'done') return -1;
-      
+
       const aScore = urgencyMap[aUrgency];
       const bScore = urgencyMap[bUrgency];
       if (aScore !== bScore) return aScore - bScore;
-      
+
       return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
     });
   }, [tasks]);
@@ -136,6 +154,24 @@ export default function KanbanBoard({ initialTasks }: { initialTasks: Task[] }) 
 
   return (
     <div className="flex flex-col h-full">
+      <div className="flex justify-between items-end mb-6">
+        <h2 className="text-xl font-bold text-slate-800">สรุปภาพรวมงาน</h2>
+        <div className="bg-slate-200 p-1 rounded-xl flex">
+          <button
+            onClick={() => setViewMode('board')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === 'board' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'}`}
+          >
+            แบบกระดาน
+          </button>
+          <button
+            onClick={() => setViewMode('list')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'}`}
+          >
+            แบบติ๊ก (Todo List)
+          </button>
+        </div>
+      </div>
+
       {/* Dashboard Overview */}
       <div className="mb-8 grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
@@ -145,10 +181,12 @@ export default function KanbanBoard({ initialTasks }: { initialTasks: Task[] }) 
         <div className="bg-white rounded-2xl p-6 border border-red-100 shadow-[0_0_20px_rgba(239,68,68,0.05)] flex flex-col justify-between relative overflow-hidden">
           <span className="text-red-500 font-bold mb-2 z-10 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-            เกินกำหนดแล้ว! (งานด่วน)
+            เกินกำหนดแล้ว (งานด่วน)
           </span>
           <div className="text-4xl font-extrabold text-red-600 z-10">{overdueTasks}</div>
-          <div className="absolute right-[-20px] bottom-[-20px] text-red-100 text-8xl opacity-30 select-none">🚨</div>
+          <div className="absolute right-[-20px] bottom-[-20px] text-red-100 opacity-30 select-none">
+            <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+          </div>
         </div>
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
           <span className="text-emerald-500 font-medium mb-2">เคลียร์แล้ว</span>
@@ -167,24 +205,71 @@ export default function KanbanBoard({ initialTasks }: { initialTasks: Task[] }) 
         </div>
       </div>
 
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCorners}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="overflow-x-auto w-full pb-6 -mx-4 px-4 sm:mx-0 sm:px-0">
-          <div className="flex gap-6 items-start h-full min-w-max">
-            {tasksByColumn.map((col) => (
-              <KanbanColumn key={col.id} column={col} onDeleteTask={handleDeleteTask} />
+      {viewMode === 'board' ? (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCorners}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="overflow-x-auto w-full pb-6 -mx-4 px-4 sm:mx-0 sm:px-0">
+            <div className="flex gap-6 items-start h-full min-w-max">
+              {tasksByColumn.map((col) => (
+                <KanbanColumn key={col.id} column={col} onDeleteTask={handleDeleteTask} />
+              ))}
+            </div>
+          </div>
+
+          <DragOverlay>
+            {activeTask ? <TaskCard task={activeTask} isOverlay /> : null}
+          </DragOverlay>
+        </DndContext>
+      ) : (
+        <div className="bg-white rounded-3xl border border-slate-200 p-4 sm:p-6 shadow-sm">
+          <div className="space-y-3">
+            {sortedTasks.map(task => (
+              <div
+                key={task.id}
+                className={`flex items-start gap-4 p-4 rounded-2xl border transition-all ${task.status === 'done' ? 'bg-slate-50 border-slate-200 opacity-60' : 'bg-white border-slate-200 shadow-sm hover:border-indigo-300'
+                  }`}
+              >
+                <div className="pt-1">
+                  <button
+                    onClick={() => handleToggleTaskStatus(task)}
+                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${task.status === 'done' ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 hover:border-indigo-500'
+                      }`}
+                  >
+                    {task.status === 'done' && (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                    )}
+                  </button>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className={`font-bold text-lg mb-1 truncate ${task.status === 'done' ? 'text-slate-500 line-through' : 'text-slate-800'}`}>
+                    {task.subject}
+                  </h4>
+                  <p className="text-sm text-slate-500 line-clamp-2 mb-2">{task.details}</p>
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded-md font-medium">
+                      กำหนด: {new Date(task.due_date).toLocaleDateString('th-TH')}
+                    </span>
+                    {task.teacher_name && (
+                      <span className="text-slate-400">
+                        มิส: {task.teacher_name}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
             ))}
+            {sortedTasks.length === 0 && (
+              <div className="text-center py-12 text-slate-500">
+                ไม่มีงานในระบบ
+              </div>
+            )}
           </div>
         </div>
-
-        <DragOverlay>
-          {activeTask ? <TaskCard task={activeTask} isOverlay /> : null}
-        </DragOverlay>
-      </DndContext>
+      )}
     </div>
   );
 }

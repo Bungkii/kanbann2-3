@@ -32,7 +32,7 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   // Protect routes
-  if (!user && request.nextUrl.pathname.startsWith('/kanban')) {
+  if (!user && request.nextUrl.pathname.startsWith('/add')) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
