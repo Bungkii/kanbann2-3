@@ -1,0 +1,39 @@
+-- Create table for homework tasks
+CREATE TABLE IF NOT EXISTS homework_tasks (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    subject text NOT NULL,
+    due_date timestamp with time zone NOT NULL,
+    details text NOT NULL,
+    image_url text,
+    teacher_name text,
+    status text DEFAULT 'todo'::text,
+    created_at timestamp with time zone DEFAULT now()
+);
+
+-- Enable Row Level Security
+ALTER TABLE homework_tasks ENABLE ROW LEVEL SECURITY;
+
+-- Create policies for authenticated users
+-- Assuming an authenticated user can do anything for simplicity
+CREATE POLICY "Allow authenticated read access" ON homework_tasks FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Allow authenticated insert access" ON homework_tasks FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "Allow authenticated update access" ON homework_tasks FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Allow authenticated delete access" ON homework_tasks FOR DELETE TO authenticated USING (true);
+
+-- Create storage bucket for homework images
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('homework-images', 'homework-images', true) 
+ON CONFLICT (id) DO NOTHING;
+
+-- Storage policies for homework-images
+-- Allow public access to read images
+CREATE POLICY "Public access to read images" ON storage.objects FOR SELECT USING (bucket_id = 'homework-images');
+
+-- Allow authenticated users to upload images
+CREATE POLICY "Authenticated users can upload images" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'homework-images');
+
+-- Allow authenticated users to update images
+CREATE POLICY "Authenticated users can update images" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'homework-images');
+
+-- Allow authenticated users to delete images
+CREATE POLICY "Authenticated users can delete images" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'homework-images');
