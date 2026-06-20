@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createMenuFlexMessage } from '@/utils/line/flex';
+import { createMenuFlexMessage, createMorningFlexMessage, createEveningFlexMessage, Task } from '@/utils/line/flex';
+import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request: Request) {
   try {
@@ -39,6 +40,68 @@ export async function POST(request: Request) {
           continue;
         }
 
+        // ถ้าพิมพ์คำว่า "คำสั่งเพิ่มเติม"
+        if (text === 'คำสั่งเพิ่มเติม') {
+          const replyText = `🤖 คู่มือการใช้งานของชามนพิ 🤖\nสามารถพิมพ์คำสั่งเหล่านี้ในแชทได้เลยคราบ!\n\n🔹 พริมจ๋า - เรียกเมนูหลัก\n🔹 พริมจ๋า งานวันนี้ - ดูงานที่ต้องส่งวันนี้\n🔹 พริมจ๋า งานค้าง - ดูงานที่เลยกำหนดแล้ว\n🔹 พริมจ๋า ดูไอดี - ดูไอดีกลุ่มสำหรับแอดมิน\n\n💡 หากต้องการเพิ่มงาน กดปุ่มจากเมนูหลักได้เลยจ้า`;
+          
+          await fetch('https://api.line.me/v2/bot/message/reply', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${lineToken}`,
+            },
+            body: JSON.stringify({
+              replyToken: event.replyToken,
+              messages: [{ type: 'text', text: replyText }],
+            }),
+          });
+          continue;
+        }
+
+        // ถ้าพิมพ์คำว่า "พริมจ๋า งานวันนี้" หรือ "พริมจ๋า งานค้าง"
+        if (text === 'พริมจ๋า งานวันนี้' || text === 'พริมจ๋า งานค้าง') {
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+          const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+          const supabase = createClient(supabaseUrl, supabaseKey);
+
+          const { data: tasks, error } = await supabase
+            .from('homework_tasks')
+            .select('*')
+            .order('due_date', { ascending: true });
+
+          if (error) {
+            console.error('Error fetching tasks:', error);
+            continue;
+          }
+
+          let flexMessage;
+          if (text === 'พริมจ๋า งานวันนี้') {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const dueTodayOrOverdue = (tasks as Task[]).filter(task => {
+              const dueDate = new Date(task.due_date);
+              dueDate.setHours(0, 0, 0, 0);
+              return dueDate.getTime() === today.getTime();
+            });
+            flexMessage = createMorningFlexMessage(dueTodayOrOverdue);
+          } else {
+            flexMessage = createEveningFlexMessage(tasks as Task[]);
+          }
+
+          await fetch('https://api.line.me/v2/bot/message/reply', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${lineToken}`,
+            },
+            body: JSON.stringify({
+              replyToken: event.replyToken,
+              messages: [flexMessage],
+            }),
+          });
+          continue;
+        }
+
         // ถ้าพิมพ์คำว่า "พริมจ๋า"
         if (text === 'พริมจ๋า') {
           const flexMessage = createMenuFlexMessage();
@@ -55,6 +118,7 @@ export async function POST(request: Request) {
               messages: [flexMessage],
             }),
           });
+          continue;
         }
       }
     }
