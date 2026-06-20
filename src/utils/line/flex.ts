@@ -282,7 +282,7 @@ export function createEveningFlexMessage(tasks: Task[]) {
     contents: [
       {
         type: "text",
-        text: "สรุปงานประจำวัน 🌙",
+        text: "สรุปงานประจำวัน",
         weight: "bold",
         size: "xl",
         color: "#FFFFFF",
@@ -380,7 +380,7 @@ export function createEveningFlexMessage(tasks: Task[]) {
 
   return {
     type: "flex",
-    altText: "สรุปงานประจำวัน อย่าลืมเคลียร์งานนะ!",
+    altText: "สรุปงานประจำวัน อย่าลืมเคลียร์งานนะจ้ะ",
     contents: {
       type: "bubble",
       size: "kilo",
