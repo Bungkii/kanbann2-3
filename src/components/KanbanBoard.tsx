@@ -77,7 +77,7 @@ export default function KanbanBoard({ initialTasks }: { initialTasks: Task[] }) 
       const newTasks = prevTasks.map((t) =>
         t.id === taskId ? { ...t, status: newStatus } : t
       );
-      
+
       try {
         const saved = localStorage.getItem('personalTaskStatus');
         const localStatuses = saved ? JSON.parse(saved) : {};
@@ -86,11 +86,11 @@ export default function KanbanBoard({ initialTasks }: { initialTasks: Task[] }) 
       } catch (e) {
         console.error('Failed to save personal status', e);
       }
-      
+
       return newTasks;
     });
-    
-    toast.success(newStatus === 'done' ? 'เคลียร์งานส่วนตัวสำเร็จ!' : 'อัปเดตสถานะส่วนตัวแล้ว');
+
+    toast.success(newStatus === 'done' ? 'งานเส้จแล้วจ่า' : 'อัปเดตสถานะแล้ว');
   };
 
   const sensors = useSensors(
@@ -130,17 +130,8 @@ export default function KanbanBoard({ initialTasks }: { initialTasks: Task[] }) 
   };
 
   const handleDeleteTask = async (taskId: string) => {
-    if (confirm('🚨 คำเตือน: คุณกำลังจะลบงานนี้\nแน่ใจหรือไม่? (ระวังลบผิดของเพื่อนนะ!)')) {
-      setTasks((prevTasks) => prevTasks.filter((t) => t.id !== taskId));
-
-      toast.promise(
-        deleteTask(taskId),
-        {
-          loading: 'กำลังลบงาน...',
-          success: 'ลบงานสำเร็จ!',
-          error: 'ลบงานไม่สำเร็จ กรุณาลองใหม่',
-        }
-      );
+    if (confirm('🚨 คำเตือน: คุณกำลังจะลบงานนี้\n(งานนี้จะถูกซ่อนจากหน้าจอของคุณเท่านั้น ไม่กระทบกับคนอื่น) แน่ใจหรือไม่?')) {
+      updateLocalStatus(taskId, 'deleted');
     }
   };
 
@@ -149,9 +140,11 @@ export default function KanbanBoard({ initialTasks }: { initialTasks: Task[] }) 
     updateLocalStatus(task.id, newStatus);
   };
 
+  const activeTasks = useMemo(() => tasks.filter(t => t.status !== 'deleted'), [tasks]);
+
   // Sort tasks by urgency
   const sortedTasks = useMemo(() => {
-    return [...tasks].sort((a, b) => {
+    return [...activeTasks].sort((a, b) => {
       const urgencyMap: Record<string, number> = { critical: 0, warning: 1, chill: 2 };
       const aUrgency = getUrgency(a)?.level || 'chill';
       const bUrgency = getUrgency(b)?.level || 'chill';
@@ -164,7 +157,7 @@ export default function KanbanBoard({ initialTasks }: { initialTasks: Task[] }) 
 
       return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
     });
-  }, [tasks]);
+  }, [activeTasks]);
 
   const tasksByColumn = COLUMNS.map((col) => ({
     ...col,
@@ -172,9 +165,9 @@ export default function KanbanBoard({ initialTasks }: { initialTasks: Task[] }) 
   }));
 
   // Stats for Dashboard
-  const totalTasks = tasks.length;
-  const doneTasks = tasks.filter(t => t.status === 'done').length;
-  const overdueTasks = tasks.filter(t => getUrgency(t)?.level === 'critical').length;
+  const totalTasks = activeTasks.length;
+  const doneTasks = activeTasks.filter(t => t.status === 'done').length;
+  const overdueTasks = activeTasks.filter(t => getUrgency(t)?.level === 'critical').length;
   const progress = totalTasks === 0 ? 0 : Math.round((doneTasks / totalTasks) * 100);
 
   return (
@@ -192,7 +185,7 @@ export default function KanbanBoard({ initialTasks }: { initialTasks: Task[] }) 
             onClick={() => setViewMode('list')}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'}`}
           >
-            แบบติ๊ก (Todo List)
+            แบบติ๊ก
           </button>
         </div>
       </div>
@@ -206,11 +199,11 @@ export default function KanbanBoard({ initialTasks }: { initialTasks: Task[] }) 
         <div className="bg-white rounded-2xl p-6 border border-red-100 shadow-[0_0_20px_rgba(239,68,68,0.05)] flex flex-col justify-between relative overflow-hidden">
           <span className="text-red-500 font-bold mb-2 z-10 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-            เกินกำหนดแล้ว (งานด่วน)
+            เกินกำหนดแล้ว
           </span>
           <div className="text-4xl font-extrabold text-red-600 z-10">{overdueTasks}</div>
           <div className="absolute right-[-20px] bottom-[-20px] text-red-100 opacity-30 select-none">
-            <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>
           </div>
         </div>
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
@@ -284,7 +277,7 @@ export default function KanbanBoard({ initialTasks }: { initialTasks: Task[] }) 
                     </span>
                     {task.teacher_name && (
                       <span className="text-slate-400">
-                        มิส: {task.teacher_name}
+                        คนสั่ง: {task.teacher_name}
                       </span>
                     )}
                   </div>
@@ -308,24 +301,24 @@ export default function KanbanBoard({ initialTasks }: { initialTasks: Task[] }) 
               <div className="flex justify-between items-start mb-4">
                 <h3 className="text-2xl font-bold text-slate-800 pr-4">{selectedTask.subject}</h3>
                 <button onClick={() => setSelectedTask(null)} className="text-slate-400 hover:bg-slate-100 p-2 rounded-full transition-colors shrink-0">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
                 </button>
               </div>
-              
+
               {selectedTask.image_url && (
                 <div className="mb-6 rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
                   <img src={selectedTask.image_url} alt="Task attachment" className="w-full object-contain max-h-64" />
                 </div>
               )}
-              
+
               <div className="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-5 mb-6">
                 <h4 className="text-sm font-bold text-indigo-800 mb-2 flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>
                   รายละเอียดงาน
                 </h4>
                 <p className="text-slate-700 whitespace-pre-wrap leading-relaxed">{selectedTask.details}</p>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col justify-center">
                   <span className="text-slate-500 block mb-1 font-medium text-xs uppercase tracking-wider">กำหนดส่ง</span>
