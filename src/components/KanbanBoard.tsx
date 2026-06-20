@@ -42,7 +42,8 @@ export default function KanbanBoard({ initialTasks, isAuthenticated = false }: {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
+  const [viewMode, setViewMode] = useState<'board' | 'list' | 'category'>('board');
+  const [filterSubject, setFilterSubject] = useState<string>('all');
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -217,6 +218,39 @@ export default function KanbanBoard({ initialTasks, isAuthenticated = false }: {
 
   const activeTasks = useMemo(() => tasks.filter(t => t.status !== 'deleted'), [tasks]);
 
+  // Category view helpers (must be after activeTasks)
+  const uniqueSubjects = useMemo(() => {
+    const subjects = [...new Set(activeTasks.map(t => t.subject))];
+    return subjects.sort();
+  }, [activeTasks]);
+
+  const categoryGroups = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const sevenDays = new Date(today);
+    sevenDays.setDate(sevenDays.getDate() + 7);
+
+    const filtered = filterSubject === 'all'
+      ? activeTasks
+      : activeTasks.filter(t => t.subject === filterSubject);
+
+    const overdue = filtered.filter(t => {
+      const d = new Date(t.due_date); d.setHours(0,0,0,0);
+      return d < today && t.status !== 'done';
+    });
+    const urgent = filtered.filter(t => {
+      const d = new Date(t.due_date); d.setHours(0,0,0,0);
+      return d >= today && d <= sevenDays && t.status !== 'done';
+    });
+    const far = filtered.filter(t => {
+      const d = new Date(t.due_date); d.setHours(0,0,0,0);
+      return d > sevenDays && t.status !== 'done';
+    });
+    const done = filtered.filter(t => t.status === 'done');
+
+    return { overdue, urgent, far, done };
+  }, [activeTasks, filterSubject]);
+
   // Sort tasks by urgency
   const sortedTasks = useMemo(() => {
     return [...activeTasks].sort((a, b) => {
@@ -249,18 +283,30 @@ export default function KanbanBoard({ initialTasks, isAuthenticated = false }: {
     <div className="flex flex-col h-full">
       <div className="flex justify-between items-end mb-6">
         <h2 className="text-xl font-bold text-slate-800">สรุปภาพรวมงาน</h2>
-        <div className="bg-slate-200 p-1 rounded-xl flex">
+        <div className="bg-slate-200 p-1 rounded-xl flex gap-0.5">
           <button
             onClick={() => setViewMode('board')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === 'board' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'}`}
+            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+              viewMode === 'board' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'
+            }`}
           >
-            แบบกระดาน
+            กระดาน
           </button>
           <button
             onClick={() => setViewMode('list')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'}`}
+            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+              viewMode === 'list' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'
+            }`}
           >
-            แบบติ๊ก
+            ติ๊ก
+          </button>
+          <button
+            onClick={() => setViewMode('category')}
+            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+              viewMode === 'category' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            หมวดหมู่
           </button>
         </div>
       </div>
@@ -317,6 +363,73 @@ export default function KanbanBoard({ initialTasks, isAuthenticated = false }: {
             {activeTask ? <TaskCard task={activeTask} isOverlay /> : null}
           </DragOverlay>
         </DndContext>
+      ) : viewMode === 'category' ? (
+        <div className="space-y-4">
+          {/* Subject filter */}
+          <div className="flex flex-wrap gap-2 pb-2">
+            <button
+              onClick={() => setFilterSubject('all')}
+              className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-colors ${
+                filterSubject === 'all' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              ทุกวิชา
+            </button>
+            {uniqueSubjects.map(subject => (
+              <button
+                key={subject}
+                onClick={() => setFilterSubject(subject)}
+                className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-colors ${
+                  filterSubject === subject ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {subject}
+              </button>
+            ))}
+          </div>
+
+          {/* Overdue section */}
+          {categoryGroups.overdue.length > 0 && (
+            <CategorySection
+              title="🚨 เลยกำหนดแล้ว"
+              tasks={categoryGroups.overdue}
+              color="red"
+              onTaskClick={setSelectedTask}
+              onToggle={handleToggleTaskStatus}
+            />
+          )}
+
+          {/* Urgent section */}
+          <CategorySection
+            title="⚡ ส่งเร็วๆ นี้ (7 วันหน้า)"
+            tasks={categoryGroups.urgent}
+            color="amber"
+            onTaskClick={setSelectedTask}
+            onToggle={handleToggleTaskStatus}
+            emptyText="ไม่มีงานที่ต้องส่งใน 7 วันนี้ 🎉"
+          />
+
+          {/* Far section */}
+          <CategorySection
+            title="📅 อีกยาวไกล (มากกว่า 7 วัน)"
+            tasks={categoryGroups.far}
+            color="slate"
+            onTaskClick={setSelectedTask}
+            onToggle={handleToggleTaskStatus}
+            emptyText="ไม่มีงานระยะยาว"
+          />
+
+          {/* Done section */}
+          {categoryGroups.done.length > 0 && (
+            <CategorySection
+              title="✅ เสร็จแล้ว"
+              tasks={categoryGroups.done}
+              color="emerald"
+              onTaskClick={setSelectedTask}
+              onToggle={handleToggleTaskStatus}
+            />
+          )}
+        </div>
       ) : (
         <div className="bg-white rounded-3xl border border-slate-200 p-4 sm:p-6 shadow-sm">
           <div className="space-y-3">
@@ -517,6 +630,106 @@ export default function KanbanBoard({ initialTasks, isAuthenticated = false }: {
               </div>
             )}
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── CategorySection ────────────────────────────────────────────────────────
+type CategorySectionProps = {
+  title: string;
+  tasks: Task[];
+  color: 'red' | 'amber' | 'slate' | 'emerald';
+  onTaskClick: (task: Task) => void;
+  onToggle: (task: Task) => void;
+  emptyText?: string;
+};
+
+const COLOR_MAP = {
+  red:     { section: 'border-red-200 bg-red-50',     badge: 'bg-red-100 text-red-700',     header: 'text-red-700' },
+  amber:   { section: 'border-amber-200 bg-amber-50', badge: 'bg-amber-100 text-amber-700', header: 'text-amber-700' },
+  slate:   { section: 'border-slate-200 bg-slate-50', badge: 'bg-slate-100 text-slate-600', header: 'text-slate-600' },
+  emerald: { section: 'border-emerald-100 bg-emerald-50/50', badge: 'bg-emerald-100 text-emerald-700', header: 'text-emerald-700' },
+};
+
+function CategorySection({ title, tasks, color, onTaskClick, onToggle, emptyText }: CategorySectionProps) {
+  const [collapsed, setCollapsed] = React.useState(false);
+  const c = COLOR_MAP[color];
+
+  return (
+    <div className={`rounded-2xl border ${c.section} overflow-hidden`}>
+      {/* Header */}
+      <button
+        onClick={() => setCollapsed(v => !v)}
+        className="w-full flex items-center justify-between px-5 py-3 hover:brightness-95 transition"
+      >
+        <span className={`font-bold text-sm ${c.header} flex items-center gap-2`}>
+          {title}
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${c.badge}`}>
+            {tasks.length}
+          </span>
+        </span>
+        <svg
+          xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+          viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          className={`transition-transform ${collapsed ? '-rotate-90' : ''} text-slate-400`}
+        >
+          <path d="m6 9 6 6 6-6"/>
+        </svg>
+      </button>
+
+      {/* Body */}
+      {!collapsed && (
+        <div className="px-4 pb-4 space-y-2">
+          {tasks.length === 0 && emptyText ? (
+            <p className="text-center text-slate-400 text-sm py-4">{emptyText}</p>
+          ) : (
+            tasks.map(task => (
+              <div
+                key={task.id}
+                onClick={() => onTaskClick(task)}
+                className={`flex items-start gap-3 bg-white rounded-xl border px-4 py-3 cursor-pointer shadow-sm transition-all hover:border-indigo-300 ${
+                  task.status === 'done' ? 'opacity-50' : ''
+                }`}
+              >
+                {/* Checkbox */}
+                <button
+                  onClick={e => { e.stopPropagation(); onToggle(task); }}
+                  className={`mt-0.5 w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
+                    task.status === 'done'
+                      ? 'bg-emerald-500 border-emerald-500 text-white'
+                      : 'border-slate-300 hover:border-indigo-500'
+                  }`}
+                >
+                  {task.status === 'done' && (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                  )}
+                </button>
+
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <p className={`font-semibold text-sm ${task.status === 'done' ? 'line-through text-slate-400' : 'text-slate-800'}`}>
+                    {task.subject}
+                  </p>
+                  {task.details && (
+                    <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">{task.details}</p>
+                  )}
+                  <div className="flex flex-wrap gap-2 mt-1.5">
+                    <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md">
+                      {new Date(task.due_date).toLocaleDateString('th-TH', { dateStyle: 'short' })}
+                    </span>
+                    {task.submission_method && (
+                      <span className="text-xs bg-orange-50 text-orange-600 font-medium px-2 py-0.5 rounded-md">
+                        {task.submission_method}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       )}
     </div>

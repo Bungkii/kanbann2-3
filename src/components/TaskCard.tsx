@@ -53,7 +53,7 @@ export default function TaskCard({ task, isOverlay, onDelete, onClick }: { task:
     e.stopPropagation();
     const textToCopy = `วิชา: ${task.subject}\nรายละเอียด: ${task.details}`;
     navigator.clipboard.writeText(textToCopy);
-    toast.success('โหมดลอกการบ้าน: คัดลอกลงคลิปบอร์ดแล้ว! 🤫');
+    toast.success('คัดลอกลงคลิปบอร์ดแล้ว');
   };
 
   const handleImageClick = (e: React.MouseEvent) => {

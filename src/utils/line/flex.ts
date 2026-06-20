@@ -117,8 +117,8 @@ export function createMorningFlexMessage(tasks: Task[]) {
         height: "sm",
         action: {
           type: "uri",
-          label: "ดูงานทั้งหมดบนเว็บ",
-          uri: "https://your-domain.com", // TODO: Replace with actual domain
+          label: "ดูงานทั้งหมด",
+          uri: "https://kanbann.bungkii.vercel.app/kanban", // TODO: Replace with actual domain
         },
       },
     ],
@@ -149,7 +149,7 @@ export function createTodayAddedFlexMessage(tasks: Task[]) {
     contents: [
       {
         type: "text",
-        text: "📋 สรุปงานทั้งหมดในระบบ",
+        text: "📋 สรุปงานทั้งหมด",
         weight: "bold",
         size: "xl",
         color: "#FFFFFF",
@@ -242,8 +242,8 @@ export function createTodayAddedFlexMessage(tasks: Task[]) {
         height: "sm",
         action: {
           type: "uri",
-          label: "ดูรายละเอียดบนเว็บ",
-          uri: "https://your-domain.com",
+          label: "ดูรายละเอียด",
+          uri: "https://kanbann.bungkii.vercel.app/kanban",
         },
       },
     ],
@@ -274,7 +274,7 @@ export function createEveningFlexMessage(tasks: Task[]) {
   });
 
   const hasTasks = dueTasks.length > 0;
-  
+
   const header = {
     type: "box",
     layout: "vertical",
@@ -302,7 +302,7 @@ export function createEveningFlexMessage(tasks: Task[]) {
   if (!hasTasks) {
     bodyContents.push({
       type: "text",
-      text: "วันนี้ไม่มีงานค้างจ้า พักผ่อนได้เลย! 😴",
+      text: "วันนี้ไม่มีงานค้างจ้า",
       weight: "bold",
       size: "md",
       color: "#10B981",
@@ -371,8 +371,8 @@ export function createEveningFlexMessage(tasks: Task[]) {
         height: "sm",
         action: {
           type: "uri",
-          label: "คลิกเคลียร์งาน",
-          uri: "https://your-domain.com", // TODO: Replace with actual domain
+          label: "รายละเอียดเพิ่มเติม",
+          uri: "https://kanbann.bungkii.vercel.app/kanban", // TODO: Replace with actual domain
         },
       },
     ],
