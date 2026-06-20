@@ -2,9 +2,38 @@ import { NextResponse } from 'next/server';
 import { createMenuFlexMessage, createMorningFlexMessage, createEveningFlexMessage, Task } from '@/utils/line/flex';
 import { createClient } from '@supabase/supabase-js';
 
+// GET handler สำหรับ LINE Webhook verification
+export async function GET() {
+  return NextResponse.json({ message: 'Webhook is active' }, { status: 200 });
+}
+
+// Helper function สำหรับ reply ข้อความกลับ LINE พร้อม error handling
+async function replyToLine(replyToken: string, messages: any[], lineToken: string) {
+  const response = await fetch('https://api.line.me/v2/bot/message/reply', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${lineToken}`,
+    },
+    body: JSON.stringify({
+      replyToken,
+      messages,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('LINE Reply API Error:', response.status, errorText);
+  }
+
+  return response;
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    console.log('Webhook received:', JSON.stringify(body).substring(0, 500));
+
     const lineToken = process.env.LINE_CHANNEL_ACCESS_TOKEN;
 
     if (!lineToken) {
@@ -14,47 +43,31 @@ export async function POST(request: Request) {
 
     const events = body.events;
     if (!events || !Array.isArray(events)) {
+      console.log('No events in webhook body');
       return NextResponse.json({ message: 'No events' }, { status: 200 });
     }
+
+    console.log(`Processing ${events.length} event(s)`);
 
     for (const event of events) {
       if (event.type === 'message' && event.message.type === 'text') {
         const text = event.message.text.trim();
+        console.log(`Received text message: "${text}"`);
         
         // ถ้าพิมพ์คำว่า "พริมจ๋า ดูไอดี"
         if (text === 'พริมจ๋า ดูไอดี') {
           const groupId = event.source.groupId || event.source.roomId;
           const replyText = groupId ? `Group ID ของกลุ่มนี้คือ:\n${groupId}` : 'ไม่ได้อยู่ในกลุ่มจ้า (นี่คือแชทส่วนตัว)';
           
-          await fetch('https://api.line.me/v2/bot/message/reply', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${lineToken}`,
-            },
-            body: JSON.stringify({
-              replyToken: event.replyToken,
-              messages: [{ type: 'text', text: replyText }],
-            }),
-          });
+          await replyToLine(event.replyToken, [{ type: 'text', text: replyText }], lineToken);
           continue;
         }
 
         // ถ้าพิมพ์คำว่า "คำสั่งเพิ่มเติม"
         if (text === 'คำสั่งเพิ่มเติม') {
-          const replyText = `🤖 คู่มือการใช้งานของชามนพิ 🤖\nสามารถพิมพ์คำสั่งเหล่านี้ในแชทได้เลยคราบ!\n\n🔹 พริมจ๋า - เรียกเมนูหลัก\n🔹 พริมจ๋า งานวันนี้ - ดูงานที่ต้องส่งวันนี้\n🔹 พริมจ๋า งานค้าง - ดูงานที่เลยกำหนดแล้ว\n🔹 พริมจ๋า ดูไอดี - ดูไอดีกลุ่มสำหรับแอดมิน\n\n💡 หากต้องการเพิ่มงาน กดปุ่มจากเมนูหลักได้เลยจ้า`;
+          const replyText = `คู่มือการใช้งานของชามนพิ\nสามารถพิมพ์คำสั่งเหล่านี้ในแชทได้เลยคราบ\n🔹 พริมจ๋า - เรียกเมนูหลัก \n🔹 พริมจ๋า งานวันนี้ - ดูงานที่ต้องส่งวันนี้\n🔹 พริมจ๋า งานค้าง - ดูงานที่เลยกำหนดแล้ว\n🔹 พริมจ๋า ดูไอดี - ดูไอดีกลุ่ม`;
           
-          await fetch('https://api.line.me/v2/bot/message/reply', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${lineToken}`,
-            },
-            body: JSON.stringify({
-              replyToken: event.replyToken,
-              messages: [{ type: 'text', text: replyText }],
-            }),
-          });
+          await replyToLine(event.replyToken, [{ type: 'text', text: replyText }], lineToken);
           continue;
         }
 
@@ -71,6 +84,7 @@ export async function POST(request: Request) {
 
           if (error) {
             console.error('Error fetching tasks:', error);
+            await replyToLine(event.replyToken, [{ type: 'text', text: 'เกิดข้อผิดพลาดในการดึงข้อมูลงาน กรุณาลองใหม่ภายหลังจ้า 😢' }], lineToken);
             continue;
           }
 
@@ -88,36 +102,14 @@ export async function POST(request: Request) {
             flexMessage = createEveningFlexMessage(tasks as Task[]);
           }
 
-          await fetch('https://api.line.me/v2/bot/message/reply', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${lineToken}`,
-            },
-            body: JSON.stringify({
-              replyToken: event.replyToken,
-              messages: [flexMessage],
-            }),
-          });
+          await replyToLine(event.replyToken, [flexMessage], lineToken);
           continue;
         }
 
-        // ถ้าพิมพ์คำว่า "พริมจ๋า"
+        // ถ้าพิมพ์คำว่า "พริมจ๋า" (ต้องอยู่หลัง sub-commands ที่ขึ้นต้นด้วย "พริมจ๋า" เพราะ exact match)
         if (text === 'พริมจ๋า') {
           const flexMessage = createMenuFlexMessage();
-
-          // ส่งข้อความกลับด้วย LINE Reply API
-          await fetch('https://api.line.me/v2/bot/message/reply', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${lineToken}`,
-            },
-            body: JSON.stringify({
-              replyToken: event.replyToken,
-              messages: [flexMessage],
-            }),
-          });
+          await replyToLine(event.replyToken, [flexMessage], lineToken);
           continue;
         }
       }
