@@ -51,7 +51,7 @@ export async function POST(request: Request) {
 
     for (const event of events) {
       if (event.type === 'message' && event.message.type === 'text') {
-        const text = event.message.text.trim();
+        const text = event.message.text.trim().replace(/^["']|["']$/g, '');
         console.log(`Received text message: "${text}"`);
         
         // ถ้าพิมพ์คำว่า "พริมจ๋า ดูไอดี"
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
 
         // ถ้าพิมพ์คำว่า "คำสั่งเพิ่มเติม"
         if (text === 'คำสั่งเพิ่มเติม') {
-          const replyText = `คู่มือการใช้งานของชามนพิ\nสามารถพิมพ์คำสั่งเหล่านี้ในแชทได้เลยคราบ\n🔹 พริมจ๋า - เรียกเมนูหลัก \n🔹 พริมจ๋า งานวันนี้ - ดูงานที่ต้องส่งวันนี้\n🔹 พริมจ๋า งานค้าง - ดูงานที่เลยกำหนดแล้ว\n🔹 พริมจ๋า ดูไอดี - ดูไอดีกลุ่ม`;
+          const replyText = `คู่มือการใช้งานของชามนพิ\nสามารถพิมพ์คำสั่งเหล่านี้ในแชทได้เลยคราบ\n🔹 "พริมจ๋า" - เรียกเมนูหลัก\n🔹 "พริมจ๋า งานวันนี้" - ดูงานที่ต้องส่งวันนี้\n🔹 "พริมจ๋า งานค้าง" - ดูงานที่เลยกำหนดแล้ว\n🔹 "พริมจ๋า ดูไอดี" - ดูไอดีกลุ่ม`;
           
           await replyToLine(event.replyToken, [{ type: 'text', text: replyText }], lineToken);
           continue;
