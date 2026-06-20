@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { IBM_Plex_Sans_Thai } from "next/font/google";
 import ToasterProvider from "@/components/ToasterProvider";
 import Footer from "@/components/Footer";
+import AnnouncementPopup from "@/components/AnnouncementPopup";
 import "./globals.css";
 
 const ibmPlexSansThai = IBM_Plex_Sans_Thai({
@@ -28,6 +29,7 @@ export default function RootLayout({
         </div>
         <Footer />
         <ToasterProvider />
+        <AnnouncementPopup />
       </body>
     </html>
   );
