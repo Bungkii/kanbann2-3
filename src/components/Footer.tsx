@@ -13,7 +13,7 @@ export default function Footer() {
             onClick={() => setShowPromptPay(true)}
             className="flex items-center gap-2 hover:text-indigo-600 transition-colors bg-slate-50 hover:bg-indigo-50 px-5 py-2.5 rounded-full border border-slate-200"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" x2="6" y1="2" y2="4"/><line x1="10" x2="10" y1="2" y2="4"/><line x1="14" x2="14" y1="2" y2="4"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 8h1a4 4 0 1 1 0 8h-1" /><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z" /><line x1="6" x2="6" y1="2" y2="4" /><line x1="10" x2="10" y1="2" y2="4" /><line x1="14" x2="14" y1="2" y2="4" /></svg>
             สนับสนุนเด็กชายบุ้งกี๋
           </button>
 
@@ -23,7 +23,7 @@ export default function Footer() {
             rel="noopener noreferrer"
             className="flex items-center gap-2 hover:text-red-500 transition-colors bg-slate-50 hover:bg-red-50 px-5 py-2.5 rounded-full border border-slate-200"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m8 2 1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.8 3 7.1 3 5"/><path d="M17.47 9c1.93-.2 3.53-1.9 3.53-4"/><path d="M8 12H4.62"/><path d="M16 12h3.38"/><path d="M8 15H5.5"/><path d="M16 15h2.5"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m8 2 1.88 1.88" /><path d="M14.12 3.88 16 2" /><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1" /><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6" /><path d="M12 20v-9" /><path d="M6.53 9C4.6 8.8 3 7.1 3 5" /><path d="M17.47 9c1.93-.2 3.53-1.9 3.53-4" /><path d="M8 12H4.62" /><path d="M16 12h3.38" /><path d="M8 15H5.5" /><path d="M16 15h2.5" /></svg>
             รายงานปัญหา
           </a>
         </div>
@@ -44,7 +44,7 @@ export default function Footer() {
                 alt="PromptPay QR Code"
                 className="w-full max-w-[250px] h-auto rounded-xl shadow-sm"
                 onError={(e) => {
-                  e.currentTarget.src = 'https://placehold.co/300x400/indigo/white?text=ใส่รูป PromptPay\\nที่โฟลเดอร์\\npublic/asset/promptpay.jpg';
+                  e.currentTarget.src = 'https://scontent.fbkk9-2.fna.fbcdn.net/v/t1.15752-9/726307289_1493619848750044_6694277304500813341_n.jpg?_nc_cat=110&ccb=1-7&_nc_sid=fc17b8&_nc_ohc=OorwswX7J54Q7kNvwE8ug49&_nc_oc=AdptABinrjwVn9JRRIt_sk6x-ENhxSVg_qQpYFtQTf472vIHy-b5Ew1GsJPHS6jlW39_gmUVrqFwNHL3j3KvpEKl&_nc_ad=z-m&_nc_cid=1277&_nc_zt=23&_nc_ht=scontent.fbkk9-2.fna&_nc_ss=7a22e&oh=03_Q7cD5gE5UMPDUfIS9Fw3cuVmMZnIbqxXyl1c-in14WrAoiTxVQ&oe=6A5D8984';
                 }}
               />
             </div>
