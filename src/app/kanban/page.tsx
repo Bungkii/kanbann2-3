@@ -12,6 +12,9 @@ export default async function KanbanPage() {
     .select('*')
     .order('created_at', { ascending: false });
 
+  const { data: { session } } = await supabase.auth.getSession();
+  const isAuthenticated = !!session;
+
   if (error) {
     console.error('Error fetching tasks:', error);
   }
@@ -34,7 +37,7 @@ export default async function KanbanPage() {
       </header>
 
       <main className="flex-1 p-8 overflow-x-auto">
-        <KanbanBoard initialTasks={tasks || []} />
+        <KanbanBoard initialTasks={tasks || []} isAuthenticated={isAuthenticated} />
       </main>
     </div>
   );
