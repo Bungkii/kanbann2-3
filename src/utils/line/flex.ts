@@ -39,7 +39,7 @@ export function createMorningFlexMessage(tasks: Task[]) {
   if (!hasTasks) {
     bodyContents.push({
       type: "text",
-      text: "วันนี้ไม่มีการบ้านที่ต้องส่ง! 🎉 เย้!",
+      text: "วันนี้ไม่มีการบ้านที่ต้องส่ง 🎉",
       weight: "bold",
       size: "md",
       color: "#10B981",
@@ -289,7 +289,7 @@ export function createEveningFlexMessage(tasks: Task[]) {
       },
       {
         type: "text",
-        text: "อย่าลืมเคลียร์งานก่อนนอนนะ",
+        text: "ด้วยความปรารถนาดีจากชามนพิ",
         color: "#BFDBFE",
         size: "sm",
         margin: "sm",
@@ -313,7 +313,7 @@ export function createEveningFlexMessage(tasks: Task[]) {
   } else {
     bodyContents.push({
       type: "text",
-      text: "วันนี้มีงานที่ต้องทำ/ค้างอยู่นะ!",
+      text: "วันนี้มีงานค้างอยู่",
       weight: "bold",
       color: "#EF4444",
       size: "md",
