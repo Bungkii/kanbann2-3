@@ -13,9 +13,10 @@ CREATE TABLE IF NOT EXISTS homework_tasks (
 -- Enable Row Level Security
 ALTER TABLE homework_tasks ENABLE ROW LEVEL SECURITY;
 
--- Create policies for authenticated users
--- Assuming an authenticated user can do anything for simplicity
-CREATE POLICY "Allow authenticated read access" ON homework_tasks FOR SELECT TO authenticated USING (true);
+-- Create policies for access
+-- Allow ANYONE (including public) to read tasks
+CREATE POLICY "Allow public read access" ON homework_tasks FOR SELECT USING (true);
+-- Allow only authenticated users to insert, update, and delete
 CREATE POLICY "Allow authenticated insert access" ON homework_tasks FOR INSERT TO authenticated WITH CHECK (true);
 CREATE POLICY "Allow authenticated update access" ON homework_tasks FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Allow authenticated delete access" ON homework_tasks FOR DELETE TO authenticated USING (true);

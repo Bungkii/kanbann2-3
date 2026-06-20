@@ -37,7 +37,19 @@ const COLUMNS = [
 export default function KanbanBoard({ initialTasks }: { initialTasks: Task[] }) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
+
+  useEffect(() => {
+    const checkMobile = () => {
+      if (window.innerWidth < 768) {
+        setViewMode('list');
+      }
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     setTasks(initialTasks);
@@ -75,11 +87,17 @@ export default function KanbanBoard({ initialTasks }: { initialTasks: Task[] }) 
 
     const taskToMove = tasks.find((t) => t.id === taskId);
     if (taskToMove && taskToMove.status !== newStatus) {
-      setTasks((prevTasks) =>
-        prevTasks.map((t) =>
+      setTasks((prevTasks) => {
+        const newTasks = prevTasks.map((t) =>
           t.id === taskId ? { ...t, status: newStatus } : t
-        )
-      );
+        );
+        try {
+          localStorage.setItem('kanbanTasks', JSON.stringify(newTasks));
+        } catch (e) {
+          console.error('Failed to save tasks to local storage:', e);
+        }
+        return newTasks;
+      });
 
       toast.promise(
         updateTaskStatus(taskId, newStatus),
@@ -215,7 +233,7 @@ export default function KanbanBoard({ initialTasks }: { initialTasks: Task[] }) 
           <div className="overflow-x-auto w-full pb-6 -mx-4 px-4 sm:mx-0 sm:px-0">
             <div className="flex gap-6 items-start h-full min-w-max">
               {tasksByColumn.map((col) => (
-                <KanbanColumn key={col.id} column={col} onDeleteTask={handleDeleteTask} />
+                <KanbanColumn key={col.id} column={col} onDeleteTask={handleDeleteTask} onTaskClick={setSelectedTask} />
               ))}
             </div>
           </div>
@@ -230,12 +248,16 @@ export default function KanbanBoard({ initialTasks }: { initialTasks: Task[] }) 
             {sortedTasks.map(task => (
               <div
                 key={task.id}
-                className={`flex items-start gap-4 p-4 rounded-2xl border transition-all ${task.status === 'done' ? 'bg-slate-50 border-slate-200 opacity-60' : 'bg-white border-slate-200 shadow-sm hover:border-indigo-300'
+                onClick={() => setSelectedTask(task)}
+                className={`flex items-start gap-4 p-4 rounded-2xl border transition-all cursor-pointer ${task.status === 'done' ? 'bg-slate-50 border-slate-200 opacity-60' : 'bg-white border-slate-200 shadow-sm hover:border-indigo-300'
                   }`}
               >
                 <div className="pt-1">
                   <button
-                    onClick={() => handleToggleTaskStatus(task)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleTaskStatus(task);
+                    }}
                     className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${task.status === 'done' ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 hover:border-indigo-500'
                       }`}
                   >
@@ -267,6 +289,61 @@ export default function KanbanBoard({ initialTasks }: { initialTasks: Task[] }) 
                 ไม่มีงานในระบบ
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Task Modal */}
+      {selectedTask && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200">
+            <div className="p-6 overflow-y-auto">
+              <div className="flex justify-between items-start mb-4">
+                <h3 className="text-2xl font-bold text-slate-800 pr-4">{selectedTask.subject}</h3>
+                <button onClick={() => setSelectedTask(null)} className="text-slate-400 hover:bg-slate-100 p-2 rounded-full transition-colors shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                </button>
+              </div>
+              
+              {selectedTask.image_url && (
+                <div className="mb-6 rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
+                  <img src={selectedTask.image_url} alt="Task attachment" className="w-full object-contain max-h-64" />
+                </div>
+              )}
+              
+              <div className="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-5 mb-6">
+                <h4 className="text-sm font-bold text-indigo-800 mb-2 flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                  รายละเอียดงาน
+                </h4>
+                <p className="text-slate-700 whitespace-pre-wrap leading-relaxed">{selectedTask.details}</p>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col justify-center">
+                  <span className="text-slate-500 block mb-1 font-medium text-xs uppercase tracking-wider">กำหนดส่ง</span>
+                  <span className="font-bold text-slate-800 text-base">{new Date(selectedTask.due_date).toLocaleDateString('th-TH', { dateStyle: 'long' })}</span>
+                </div>
+                {selectedTask.teacher_name && (
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col justify-center">
+                    <span className="text-slate-500 block mb-1 font-medium text-xs uppercase tracking-wider">คุณครูผู้สอน</span>
+                    <span className="font-bold text-slate-800 text-base">{selectedTask.teacher_name}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="border-t border-slate-100 p-4 bg-slate-50 flex justify-end gap-3 shrink-0">
+              <button onClick={() => {
+                navigator.clipboard.writeText(`วิชา: ${selectedTask.subject}\nรายละเอียด: ${selectedTask.details}`);
+                toast.success('คัดลอกรายละเอียดแล้ว');
+              }} className="px-5 py-2.5 bg-white border border-slate-300 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors shadow-sm flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>
+                คัดลอกงาน
+              </button>
+              <button onClick={() => setSelectedTask(null)} className="px-5 py-2.5 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition-colors shadow-sm">
+                ปิดหน้าต่าง
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -21,7 +21,7 @@ export function getUrgency(task: Task) {
   }
 }
 
-export default function TaskCard({ task, isOverlay, onDelete }: { task: Task; isOverlay?: boolean; onDelete?: (id: string) => void }) {
+export default function TaskCard({ task, isOverlay, onDelete, onClick }: { task: Task; isOverlay?: boolean; onDelete?: (id: string) => void; onClick?: (task: Task) => void }) {
   const {
     attributes,
     listeners,
@@ -74,6 +74,10 @@ export default function TaskCard({ task, isOverlay, onDelete }: { task: Task; is
       style={style}
       {...attributes}
       {...listeners}
+      onClick={(e) => {
+        // Prevent default only if we're not dragging
+        if (onClick) onClick(task);
+      }}
       className={`bg-white rounded-xl p-4 shadow-sm border border-slate-200 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow
         ${isOverlay ? 'rotate-2 scale-105 shadow-xl' : ''}
         ${urgency?.level === 'critical' ? 'border-red-200 shadow-[0_0_15px_rgba(239,68,68,0.1)]' : ''}
@@ -105,7 +109,7 @@ export default function TaskCard({ task, isOverlay, onDelete }: { task: Task; is
           <button
             onClick={handleCopyHomework}
             className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 p-1.5 rounded-md transition-colors"
-            title="ลอกการบ้าน (คัดลอก)"
+            title="ลอกการบ้าน"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>
           </button>

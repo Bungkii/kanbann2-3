@@ -13,9 +13,10 @@ type ColumnProps = {
     tasks: Task[];
   };
   onDeleteTask?: (id: string) => void;
+  onTaskClick?: (task: Task) => void;
 };
 
-export default function KanbanColumn({ column, onDeleteTask }: ColumnProps) {
+export default function KanbanColumn({ column, onDeleteTask, onTaskClick }: ColumnProps) {
   const { setNodeRef } = useDroppable({
     id: column.id,
   });
@@ -40,7 +41,7 @@ export default function KanbanColumn({ column, onDeleteTask }: ColumnProps) {
             </div>
           ) : (
             column.tasks.map((task) => (
-              <TaskCard key={task.id} task={task} onDelete={onDeleteTask} />
+              <TaskCard key={task.id} task={task} onDelete={onDeleteTask} onClick={onTaskClick} />
             ))
           )}
         </SortableContext>
