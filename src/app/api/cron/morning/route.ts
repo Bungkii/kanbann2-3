@@ -33,14 +33,19 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Failed to fetch tasks' }, { status: 500 });
     }
 
-    // Filter tasks due today or earlier
+    // Filter tasks due today OR at most 1 day overdue (yesterday).
+    // Tasks overdue by 2+ days are excluded from LINE alerts.
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
 
     const dueTodayOrOverdue = (tasks as Task[]).filter(task => {
       const dueDate = new Date(task.due_date);
       dueDate.setHours(0, 0, 0, 0);
-      return dueDate.getTime() <= today.getTime();
+      // Include: due today, or due yesterday (1 day overdue). Skip older than that.
+      return dueDate.getTime() >= yesterday.getTime() && dueDate.getTime() <= today.getTime();
     });
 
     const flexMessage = createMorningFlexMessage(dueTodayOrOverdue);
