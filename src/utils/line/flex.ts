@@ -28,7 +28,7 @@ export function createMorningFlexMessage(tasks: Task[]) {
         text: "แจ้งเตือนงานที่ต้องส่งวันนี้",
         color: "#4B5563",
         size: "sm",
-        marginTop: "sm",
+        margin: "sm",
       },
     ],
   };
@@ -146,7 +146,7 @@ export function createEveningFlexMessage(tasks: Task[]) {
         text: "อย่าลืมเคลียร์งานก่อนนอนนะ",
         color: "#BFDBFE",
         size: "sm",
-        marginTop: "sm",
+        margin: "sm",
       },
     ],
   };
