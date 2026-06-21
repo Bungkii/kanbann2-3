@@ -531,3 +531,83 @@ export function createVoteLeaderFlexMessage() {
     },
   };
 }
+
+export function createCustomPollFlexMessage(pollId: string, question: string, options: string[], endTimeStr: string) {
+  const endDate = new Date(endTimeStr);
+  const endText = `ปิดโหวต: ${endDate.toLocaleDateString('th-TH', { dateStyle: 'short' })} เวลา ${endDate.toLocaleTimeString('th-TH', { timeStyle: 'short' })}`;
+
+  const buttons = options.map((option, index) => ({
+    type: "button",
+    style: "primary",
+    color: "#4F46E5",
+    margin: "sm",
+    action: {
+      type: "message",
+      label: option.substring(0, 40), // LINE label max 40 chars
+      text: `โหวตโพล:${pollId}:${index}`,
+    },
+  }));
+
+  return {
+    type: "flex",
+    altText: `โพลใหม่: ${question}`,
+    contents: {
+      type: "bubble",
+      size: "kilo",
+      header: {
+        type: "box",
+        layout: "vertical",
+        backgroundColor: "#1E3A8A",
+        contents: [
+          {
+            type: "text",
+            text: "📊 โพลโหวต",
+            weight: "bold",
+            size: "xl",
+            color: "#FFFFFF",
+          },
+          {
+            type: "text",
+            text: endText,
+            color: "#BFDBFE",
+            size: "sm",
+            margin: "sm",
+          },
+        ],
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        spacing: "sm",
+        contents: [
+          {
+            type: "text",
+            text: question,
+            weight: "bold",
+            size: "md",
+            wrap: true,
+            color: "#111827",
+            margin: "md",
+          },
+          ...buttons,
+        ],
+      },
+      footer: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          {
+            type: "button",
+            style: "secondary",
+            height: "sm",
+            action: {
+              type: "message",
+              label: "ดูผลโหวต",
+              text: `สรุปโพล:${pollId}`,
+            },
+          },
+        ],
+      },
+    },
+  };
+}

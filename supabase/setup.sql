@@ -53,3 +53,42 @@ ALTER TABLE leader_votes ENABLE ROW LEVEL SECURITY;
 
 -- Allow public access to leader_votes for webhook operations
 CREATE POLICY "Allow public all access on leader_votes" ON leader_votes FOR ALL USING (true) WITH CHECK (true);
+
+-- Create table for system settings (e.g., poll end times)
+CREATE TABLE IF NOT EXISTS system_settings (
+    key text PRIMARY KEY,
+    value text NOT NULL,
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+-- Enable Row Level Security for system_settings
+ALTER TABLE system_settings ENABLE ROW LEVEL SECURITY;
+-- Create table for custom polls
+CREATE TABLE IF NOT EXISTS custom_polls (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    question text NOT NULL,
+    options text[] NOT NULL,
+    end_time timestamp with time zone NOT NULL,
+    created_at timestamp with time zone DEFAULT now()
+);
+
+-- Enable Row Level Security for custom_polls
+ALTER TABLE custom_polls ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public all access on custom_polls" ON custom_polls FOR ALL USING (true) WITH CHECK (true);
+
+-- Create table for custom poll votes
+CREATE TABLE IF NOT EXISTS custom_poll_votes (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    poll_id uuid REFERENCES custom_polls(id) ON DELETE CASCADE,
+    user_id text NOT NULL,
+    voted_for text NOT NULL,
+    created_at timestamp with time zone DEFAULT now(),
+    UNIQUE(poll_id, user_id)
+);
+
+-- Enable Row Level Security for custom_poll_votes
+ALTER TABLE custom_poll_votes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public all access on custom_poll_votes" ON custom_poll_votes FOR ALL USING (true) WITH CHECK (true);
+
+-- Allow public access to system_settings for webhook operations and client-side access
+CREATE POLICY "Allow public all access on system_settings" ON system_settings FOR ALL USING (true) WITH CHECK (true);

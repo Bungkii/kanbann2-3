@@ -106,16 +106,14 @@ export async function POST(request: Request) {
           continue;
         }
 
-        // ถ้าพิมพ์คำว่า "พริมจ๋า เปลี่ยนหัวหน้า"
-        if (text === 'พริมจ๋า เปลี่ยนหัวหน้า') {
-          const flexMessage = createVoteLeaderFlexMessage();
-          await replyToLine(event.replyToken, [flexMessage], lineToken);
-          continue;
-        }
+        // ถ้าพิมพ์โหวตโพล
+        if (text.startsWith('โหวตโพล:')) {
+          // Format: โหวตโพล:<poll_id>:<option_index>
+          const parts = text.split(':');
+          if (parts.length !== 3) continue;
 
-        // ถ้าพิมพ์โหวตหัวหน้า
-        if (text.startsWith('โหวตหัวหน้า:')) {
-          const votedFor = text.replace('โหวตหัวหน้า:', '').trim();
+          const pollId = parts[1];
+          const optionIndex = parseInt(parts[2], 10);
           const userId = event.source.userId;
           
           if (!userId) {
@@ -127,37 +125,86 @@ export async function POST(request: Request) {
           const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
           const supabase = createClient(supabaseUrl, supabaseKey);
 
-          const { error } = await supabase
-            .from('leader_votes')
-            .upsert({ user_id: userId, voted_for: votedFor }, { onConflict: 'user_id' });
+          // 1. Check if poll exists and is not expired
+          const { data: poll, error: pollError } = await supabase
+            .from('custom_polls')
+            .select('*')
+            .eq('id', pollId)
+            .single();
 
-          if (error) {
-            console.error('Error saving vote:', error);
+          if (pollError || !poll) {
+            await replyToLine(event.replyToken, [{ type: 'text', text: 'ไม่พบโพลนี้ในระบบจ้า 😢' }], lineToken);
+            continue;
+          }
+
+          const now = new Date();
+          const endTime = new Date(poll.end_time);
+
+          if (now > endTime) {
+            await replyToLine(event.replyToken, [{ type: 'text', text: 'โพลนี้หมดเวลาโหวตไปแล้วจ้า 😢' }], lineToken);
+            continue;
+          }
+
+          const votedForText = poll.options[optionIndex];
+          if (!votedForText) {
+            await replyToLine(event.replyToken, [{ type: 'text', text: 'ตัวเลือกนี้ไม่มีในโพลจ้า 😢' }], lineToken);
+            continue;
+          }
+
+          // 2. Upsert vote
+          const { error: voteError } = await supabase
+            .from('custom_poll_votes')
+            .upsert({ poll_id: pollId, user_id: userId, voted_for: votedForText }, { onConflict: 'poll_id,user_id' });
+
+          if (voteError) {
+            console.error('Error saving vote:', voteError);
             await replyToLine(event.replyToken, [{ type: 'text', text: 'เกิดข้อผิดพลาดในการบันทึกโหวต กรุณาลองใหม่ 😢' }], lineToken);
           } else {
-            await replyToLine(event.replyToken, [{ type: 'text', text: `บันทึกโหวตให้ ${votedFor} เรียบร้อยแล้วจ้า 🎉` }], lineToken);
+            await replyToLine(event.replyToken, [{ type: 'text', text: `บันทึกโหวต "${votedForText}" เรียบร้อยแล้วจ้า 🎉` }], lineToken);
           }
           continue;
         }
 
-        // ถ้าพิมพ์คำว่า "พริมจ๋า สรุปโหวตหัวหน้า"
-        if (text === 'พริมจ๋า สรุปโหวตหัวหน้า') {
+        // ถ้าพิมพ์คำว่า "สรุปโพล:xxx"
+        if (text.startsWith('สรุปโพล:')) {
+          const pollId = text.replace('สรุปโพล:', '').trim();
           const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
           const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
           const supabase = createClient(supabaseUrl, supabaseKey);
 
-          const { data: votes, error } = await supabase
-            .from('leader_votes')
-            .select('voted_for');
+          // 1. Fetch poll details
+          const { data: poll, error: pollError } = await supabase
+            .from('custom_polls')
+            .select('*')
+            .eq('id', pollId)
+            .single();
 
-          if (error) {
-            console.error('Error fetching votes:', error);
+          if (pollError || !poll) {
+            await replyToLine(event.replyToken, [{ type: 'text', text: 'ไม่พบโพลนี้ในระบบจ้า 😢' }], lineToken);
+            continue;
+          }
+
+          // 2. Fetch votes
+          const { data: votes, error: votesError } = await supabase
+            .from('custom_poll_votes')
+            .select('voted_for')
+            .eq('poll_id', pollId);
+
+          if (votesError) {
+            console.error('Error fetching votes:', votesError);
             await replyToLine(event.replyToken, [{ type: 'text', text: 'เกิดข้อผิดพลาดในการดึงข้อมูลโหวต 😢' }], lineToken);
             continue;
           }
 
+          const now = new Date();
+          const endTime = new Date(poll.end_time);
+          const isEnded = now > endTime;
+
+          let summaryText = `📊 สรุปผลโพล: ${poll.question}\n${isEnded ? '(หมดเวลาโหวตแล้ว)' : '(ยังเปิดโหวตอยู่)'}\n\n`;
+
           if (!votes || votes.length === 0) {
-            await replyToLine(event.replyToken, [{ type: 'text', text: 'ยังไม่มีคนโหวตเลยจ้า 🥺' }], lineToken);
+            summaryText += 'ยังไม่มีคนโหวตเลยจ้า 🥺';
+            await replyToLine(event.replyToken, [{ type: 'text', text: summaryText }], lineToken);
             continue;
           }
 
@@ -166,8 +213,9 @@ export async function POST(request: Request) {
             return acc;
           }, {});
 
+          // Sort by count descending
           const sortedVotes = Object.entries(voteCounts).sort((a: any, b: any) => b[1] - a[1]);
-          let summaryText = '📊 สรุปผลโหวตหัวหน้า\n\n';
+          
           sortedVotes.forEach(([name, count]) => {
             summaryText += `- ${name}: ${count} โหวต\n`;
           });

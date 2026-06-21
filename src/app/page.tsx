@@ -20,7 +20,7 @@ export default async function Home() {
             </div>
           </Link>
 
-          <div className="flex justify-center mt-4">
+          <div className="flex flex-col gap-4 items-center mt-4">
             {!user ? (
               <Link
                 href="/login"
@@ -35,6 +35,16 @@ export default async function Home() {
                 </button>
               </form>
             )}
+
+            <Link
+              href="/line"
+              className="text-emerald-600 hover:text-emerald-700 font-medium transition-colors text-sm flex items-center gap-1.5"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              จัดการข้อความ LINE
+            </Link>
           </div>
         </div>
 
