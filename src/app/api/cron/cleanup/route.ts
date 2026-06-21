@@ -22,7 +22,8 @@ export async function GET(request: Request) {
     const { data, error } = await supabase
       .from('homework_tasks')
       .delete()
-      .lt('created_at', cutoffIsoString);
+      .lt('created_at', cutoffIsoString)
+      .select();
 
     if (error) {
       console.error('Error deleting old tasks:', error);
