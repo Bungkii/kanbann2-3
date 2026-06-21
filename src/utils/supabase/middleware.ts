@@ -32,7 +32,7 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   // Protect routes
-  if (!user && request.nextUrl.pathname.startsWith('/add')) {
+  if (!user && (request.nextUrl.pathname.startsWith('/add') || request.nextUrl.pathname.startsWith('/line'))) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)

@@ -476,7 +476,8 @@ export function createVoteLeaderFlexMessage() {
   const candidates = [
     "บุ้งกี๋",
     "ฉงฉง",
-    "ออสติน",
+    "แสตมป์",
+    "สาทร",
     "ฟอส",
     "เฟิส",
     "ปอเช่(ถาพัด)",
