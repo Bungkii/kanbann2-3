@@ -106,6 +106,37 @@ export async function POST(request: Request) {
           continue;
         }
 
+        // ถ้าพิมพ์ "พริมจ๋า ส่งโพลล่าสุด" (เพื่อประหยัด Push Quota)
+        if (text === 'พริมจ๋า ส่งโพลล่าสุด') {
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+          const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+          const supabase = createClient(supabaseUrl, supabaseKey);
+
+          // Get latest poll
+          const { data: latestPoll, error: pollError } = await supabase
+            .from('custom_polls')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+          if (pollError || !latestPoll) {
+            await replyToLine(event.replyToken, [{ type: 'text', text: 'ยังไม่มีโพลในระบบจ้า' }], lineToken);
+            continue;
+          }
+
+          const { createCustomPollFlexMessage } = await import('@/utils/line/flex');
+          const flexMessage = createCustomPollFlexMessage(
+            latestPoll.id,
+            latestPoll.question,
+            latestPoll.options,
+            latestPoll.end_time
+          );
+
+          await replyToLine(event.replyToken, [flexMessage], lineToken);
+          continue;
+        }
+
         // ถ้าพิมพ์โหวตโพล
         if (text.startsWith('โหวตโพล:')) {
           // Format: โหวตโพล:<poll_id>:<option_index>

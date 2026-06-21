@@ -66,42 +66,7 @@ export async function createCustomPoll(question: string, options: string[], endT
     return { error: 'เกิดข้อผิดพลาดในการสร้างโพลลงฐานข้อมูล' };
   }
 
-  // 2. Send Flex Message to LINE group
-  const lineToken = process.env.LINE_CHANNEL_ACCESS_TOKEN;
-  if (!lineToken) {
-    return { error: 'ไม่ได้ตั้งค่า LINE_CHANNEL_ACCESS_TOKEN' };
-  }
-
-  const flexMessage = createCustomPollFlexMessage(poll.id, question, options, endTimeStr);
-  const groupId = process.env.LINE_GROUP_ID;
-  const apiUrl = groupId 
-    ? 'https://api.line.me/v2/bot/message/push'
-    : 'https://api.line.me/v2/bot/message/broadcast';
-    
-  const bodyPayload = groupId
-    ? { to: groupId, messages: [flexMessage] }
-    : { messages: [flexMessage] };
-
-  try {
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${lineToken}`,
-      },
-      body: JSON.stringify(bodyPayload),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('LINE API Error during poll start:', errorText);
-      return { error: `ส่งโพลไม่สำเร็จ: ${errorText}` };
-    }
-
-    return { success: true };
-  } catch (error: any) {
-    console.error('Start poll LINE message error:', error);
-    return { error: 'เกิดข้อผิดพลาดในการส่งข้อความโพลไปที่ LINE' };
-  }
+  // 2. We no longer send Push message to save quota. Instead, we return a success flag that tells the UI to instruct the user.
+  return { success: true, requireTrigger: true, pollId: poll.id };
 }
 

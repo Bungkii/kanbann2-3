@@ -19,7 +19,7 @@ export function createMorningFlexMessage(tasks: Task[]) {
     contents: [
       {
         type: "text",
-        text: "📢 งานที่ต้องส่งวันนี้",
+        text: "📢 แจ้งเตือนงานวันนี้",
         weight: "bold",
         size: "xl",
         color: "#FFFFFF",
@@ -282,7 +282,7 @@ export function createEveningFlexMessage(tasks: Task[]) {
     contents: [
       {
         type: "text",
-        text: "สรุปงานประจำวัน",
+        text: "📢 สรุปงานประจำวัน",
         weight: "bold",
         size: "xl",
         color: "#FFFFFF",

@@ -101,6 +101,11 @@ export default function LinePage() {
       
       if (result?.error) {
         toast.error(result.error, { id: toastId });
+      } else if (result?.requireTrigger) {
+        toast.success('บันทึกโพลแล้ว! กรุณาพิมพ์ "พริมจ๋า ส่งโพลล่าสุด" ในแชทกลุ่ม LINE เพื่อให้บอทส่งโพล (ฟรีโควต้า)', { id: toastId, duration: 8000 });
+        setPollQuestion('');
+        setPollOptions(['', '']);
+        setPollEndTime('');
       } else {
         toast.success('เปิดโพลโหวตสำเร็จ! 🎉', { id: toastId });
         setPollQuestion('');
