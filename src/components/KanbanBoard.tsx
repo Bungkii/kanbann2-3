@@ -21,6 +21,7 @@ import toast from 'react-hot-toast';
 import { updateTaskDetails } from '@/app/kanban/actions';
 import { createClient } from '@/utils/supabase/client';
 import { Users, User, Trophy } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export type Task = {
   id: string;
@@ -492,10 +493,25 @@ export default function KanbanBoard({ initialTasks, isAuthenticated = false }: {
       )}
 
       {/* Task Modal */}
-      {selectedTask && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200">
-            <div className="p-6 overflow-y-auto">
+      <AnimatePresence>
+        {selectedTask && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+              onClick={() => setSelectedTask(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh] z-10 relative"
+            >
+              <div className="p-6 overflow-y-auto">
               <div className="flex justify-between items-start mb-4">
                 <h3 className="text-2xl font-bold text-slate-800 pr-4">
                   {isEditing ? 'แก้ไขงาน' : selectedTask.subject}
@@ -672,9 +688,10 @@ export default function KanbanBoard({ initialTasks, isAuthenticated = false }: {
                 </div>
               </div>
             )}
+          </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -724,57 +741,71 @@ function CategorySection({ title, tasks, color, onTaskClick, onToggle, emptyText
       </button>
 
       {/* Body */}
-      {!collapsed && (
-        <div className="px-4 pb-4 space-y-2">
-          {tasks.length === 0 && emptyText ? (
-            <p className="text-center text-slate-400 text-sm py-4">{emptyText}</p>
-          ) : (
-            tasks.map(task => (
-              <div
-                key={task.id}
-                onClick={() => onTaskClick(task)}
-                className={`flex items-start gap-3 bg-white rounded-xl border px-4 py-3 cursor-pointer shadow-sm transition-all hover:border-indigo-300 ${
-                  task.status === 'done' ? 'opacity-50' : ''
-                }`}
-              >
-                {/* Checkbox */}
-                <button
-                  onClick={e => { e.stopPropagation(); onToggle(task); }}
-                  className={`mt-0.5 w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
-                    task.status === 'done'
-                      ? 'bg-emerald-500 border-emerald-500 text-white'
-                      : 'border-slate-300 hover:border-indigo-500'
-                  }`}
-                >
-                  {task.status === 'done' && (
-                    <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                  )}
-                </button>
+      <AnimatePresence initial={false}>
+        {!collapsed && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            className="overflow-hidden"
+          >
+            <div className="px-4 pb-4 space-y-2">
+              {tasks.length === 0 && emptyText ? (
+                <p className="text-center text-slate-400 text-sm py-4">{emptyText}</p>
+              ) : (
+                tasks.map(task => (
+                  <motion.div
+                    layout
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    key={task.id}
+                    onClick={() => onTaskClick(task)}
+                    className={`flex items-start gap-3 bg-white rounded-xl border px-4 py-3 cursor-pointer shadow-sm transition-all hover:border-indigo-300 ${
+                      task.status === 'done' ? 'opacity-50' : ''
+                    }`}
+                  >
+                    {/* Checkbox */}
+                    <button
+                      onClick={e => { e.stopPropagation(); onToggle(task); }}
+                      className={`mt-0.5 w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
+                        task.status === 'done'
+                          ? 'bg-emerald-500 border-emerald-500 text-white'
+                          : 'border-slate-300 hover:border-indigo-500'
+                      }`}
+                    >
+                      {task.status === 'done' && (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                      )}
+                    </button>
 
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <p className={`font-semibold text-sm ${task.status === 'done' ? 'line-through text-slate-400' : 'text-slate-800'}`}>
-                    {task.subject}
-                  </p>
-                  {task.details && (
-                    <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">{task.details}</p>
-                  )}
-                  <div className="flex flex-wrap gap-2 mt-1.5">
-                    <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md">
-                      {new Date(task.due_date).toLocaleDateString('th-TH', { dateStyle: 'short' })}
-                    </span>
-                    {task.submission_method && (
-                      <span className="text-xs bg-orange-50 text-orange-600 font-medium px-2 py-0.5 rounded-md">
-                        {task.submission_method}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <p className={`font-semibold text-sm ${task.status === 'done' ? 'line-through text-slate-400' : 'text-slate-800'}`}>
+                        {task.subject}
+                      </p>
+                      {task.details && (
+                        <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">{task.details}</p>
+                      )}
+                      <div className="flex flex-wrap gap-2 mt-1.5">
+                        <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md">
+                          {new Date(task.due_date).toLocaleDateString('th-TH', { dateStyle: 'short' })}
+                        </span>
+                        {task.submission_method && (
+                          <span className="text-xs bg-orange-50 text-orange-600 font-medium px-2 py-0.5 rounded-md">
+                            {task.submission_method}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                ))
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
