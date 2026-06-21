@@ -83,7 +83,7 @@ export default function AddTaskPage() {
       router.refresh();
     } catch (error: any) {
       console.error('Error adding homework:', error);
-      toast.error(`เกิดข้อผิดพลาด: ${error.message || 'ไม่สามารถบันทึกงานได้'}`, { id: toastId });
+      toast.error(`เกิดข้อผิดพลาด: ${error.message || 'ไม่สามารถบันทึกงานได้คราบ'}`, { id: toastId });
     } finally {
       setLoading(false);
     }
@@ -101,10 +101,10 @@ export default function AddTaskPage() {
         </Link>
         <h2 className="text-3xl font-bold mb-2 text-slate-800 flex items-center gap-3">
           <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-600"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
-          บันทึกงานใหม่ (ม.2/3)
+          บันทึกงานใหม่
         </h2>
         <p className="text-slate-500 text-center flex items-center justify-center gap-1 mb-8">
-          จดไว้นะ (จะขึ้นบอร์ดให้เพื่อนเห็นเพื่อเช็คงานด้วยกัน
+          จดไว้นะ (จะขึ้นบอร์ดให้เพื่อนเห็นเพื่อเช็คงาน
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
           )
         </p>
@@ -112,24 +112,24 @@ export default function AddTaskPage() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="md:col-span-2">
-              <label className="block text-sm font-semibold text-slate-700 mb-2">ชื่อวิชา (Subject) *</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">ชื่อวิชา *</label>
               <input required name="subject" placeholder="เช่น คณิตศาสตร์, วิทยาศาสตร์" className="w-full border border-slate-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm" />
             </div>
             
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">กำหนดเสร็จ (Due Date) *</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">กำหนดเสร็จ *</label>
               <input required type="date" name="due_date" className="w-full border border-slate-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm" />
             </div>
             
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">ครูผู้สั่ง (Teacher)</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">ครูผู้สั่ง</label>
               <input name="teacher_name" placeholder="ชื่อครู" className="w-full border border-slate-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm" />
             </div>
           </div>
           
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">วิธีการส่งงาน (Submission Method)</label>
-            <input name="submission_method" placeholder="เช่น ส่งที่โต๊ะ, ส่งในไก่ทวง, ส่งกับครู" className="w-full border border-slate-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm" />
+            <label className="block text-sm font-semibold text-slate-700 mb-2">วิธีการส่งงาน</label>
+            <input name="submission_method" placeholder="ส่งที่โต๊ะ, ส่งในไก่งวง, ส่งกับครู" className="w-full border border-slate-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm" />
           </div>
 
           <div>
@@ -138,7 +138,7 @@ export default function AddTaskPage() {
           </div>
           
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">รูปภาพประกอบ (สำหรับคนลอก)</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">รูปภาพปลากรอบ</label>
             <div 
               className={`border-2 border-dashed rounded-xl p-6 transition-colors text-center cursor-pointer ${imagePreview ? 'border-indigo-300 bg-indigo-50/50' : 'border-slate-300 hover:border-indigo-400 hover:bg-slate-50'}`}
               onClick={() => fileInputRef.current?.click()}
