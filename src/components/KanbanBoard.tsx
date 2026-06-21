@@ -20,6 +20,7 @@ import toast from 'react-hot-toast';
 
 import { updateTaskDetails } from '@/app/kanban/actions';
 import { createClient } from '@/utils/supabase/client';
+import { Users, User, Trophy } from 'lucide-react';
 
 export type Task = {
   id: string;
@@ -30,6 +31,9 @@ export type Task = {
   teacher_name: string | null;
   submission_method: string | null;
   status: string;
+  work_type?: string | null;
+  group_size?: number | null;
+  max_score?: number | null;
 };
 
 const COLUMNS = [
@@ -161,6 +165,9 @@ export default function KanbanBoard({ initialTasks, isAuthenticated = false }: {
       const details = formData.get('details') as string;
       const teacher_name = formData.get('teacher_name') as string;
       const submission_method = formData.get('submission_method') as string;
+      const max_score = formData.get('max_score') as string;
+      const work_type = formData.get('work_type') as string;
+      const group_size = work_type === 'group' ? formData.get('group_size') as string : null;
       const imageFile = formData.get('image') as File | null;
 
       let image_url = selectedTask.image_url;
@@ -191,6 +198,9 @@ export default function KanbanBoard({ initialTasks, isAuthenticated = false }: {
         details,
         teacher_name: teacher_name || null,
         submission_method: submission_method || null,
+        work_type: work_type || 'individual',
+        group_size: group_size ? parseInt(group_size) : null,
+        max_score: max_score ? parseFloat(max_score) : null,
         image_url
       };
 
@@ -522,6 +532,23 @@ export default function KanbanBoard({ initialTasks, isAuthenticated = false }: {
                     <label className="block text-sm font-semibold text-slate-700 mb-1">วิธีการส่งงาน</label>
                     <input name="submission_method" defaultValue={selectedTask.submission_method || ''} placeholder="เช่น ส่งที่โต๊ะ, ส่งในไก่ทวง" className="w-full border border-slate-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none" />
                   </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1">ประเภทงาน</label>
+                      <select name="work_type" defaultValue={selectedTask.work_type || 'individual'} className="w-full border border-slate-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none">
+                        <option value="individual">งานเดี่ยว</option>
+                        <option value="group">งานกลุ่ม</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1">จำนวนคน (ถ้ามี)</label>
+                      <input type="number" name="group_size" defaultValue={selectedTask.group_size || ''} className="w-full border border-slate-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1">คะแนนเต็ม</label>
+                    <input type="number" step="0.5" name="max_score" defaultValue={selectedTask.max_score || ''} className="w-full border border-slate-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none" />
+                  </div>
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-1">รายละเอียด</label>
                     <textarea required name="details" defaultValue={selectedTask.details} rows={3} className="w-full border border-slate-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none resize-none" />
@@ -596,6 +623,22 @@ export default function KanbanBoard({ initialTasks, isAuthenticated = false }: {
                   <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex flex-col justify-center">
                     <span className="text-orange-600 block mb-1 font-medium text-xs uppercase tracking-wider">วิธีส่ง</span>
                     <span className="font-bold text-orange-900 text-base line-clamp-1">{selectedTask.submission_method}</span>
+                  </div>
+                )}
+                <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 flex flex-col justify-center">
+                  <span className="text-indigo-600 block mb-1 font-medium text-xs uppercase tracking-wider">ประเภทงาน</span>
+                  <span className="font-bold text-indigo-900 text-base flex items-center gap-1.5">
+                    {selectedTask.work_type === 'group' ? (
+                      <><Users size={16} /> งานกลุ่ม {selectedTask.group_size ? `(${selectedTask.group_size} คน)` : ''}</>
+                    ) : (
+                      <><User size={16} /> งานเดี่ยว</>
+                    )}
+                  </span>
+                </div>
+                {selectedTask.max_score != null && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex flex-col justify-center">
+                    <span className="text-amber-600 block mb-1 font-medium text-xs uppercase tracking-wider">คะแนนเต็ม</span>
+                    <span className="font-bold text-amber-900 text-base flex items-center gap-1.5"><Trophy size={16} /> {selectedTask.max_score} คะแนน</span>
                   </div>
                 )}
               </div>

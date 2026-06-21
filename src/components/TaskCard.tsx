@@ -5,6 +5,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { format, isBefore, isToday, isTomorrow, differenceInDays, startOfDay } from 'date-fns';
 import toast from 'react-hot-toast';
+import { Users, Trophy } from 'lucide-react';
 import type { Task } from './KanbanBoard';
 
 export function getUrgency(task: Task) {
@@ -104,7 +105,23 @@ export default function TaskCard({ task, isOverlay, onDelete, onClick }: { task:
       )}
 
       <div className="flex justify-between items-start mb-2 gap-2">
-        <h4 className="font-bold text-slate-800 line-clamp-2 leading-tight flex-1">{task.subject}</h4>
+        <div className="flex-1 min-w-0">
+          <h4 className="font-bold text-slate-800 line-clamp-2 leading-tight">{task.subject}</h4>
+          {(task.work_type === 'group' || task.max_score != null) && (
+            <div className="flex items-center gap-2 mt-1.5 text-xs font-medium">
+              {task.work_type === 'group' && (
+                <span className="flex items-center gap-1 text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100">
+                  <Users size={12} /> กลุ่ม {task.group_size ? `(${task.group_size})` : ''}
+                </span>
+              )}
+              {task.max_score != null && (
+                <span className="flex items-center gap-1 text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">
+                  <Trophy size={12} /> {task.max_score}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
         <div className="flex gap-1 shrink-0">
           <button
             onClick={handleCopyHomework}
