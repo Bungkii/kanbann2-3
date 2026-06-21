@@ -471,3 +471,63 @@ export function createMenuFlexMessage() {
     },
   };
 }
+
+export function createVoteLeaderFlexMessage() {
+  const candidates = [
+    "บุ้งกี๋",
+    "ฉงฉง",
+    "ออสติน",
+    "ฟอส",
+    "เฟิส",
+    "ปอเช่(ถาพัด)",
+    "งดออกเสียง"
+  ];
+
+  const buttons = candidates.map(name => ({
+    type: "button",
+    style: "primary",
+    color: name === "งดออกเสียง" ? "#6B7280" : "#4F46E5",
+    margin: "sm",
+    action: {
+      type: "message",
+      label: name,
+      text: `โหวตหัวหน้า: ${name}`,
+    },
+  }));
+
+  return {
+    type: "flex",
+    altText: "โหวตเปลี่ยนหัวหน้า",
+    contents: {
+      type: "bubble",
+      size: "kilo",
+      header: {
+        type: "box",
+        layout: "vertical",
+        backgroundColor: "#1E3A8A",
+        contents: [
+          {
+            type: "text",
+            text: "👑 โหวตหัวหน้าคนใหม่",
+            weight: "bold",
+            size: "xl",
+            color: "#FFFFFF",
+          },
+          {
+            type: "text",
+            text: "เลือกคนที่คุณต้องการให้เป็นหัวหน้า",
+            color: "#BFDBFE",
+            size: "sm",
+            margin: "sm",
+          },
+        ],
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        spacing: "sm",
+        contents: buttons,
+      },
+    },
+  };
+}

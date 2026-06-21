@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createMenuFlexMessage, createMorningFlexMessage, createEveningFlexMessage, Task } from '@/utils/line/flex';
+import { createMenuFlexMessage, createMorningFlexMessage, createEveningFlexMessage, createVoteLeaderFlexMessage, Task } from '@/utils/line/flex';
 import { createClient } from '@supabase/supabase-js';
 
 // GET handler สำหรับ LINE Webhook verification
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
 
         // ถ้าพิมพ์คำว่า "คำสั่งเพิ่มเติม"
         if (text === 'คำสั่งเพิ่มเติม') {
-          const replyText = `คู่มือการใช้งานของชามนพิ\nสามารถพิมพ์คำสั่งเหล่านี้ในแชทได้เลยคราบ\n🔹 "พริมจ๋า" - เรียกเมนูหลัก\n🔹 "พริมจ๋า งานวันนี้" - ดูงานที่ต้องส่งวันนี้\n🔹 "พริมจ๋า งานค้าง" - ดูงานที่เลยกำหนดแล้ว\n🔹 "พริมจ๋า ดูไอดี" - ดูไอดีกลุ่ม`;
+          const replyText = `คู่มือการใช้งานของชามนพิ\nสามารถพิมพ์คำสั่งเหล่านี้ในแชทได้เลยคราบ\n🔹 "พริมจ๋า" - เรียกเมนูหลัก\n🔹 "พริมจ๋า งานวันนี้" - ดูงานที่ต้องส่งวันนี้\n🔹 "พริมจ๋า งานค้าง" - ดูงานที่เลยกำหนดแล้ว\n🔹 "พริมจ๋า เปลี่ยนหัวหน้า" - เปิดโหวตเปลี่ยนหัวหน้า\n🔹 "พริมจ๋า สรุปโหวตหัวหน้า" - ดูสรุปคะแนนโหวต\n🔹 "พริมจ๋า ดูไอดี" - ดูไอดีกลุ่ม`;
           
           await replyToLine(event.replyToken, [{ type: 'text', text: replyText }], lineToken);
           continue;
@@ -103,6 +103,77 @@ export async function POST(request: Request) {
           }
 
           await replyToLine(event.replyToken, [flexMessage], lineToken);
+          continue;
+        }
+
+        // ถ้าพิมพ์คำว่า "พริมจ๋า เปลี่ยนหัวหน้า"
+        if (text === 'พริมจ๋า เปลี่ยนหัวหน้า') {
+          const flexMessage = createVoteLeaderFlexMessage();
+          await replyToLine(event.replyToken, [flexMessage], lineToken);
+          continue;
+        }
+
+        // ถ้าพิมพ์โหวตหัวหน้า
+        if (text.startsWith('โหวตหัวหน้า:')) {
+          const votedFor = text.replace('โหวตหัวหน้า:', '').trim();
+          const userId = event.source.userId;
+          
+          if (!userId) {
+            await replyToLine(event.replyToken, [{ type: 'text', text: 'ไม่สามารถบันทึกโหวตได้ กรุณาแอดบอทเป็นเพื่อนก่อนโหวตนะจ้ะ 😢' }], lineToken);
+            continue;
+          }
+
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+          const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+          const supabase = createClient(supabaseUrl, supabaseKey);
+
+          const { error } = await supabase
+            .from('leader_votes')
+            .upsert({ user_id: userId, voted_for: votedFor }, { onConflict: 'user_id' });
+
+          if (error) {
+            console.error('Error saving vote:', error);
+            await replyToLine(event.replyToken, [{ type: 'text', text: 'เกิดข้อผิดพลาดในการบันทึกโหวต กรุณาลองใหม่ 😢' }], lineToken);
+          } else {
+            await replyToLine(event.replyToken, [{ type: 'text', text: `บันทึกโหวตให้ ${votedFor} เรียบร้อยแล้วจ้า 🎉` }], lineToken);
+          }
+          continue;
+        }
+
+        // ถ้าพิมพ์คำว่า "พริมจ๋า สรุปโหวตหัวหน้า"
+        if (text === 'พริมจ๋า สรุปโหวตหัวหน้า') {
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+          const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+          const supabase = createClient(supabaseUrl, supabaseKey);
+
+          const { data: votes, error } = await supabase
+            .from('leader_votes')
+            .select('voted_for');
+
+          if (error) {
+            console.error('Error fetching votes:', error);
+            await replyToLine(event.replyToken, [{ type: 'text', text: 'เกิดข้อผิดพลาดในการดึงข้อมูลโหวต 😢' }], lineToken);
+            continue;
+          }
+
+          if (!votes || votes.length === 0) {
+            await replyToLine(event.replyToken, [{ type: 'text', text: 'ยังไม่มีคนโหวตเลยจ้า 🥺' }], lineToken);
+            continue;
+          }
+
+          const voteCounts = votes.reduce((acc: any, vote) => {
+            acc[vote.voted_for] = (acc[vote.voted_for] || 0) + 1;
+            return acc;
+          }, {});
+
+          const sortedVotes = Object.entries(voteCounts).sort((a: any, b: any) => b[1] - a[1]);
+          let summaryText = '📊 สรุปผลโหวตหัวหน้า\n\n';
+          sortedVotes.forEach(([name, count]) => {
+            summaryText += `- ${name}: ${count} โหวต\n`;
+          });
+          summaryText += `\nรวมทั้งหมด ${votes.length} โหวต`;
+
+          await replyToLine(event.replyToken, [{ type: 'text', text: summaryText }], lineToken);
           continue;
         }
 

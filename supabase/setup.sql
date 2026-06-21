@@ -38,3 +38,18 @@ CREATE POLICY "Authenticated users can update images" ON storage.objects FOR UPD
 
 -- Allow authenticated users to delete images
 CREATE POLICY "Authenticated users can delete images" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'homework-images');
+
+-- Create table for leader votes
+CREATE TABLE IF NOT EXISTS leader_votes (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id text NOT NULL,
+    voted_for text NOT NULL,
+    created_at timestamp with time zone DEFAULT now(),
+    UNIQUE(user_id)
+);
+
+-- Enable Row Level Security for leader_votes
+ALTER TABLE leader_votes ENABLE ROW LEVEL SECURITY;
+
+-- Allow public access to leader_votes for webhook operations
+CREATE POLICY "Allow public all access on leader_votes" ON leader_votes FOR ALL USING (true) WITH CHECK (true);
