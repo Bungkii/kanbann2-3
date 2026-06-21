@@ -12,8 +12,39 @@ const ibmPlexSansThai = IBM_Plex_Sans_Thai({
 });
 
 export const metadata: Metadata = {
-  title: "พริมทวงยิก ม.2/3",
-  description: "ระบบจดงานสำหรับห้อง 2/3",
+  metadataBase: new URL('https://kanbann.bungkii.vercel.app'), // Use your actual URL here
+  title: {
+    default: "พริมทวงยิก ม.2/3 | ระบบกระดานจัดการงานออนไลน์",
+    template: "%s | พริมทวงยิก ม.2/3"
+  },
+  description: "ระบบจดงาน จัดการเวรทำความสะอาด และกระดานแจ้งเตือนสำหรับนักเรียนห้อง 2/3 พร้อมระบบส่งข้อความบอทเตือนความจำอัตโนมัติ",
+  keywords: ["กระดานงาน", "จดงานนักเรียน", "Kanban board", "ม.2/3", "ระบบเตือนงาน", "บอททวงงาน"],
+  authors: [{ name: "Bungkii" }],
+  creator: "Bungkii",
+  openGraph: {
+    type: "website",
+    locale: "th_TH",
+    url: "https://kanbann.bungkii.vercel.app",
+    title: "พริมทวงยิก ม.2/3 | ระบบกระดานจัดการงานออนไลน์",
+    description: "ระบบจดงาน จัดการเวรทำความสะอาด และกระดานแจ้งเตือนสำหรับนักเรียนห้อง 2/3",
+    siteName: "พริมทวงยิก ม.2/3"
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "พริมทวงยิก ม.2/3 | ระบบกระดานจัดการงานออนไลน์",
+    description: "ระบบจดงาน จัดการเวรทำความสะอาด และกระดานแจ้งเตือนสำหรับนักเรียนห้อง 2/3"
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
 };
 
 export default function RootLayout({
