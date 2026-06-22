@@ -13,24 +13,27 @@ export async function addCandidate(formData: FormData) {
 
   const name = formData.get('name') as string;
   const imageFile = formData.get('image') as File | null;
+  const policyText = formData.get('policyText') as string | null;
+  const policyImageFile = formData.get('policyImage') as File | null;
 
   if (!name) {
     return { error: 'กรุณากรอกชื่อผู้สมัคร' };
   }
 
   let imageUrl = null;
+  let policyImageUrl = null;
 
   if (imageFile && imageFile.size > 0) {
     const fileExt = imageFile.name.split('.').pop();
     const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-    const filePath = `candidates/${fileName}`; // Keep it inside homework-images but in candidates folder
+    const filePath = `candidates/${fileName}`;
 
     const { error: uploadError } = await supabase.storage
       .from('homework-images')
       .upload(filePath, imageFile);
 
     if (uploadError) {
-      return { error: 'อัปโหลดรูปภาพไม่สำเร็จ: ' + uploadError.message };
+      return { error: 'อัปโหลดรูปภาพผู้สมัครไม่สำเร็จ: ' + uploadError.message };
     }
 
     const { data: { publicUrl } } = supabase.storage
@@ -40,9 +43,34 @@ export async function addCandidate(formData: FormData) {
     imageUrl = publicUrl;
   }
 
+  if (policyImageFile && policyImageFile.size > 0) {
+    const fileExt = policyImageFile.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+    const filePath = `candidates/policies/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('homework-images')
+      .upload(filePath, policyImageFile);
+
+    if (uploadError) {
+      return { error: 'อัปโหลดรูปภาพนโยบายไม่สำเร็จ: ' + uploadError.message };
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('homework-images')
+      .getPublicUrl(filePath);
+    
+    policyImageUrl = publicUrl;
+  }
+
   const { error } = await supabase
     .from('candidates')
-    .insert([{ name, image_url: imageUrl }]);
+    .insert([{ 
+      name, 
+      image_url: imageUrl,
+      policy_text: policyText || null,
+      policy_image_url: policyImageUrl
+    }]);
 
   if (error) {
     return { error: error.message };

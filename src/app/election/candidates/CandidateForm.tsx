@@ -93,6 +93,37 @@ export default function CandidateForm() {
         </div>
       </div>
 
+      <hr className="border-slate-100" />
+
+      <div>
+        <label htmlFor="policyText" className="block text-sm font-medium text-slate-700 mb-2">
+          นโยบายผู้สมัคร (ไม่บังคับ)
+        </label>
+        <textarea
+          id="policyText"
+          name="policyText"
+          rows={4}
+          placeholder="พิมพ์นโยบายของคุณที่นี่..."
+          className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all resize-none"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-2">
+          รูปภาพประกอบนโยบาย (ไม่บังคับ)
+        </label>
+        <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg transition-colors border border-slate-200">
+          <Upload size={18} />
+          <span>เลือกรูปภาพประกอบนโยบาย</span>
+          <input
+            type="file"
+            name="policyImage"
+            accept="image/*"
+            className="hidden"
+          />
+        </label>
+      </div>
+
       <button
         type="submit"
         disabled={isSubmitting}

@@ -1,14 +1,16 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { motion, Variants } from 'framer-motion';
-import { Users, Crown, Medal, TrendingUp, Clock } from 'lucide-react';
+import { motion, Variants, AnimatePresence } from 'framer-motion';
+import { Users, Crown, Medal, TrendingUp, Clock, X, FileText } from 'lucide-react';
 
 type Candidate = {
   name: string;
   count: number;
   percentage: number;
   image_url: string | null;
+  policy_text: string | null;
+  policy_image_url: string | null;
 };
 
 type ElectionResultsProps = {
@@ -26,6 +28,7 @@ export default function ElectionResults({
 }: ElectionResultsProps) {
   
   const [timeLeft, setTimeLeft] = useState<{ days: number, hours: number, minutes: number, seconds: number } | null>(null);
+  const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
 
   useEffect(() => {
     // Target date: July 1, 2026 00:00:00 (Thailand time UTC+7)
@@ -162,7 +165,8 @@ export default function ElectionResults({
               key={candidate.name}
               variants={itemVariants}
               whileHover={{ scale: 1.02 }}
-              className={`relative overflow-hidden rounded-2xl p-5 md:p-6 shadow-sm border flex items-center gap-4 md:gap-6 backdrop-blur-lg transition-all ${
+              onClick={() => setSelectedCandidate(candidate)}
+              className={`cursor-pointer relative overflow-hidden rounded-2xl p-5 md:p-6 shadow-sm border flex items-center gap-4 md:gap-6 backdrop-blur-lg transition-all ${
                 index === 0 
                   ? 'bg-amber-50/70 border-amber-200/80 shadow-[0_8px_30px_rgba(251,191,36,0.15)] ring-1 ring-amber-100/50' 
                   : index === 1
@@ -234,6 +238,92 @@ export default function ElectionResults({
           ))
         )}
       </motion.div>
+
+      {/* Policy Modal */}
+      <AnimatePresence>
+        {selectedCandidate && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+            onClick={() => setSelectedCandidate(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              transition={{ type: "spring", duration: 0.5 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl relative"
+            >
+              <button 
+                onClick={() => setSelectedCandidate(null)}
+                className="absolute top-4 right-4 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-full p-2 transition-colors z-10"
+              >
+                <X size={24} />
+              </button>
+
+              <div className="p-8 border-b border-slate-100 flex items-center gap-6 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-amber-400 via-orange-500 to-red-500"></div>
+                
+                <div className="shrink-0">
+                  {selectedCandidate.image_url ? (
+                    <img 
+                      src={selectedCandidate.image_url} 
+                      alt={selectedCandidate.name} 
+                      className="w-24 h-24 object-cover rounded-full border-4 border-white shadow-md"
+                    />
+                  ) : (
+                    <div className="w-24 h-24 rounded-full flex items-center justify-center border-4 border-white shadow-md bg-slate-100 text-slate-400">
+                      <Users size={40} />
+                    </div>
+                  )}
+                </div>
+                
+                <div>
+                  <h2 className="text-3xl font-bold text-slate-800">{selectedCandidate.name}</h2>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-sm font-semibold border border-amber-200">
+                      ผู้สมัครหัวหน้าห้อง
+                    </span>
+                    <span className="text-slate-500 text-sm font-medium">
+                      ได้รับ {selectedCandidate.count} โหวต ({selectedCandidate.percentage}%)
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-8">
+                <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                  <FileText className="text-amber-500" /> 
+                  นโยบายและวิสัยทัศน์
+                </h3>
+                
+                {selectedCandidate.policy_text ? (
+                  <div className="prose prose-slate max-w-none text-slate-600 whitespace-pre-wrap leading-relaxed text-lg">
+                    {selectedCandidate.policy_text}
+                  </div>
+                ) : (
+                  <p className="text-slate-400 italic bg-slate-50 p-6 rounded-2xl border border-slate-100 text-center">
+                    ผู้สมัครท่านนี้ยังไม่ได้ระบุนโยบาย
+                  </p>
+                )}
+
+                {selectedCandidate.policy_image_url && (
+                  <div className="mt-8 rounded-2xl overflow-hidden border border-slate-100 shadow-sm">
+                    <img 
+                      src={selectedCandidate.policy_image_url} 
+                      alt={`นโยบายของ ${selectedCandidate.name}`} 
+                      className="w-full h-auto object-contain bg-slate-50"
+                    />
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

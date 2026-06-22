@@ -102,6 +102,8 @@ CREATE TABLE IF NOT EXISTS candidates (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     name text NOT NULL,
     image_url text,
+    policy_text text,
+    policy_image_url text,
     created_at timestamp with time zone DEFAULT now()
 );
 

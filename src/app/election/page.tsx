@@ -45,7 +45,7 @@ export default async function ElectionPage() {
     }
   });
 
-  // Convert to array, sort, and attach image_url
+  // Convert to array, sort, and attach image_url and policies
   const candidates = Object.entries(voteCounts)
     .map(([name, count]) => {
       const dbCandidate = (candidatesData || []).find(c => c.name === name);
@@ -53,7 +53,9 @@ export default async function ElectionPage() {
         name,
         count: count as number,
         percentage: Math.round(((count as number) / Math.max(totalVotes, 1)) * 100),
-        image_url: dbCandidate?.image_url || null
+        image_url: dbCandidate?.image_url || null,
+        policy_text: dbCandidate?.policy_text || null,
+        policy_image_url: dbCandidate?.policy_image_url || null
       };
     })
     .sort((a, b) => b.count - a.count);
