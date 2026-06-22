@@ -54,8 +54,8 @@ export async function POST(request: Request) {
         const text = event.message.text.trim().replace(/^["']|["']$/g, '');
         console.log(`Received text message: "${text}"`);
         
-        // ถ้าพิมพ์คำว่า "พริมจ๋า ดูไอดี"
-        if (text === 'พริมจ๋า ดูไอดี') {
+        // ถ้าพิมพ์คำว่า "พริมจ๋า ดูไอดี" หรือ "พริมจ๋าดูไอดี"
+        if (text === 'พริมจ๋า ดูไอดี' || text === 'พริมจ๋าดูไอดี') {
           const groupId = event.source.groupId || event.source.roomId;
           const replyText = groupId ? `Group ID ของกลุ่มนี้คือ:\n${groupId}` : 'ไม่ได้อยู่ในกลุ่มจ้า (นี่คือแชทส่วนตัว)';
           
@@ -71,8 +71,8 @@ export async function POST(request: Request) {
           continue;
         }
 
-        // ถ้าพิมพ์คำว่า "พริมจ๋า งานวันนี้" หรือ "พริมจ๋า งานค้าง"
-        if (text === 'พริมจ๋า งานวันนี้' || text === 'พริมจ๋า งานค้าง') {
+        // ถ้าพิมพ์คำว่า "พริมจ๋า งานวันนี้" หรือ "พริมจ๋า งานค้าง" (รวมแบบไม่มีเว้นวรรค)
+        if (text === 'พริมจ๋า งานวันนี้' || text === 'พริมจ๋า งานค้าง' || text === 'พริมจ๋างานวันนี้' || text === 'พริมจ๋างานค้าง') {
           const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
           const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
           const supabase = createClient(supabaseUrl, supabaseKey);
@@ -89,7 +89,7 @@ export async function POST(request: Request) {
           }
 
           let flexMessage;
-          if (text === 'พริมจ๋า งานวันนี้') {
+          if (text === 'พริมจ๋า งานวันนี้' || text === 'พริมจ๋างานวันนี้') {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             const dueTodayOrOverdue = (tasks as Task[]).filter(task => {
@@ -106,8 +106,8 @@ export async function POST(request: Request) {
           continue;
         }
 
-        // ถ้าพิมพ์ "พริมจ๋า ส่งโพลล่าสุด" (เพื่อประหยัด Push Quota)
-        if (text === 'พริมจ๋า ส่งโพลล่าสุด') {
+        // ถ้าพิมพ์ "พริมจ๋า ส่งโพลล่าสุด" หรือ "พริมจ๋าส่งโพลล่าสุด" (เพื่อประหยัด Push Quota)
+        if (text === 'พริมจ๋า ส่งโพลล่าสุด' || text === 'พริมจ๋าส่งโพลล่าสุด') {
           const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
           const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
           const supabase = createClient(supabaseUrl, supabaseKey);
@@ -134,6 +134,76 @@ export async function POST(request: Request) {
           );
 
           await replyToLine(event.replyToken, [flexMessage], lineToken);
+          continue;
+        }
+
+        // ถ้าพิมพ์คำว่า "พริมจ๋า เปลี่ยนหัวหน้า" หรือ "พริมจ๋าเปลี่ยนหัวหน้า"
+        if (text === 'พริมจ๋า เปลี่ยนหัวหน้า' || text === 'พริมจ๋าเปลี่ยนหัวหน้า') {
+          const { createVoteLeaderFlexMessage } = await import('@/utils/line/flex');
+          const flexMessage = createVoteLeaderFlexMessage();
+          await replyToLine(event.replyToken, [flexMessage], lineToken);
+          continue;
+        }
+
+        // ถ้าพิมพ์โหวตหัวหน้า
+        if (text.startsWith('โหวตหัวหน้า:')) {
+          const votedForText = text.replace('โหวตหัวหน้า:', '').trim();
+          const userId = event.source.userId;
+          
+          if (!userId) {
+            await replyToLine(event.replyToken, [{ type: 'text', text: 'กรุณาแอดบอทเป็นเพื่อนก่อนโหวตนะจ้ะ' }], lineToken);
+            continue;
+          }
+
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+          const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+          const supabase = createClient(supabaseUrl, supabaseKey);
+
+          const { error: voteError } = await supabase
+            .from('leader_votes')
+            .upsert({ user_id: userId, voted_for: votedForText }, { onConflict: 'user_id' });
+
+          if (voteError) {
+            await replyToLine(event.replyToken, [{ type: 'text', text: 'เกิดข้อผิดพลาดในการบันทึกโหวต' }], lineToken);
+          } else {
+            await replyToLine(event.replyToken, [{ type: 'text', text: `บันทึกโหวต "${votedForText}" สำเร็จ!` }], lineToken);
+          }
+          continue;
+        }
+
+        // ถ้าพิมพ์ "พริมจ๋า สรุปโหวตหัวหน้า" หรือ "พริมจ๋าสรุปโหวตหัวหน้า"
+        if (text === 'พริมจ๋า สรุปโหวตหัวหน้า' || text === 'พริมจ๋าสรุปโหวตหัวหน้า') {
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+          const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+          const supabase = createClient(supabaseUrl, supabaseKey);
+
+          const { data: votes, error: votesError } = await supabase
+            .from('leader_votes')
+            .select('voted_for');
+
+          if (votesError) {
+            await replyToLine(event.replyToken, [{ type: 'text', text: 'เกิดข้อผิดพลาดในการดึงข้อมูล' }], lineToken);
+            continue;
+          }
+
+          if (!votes || votes.length === 0) {
+            await replyToLine(event.replyToken, [{ type: 'text', text: 'ยังไม่มีคนโหวตเลยจ้า' }], lineToken);
+            continue;
+          }
+
+          const voteCounts = votes.reduce((acc: any, vote) => {
+            acc[vote.voted_for] = (acc[vote.voted_for] || 0) + 1;
+            return acc;
+          }, {});
+
+          const sortedVotes = Object.entries(voteCounts).sort((a: any, b: any) => b[1] - a[1]);
+          let summaryText = `📊 สรุปผลโหวตหัวหน้า\n\n`;
+          sortedVotes.forEach(([name, count]) => {
+            summaryText += `- ${name}: ${count} โหวต\n`;
+          });
+          summaryText += `\nรวมทั้งหมด ${votes.length} โหวต`;
+
+          await replyToLine(event.replyToken, [{ type: 'text', text: summaryText }], lineToken);
           continue;
         }
 

@@ -6,7 +6,11 @@ CREATE TABLE IF NOT EXISTS homework_tasks (
     details text NOT NULL,
     image_url text,
     teacher_name text,
+    submission_method text,
     status text DEFAULT 'todo'::text,
+    work_type text DEFAULT 'individual'::text,
+    group_size integer,
+    max_score numeric,
     created_at timestamp with time zone DEFAULT now()
 );
 
