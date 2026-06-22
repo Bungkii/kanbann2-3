@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createMenuFlexMessage, createMorningFlexMessage, createEveningFlexMessage, createVoteLeaderFlexMessage, Task } from '@/utils/line/flex';
+import { createMenuFlexMessage, createMorningFlexMessage, createEveningFlexMessage, createVoteLeaderFlexMessage, createTodayAddedFlexMessage, Task } from '@/utils/line/flex';
 import { createClient } from '@supabase/supabase-js';
 
 // GET handler สำหรับ LINE Webhook verification
@@ -65,14 +65,14 @@ export async function POST(request: Request) {
 
         // ถ้าพิมพ์คำว่า "คำสั่งเพิ่มเติม"
         if (text === 'คำสั่งเพิ่มเติม') {
-          const replyText = `คู่มือการใช้งานของชามนพิ\nสามารถพิมพ์คำสั่งเหล่านี้ในแชทได้เลยคราบ\n🔹 "พริมจ๋า" - เรียกเมนูหลัก\n🔹 "พริมจ๋า งานวันนี้" - ดูงานที่ต้องส่งวันนี้\n🔹 "พริมจ๋า งานค้าง" - ดูงานที่เลยกำหนดแล้ว\n🔹 "พริมจ๋า เปลี่ยนหัวหน้า" - เปิดโหวตเปลี่ยนหัวหน้า\n🔹 "พริมจ๋า สรุปโหวตหัวหน้า" - ดูสรุปคะแนนโหวต\n🔹 "พริมจ๋า ดูไอดี" - ดูไอดีกลุ่ม`;
+          const replyText = `คู่มือการใช้งานของชามนพิ\nสามารถพิมพ์คำสั่งเหล่านี้ในแชทได้เลยคราบ\n🔹 "พริมจ๋า" - เรียกเมนูหลัก\n🔹 "พริมจ๋า งานวันนี้" - ดูงานที่ต้องส่งวันนี้\n🔹 "พริมจ๋า งานค้าง" - ดูงานที่เลยกำหนดแล้ว\n🔹 "พริมจ๋า สรุปงาน" - ดูงานทั้งหมดในระบบ\n🔹 "พริมจ๋า เปลี่ยนหัวหน้า" - เปิดโหวตเปลี่ยนหัวหน้า\n🔹 "พริมจ๋า สรุปโหวตหัวหน้า" - ดูสรุปคะแนนโหวต\n🔹 "พริมจ๋า ดูไอดี" - ดูไอดีกลุ่ม`;
           
           await replyToLine(event.replyToken, [{ type: 'text', text: replyText }], lineToken);
           continue;
         }
 
-        // ถ้าพิมพ์คำว่า "พริมจ๋า งานวันนี้" หรือ "พริมจ๋า งานค้าง" (รวมแบบไม่มีเว้นวรรค)
-        if (text === 'พริมจ๋า งานวันนี้' || text === 'พริมจ๋า งานค้าง' || text === 'พริมจ๋างานวันนี้' || text === 'พริมจ๋างานค้าง') {
+        // ถ้าพิมพ์คำว่า "พริมจ๋า งานวันนี้", "พริมจ๋า งานค้าง" หรือ "พริมจ๋า สรุปงาน"
+        if (['พริมจ๋า งานวันนี้', 'พริมจ๋างานวันนี้', 'พริมจ๋า งานค้าง', 'พริมจ๋างานค้าง', 'พริมจ๋า สรุปงาน', 'พริมจ๋าสรุปงาน'].includes(text)) {
           const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
           const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
           const supabase = createClient(supabaseUrl, supabaseKey);
@@ -89,7 +89,9 @@ export async function POST(request: Request) {
           }
 
           let flexMessage;
-          if (text === 'พริมจ๋า งานวันนี้' || text === 'พริมจ๋างานวันนี้') {
+          if (text === 'พริมจ๋า สรุปงาน' || text === 'พริมจ๋าสรุปงาน') {
+            flexMessage = createTodayAddedFlexMessage(tasks as Task[]);
+          } else if (text === 'พริมจ๋า งานวันนี้' || text === 'พริมจ๋างานวันนี้') {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             const dueTodayOrOverdue = (tasks as Task[]).filter(task => {
