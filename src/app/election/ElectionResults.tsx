@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { motion, Variants } from 'framer-motion';
-import { Users, Crown, Medal, TrendingUp, Clock } from 'lucide-react';
+import { Users, Crown, Medal, TrendingUp } from 'lucide-react';
 
 type Candidate = {
   name: string;
@@ -25,32 +25,6 @@ export default function ElectionResults({
   turnoutPercentage
 }: ElectionResultsProps) {
   
-  const [timeLeft, setTimeLeft] = useState<{ days: number, hours: number, minutes: number, seconds: number } | null>(null);
-
-  useEffect(() => {
-    // Target date: July 1, 2026 00:00:00 (Thailand time UTC+7)
-    const targetDate = new Date('2026-07-01T00:00:00+07:00').getTime();
-
-    const interval = setInterval(() => {
-      const now = new Date().getTime();
-      const difference = targetDate - now;
-
-      if (difference <= 0) {
-        clearInterval(interval);
-        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-      } else {
-        setTimeLeft({
-          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-          hours: Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-          minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
-          seconds: Math.floor((difference % (1000 * 60)) / 1000)
-        });
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, []);
-
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
     show: {
@@ -88,34 +62,6 @@ export default function ElectionResults({
           ผลการเลือกตั้งหัวหน้าห้อง
           <span className="block text-amber-500 mt-2 text-2xl">ปี 2569</span>
         </h1>
-        
-        {/* Countdown Timer */}
-        <div className="mt-6 mb-2 inline-block bg-slate-900 text-white rounded-2xl p-4 shadow-lg border border-slate-700 w-full max-w-md mx-auto">
-          <div className="flex items-center justify-center gap-2 mb-3 text-amber-400 font-bold text-sm tracking-widest uppercase">
-            <Clock size={16} /> นับถอยหลังวันยุบสภา (1 ก.ค. 2569)
-          </div>
-          <div className="flex justify-center gap-4 text-center">
-            <div className="flex flex-col">
-              <span className="text-3xl font-black font-mono">{timeLeft ? timeLeft.days : '--'}</span>
-              <span className="text-xs text-slate-400">วัน</span>
-            </div>
-            <div className="text-2xl font-bold text-slate-600 mt-1">:</div>
-            <div className="flex flex-col">
-              <span className="text-3xl font-black font-mono">{timeLeft ? timeLeft.hours.toString().padStart(2, '0') : '--'}</span>
-              <span className="text-xs text-slate-400">ชม.</span>
-            </div>
-            <div className="text-2xl font-bold text-slate-600 mt-1">:</div>
-            <div className="flex flex-col">
-              <span className="text-3xl font-black font-mono">{timeLeft ? timeLeft.minutes.toString().padStart(2, '0') : '--'}</span>
-              <span className="text-xs text-slate-400">นาที</span>
-            </div>
-            <div className="text-2xl font-bold text-slate-600 mt-1">:</div>
-            <div className="flex flex-col">
-              <span className="text-3xl font-black font-mono text-amber-400">{timeLeft ? timeLeft.seconds.toString().padStart(2, '0') : '--'}</span>
-              <span className="text-xs text-slate-400">วินาที</span>
-            </div>
-          </div>
-        </div>
 
         <div className="flex flex-col md:flex-row items-center justify-center gap-6 mt-8">
           <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 flex items-center gap-4 min-w-[240px]">
