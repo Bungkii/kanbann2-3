@@ -96,3 +96,17 @@ CREATE POLICY "Allow public all access on custom_poll_votes" ON custom_poll_vote
 
 -- Allow public access to system_settings for webhook operations and client-side access
 CREATE POLICY "Allow public all access on system_settings" ON system_settings FOR ALL USING (true) WITH CHECK (true);
+
+-- Create table for election candidates
+CREATE TABLE IF NOT EXISTS candidates (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    name text NOT NULL,
+    image_url text,
+    created_at timestamp with time zone DEFAULT now()
+);
+
+ALTER TABLE candidates ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public read access on candidates" ON candidates FOR SELECT USING (true);
+CREATE POLICY "Allow authenticated insert on candidates" ON candidates FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "Allow authenticated update on candidates" ON candidates FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Allow authenticated delete on candidates" ON candidates FOR DELETE TO authenticated USING (true);

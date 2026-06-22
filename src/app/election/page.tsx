@@ -9,12 +9,21 @@ export default async function ElectionPage() {
   const supabase = await createClient();
 
   // Fetch all votes
-  const { data: votes, error } = await supabase
+  const { data: votes, error: votesError } = await supabase
     .from('leader_votes')
     .select('voted_for');
 
-  if (error) {
-    console.error('Error fetching votes:', error);
+  if (votesError) {
+    console.error('Error fetching votes:', votesError);
+  }
+
+  // Fetch all candidates to get their images
+  const { data: candidatesData, error: candidatesError } = await supabase
+    .from('candidates')
+    .select('*');
+
+  if (candidatesError) {
+    console.error('Error fetching candidates:', candidatesError);
   }
 
   const validVotes = votes || [];
@@ -24,22 +33,33 @@ export default async function ElectionPage() {
 
   // Aggregate votes
   const voteCounts = validVotes.reduce((acc: Record<string, number>, vote) => {
-    const candidate = vote.voted_for || 'ไม่ประสงค์ลงคะแนน';
-    acc[candidate] = (acc[candidate] || 0) + 1;
+    const candidateName = vote.voted_for || 'ไม่ประสงค์ลงคะแนน';
+    acc[candidateName] = (acc[candidateName] || 0) + 1;
     return acc;
   }, {});
 
-  // Convert to array and sort
+  // Add candidates with 0 votes if they exist in the candidates table
+  (candidatesData || []).forEach(c => {
+    if (voteCounts[c.name] === undefined) {
+      voteCounts[c.name] = 0;
+    }
+  });
+
+  // Convert to array, sort, and attach image_url
   const candidates = Object.entries(voteCounts)
-    .map(([name, count]) => ({
-      name,
-      count,
-      percentage: Math.round((count / Math.max(totalVotes, 1)) * 100)
-    }))
+    .map(([name, count]) => {
+      const dbCandidate = (candidatesData || []).find(c => c.name === name);
+      return {
+        name,
+        count: count as number,
+        percentage: Math.round(((count as number) / Math.max(totalVotes, 1)) * 100),
+        image_url: dbCandidate?.image_url || null
+      };
+    })
     .sort((a, b) => b.count - a.count);
 
   return (
-    <main className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 flex flex-col items-center">
+    <main className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 flex flex-col items-center overflow-hidden">
       <div className="w-full max-w-3xl relative">
         <Link 
           href="/"

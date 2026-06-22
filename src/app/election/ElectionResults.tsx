@@ -1,13 +1,14 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, Variants } from 'framer-motion';
-import { Users, Crown, Medal, TrendingUp } from 'lucide-react';
+import { Users, Crown, Medal, TrendingUp, Clock } from 'lucide-react';
 
 type Candidate = {
   name: string;
   count: number;
   percentage: number;
+  image_url: string | null;
 };
 
 type ElectionResultsProps = {
@@ -24,6 +25,32 @@ export default function ElectionResults({
   turnoutPercentage
 }: ElectionResultsProps) {
   
+  const [timeLeft, setTimeLeft] = useState<{ days: number, hours: number, minutes: number, seconds: number } | null>(null);
+
+  useEffect(() => {
+    // Target date: July 1, 2026 00:00:00 (Thailand time UTC+7)
+    const targetDate = new Date('2026-07-01T00:00:00+07:00').getTime();
+
+    const interval = setInterval(() => {
+      const now = new Date().getTime();
+      const difference = targetDate - now;
+
+      if (difference <= 0) {
+        clearInterval(interval);
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+      } else {
+        setTimeLeft({
+          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+          minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
+          seconds: Math.floor((difference % (1000 * 60)) / 1000)
+        });
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
     show: {
@@ -41,10 +68,10 @@ export default function ElectionResults({
 
   const getRankIcon = (index: number) => {
     switch (index) {
-      case 0: return <Crown className="text-yellow-500" size={28} />;
-      case 1: return <Medal className="text-slate-400" size={26} />;
-      case 2: return <Medal className="text-amber-700" size={26} />;
-      default: return <div className="w-7 text-center font-bold text-slate-400">#{index + 1}</div>;
+      case 0: return <Crown className="text-yellow-500 drop-shadow-md" size={32} />;
+      case 1: return <Medal className="text-slate-400 drop-shadow-sm" size={28} />;
+      case 2: return <Medal className="text-amber-700 drop-shadow-sm" size={28} />;
+      default: return <div className="w-8 text-center font-bold text-slate-400">#{index + 1}</div>;
     }
   };
 
@@ -62,6 +89,34 @@ export default function ElectionResults({
           <span className="block text-amber-500 mt-2 text-2xl">ปี 2569</span>
         </h1>
         
+        {/* Countdown Timer */}
+        <div className="mt-6 mb-2 inline-block bg-slate-900 text-white rounded-2xl p-4 shadow-lg border border-slate-700 w-full max-w-md mx-auto">
+          <div className="flex items-center justify-center gap-2 mb-3 text-amber-400 font-bold text-sm tracking-widest uppercase">
+            <Clock size={16} /> นับถอยหลังวันยุบสภา (1 ก.ค. 2569)
+          </div>
+          <div className="flex justify-center gap-4 text-center">
+            <div className="flex flex-col">
+              <span className="text-3xl font-black font-mono">{timeLeft ? timeLeft.days : '--'}</span>
+              <span className="text-xs text-slate-400">วัน</span>
+            </div>
+            <div className="text-2xl font-bold text-slate-600 mt-1">:</div>
+            <div className="flex flex-col">
+              <span className="text-3xl font-black font-mono">{timeLeft ? timeLeft.hours.toString().padStart(2, '0') : '--'}</span>
+              <span className="text-xs text-slate-400">ชม.</span>
+            </div>
+            <div className="text-2xl font-bold text-slate-600 mt-1">:</div>
+            <div className="flex flex-col">
+              <span className="text-3xl font-black font-mono">{timeLeft ? timeLeft.minutes.toString().padStart(2, '0') : '--'}</span>
+              <span className="text-xs text-slate-400">นาที</span>
+            </div>
+            <div className="text-2xl font-bold text-slate-600 mt-1">:</div>
+            <div className="flex flex-col">
+              <span className="text-3xl font-black font-mono text-amber-400">{timeLeft ? timeLeft.seconds.toString().padStart(2, '0') : '--'}</span>
+              <span className="text-xs text-slate-400">วินาที</span>
+            </div>
+          </div>
+        </div>
+
         <div className="flex flex-col md:flex-row items-center justify-center gap-6 mt-8">
           <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 flex items-center gap-4 min-w-[240px]">
             <div className="bg-blue-100 text-blue-600 p-3 rounded-full">
@@ -98,7 +153,7 @@ export default function ElectionResults({
         {candidates.length === 0 ? (
           <div className="bg-white rounded-3xl p-12 text-center shadow-sm border border-slate-100">
             <div className="text-slate-400 mb-4 flex justify-center"><Users size={48} /></div>
-            <h3 className="text-xl font-bold text-slate-700">ยังไม่มีข้อมูลการโหวต</h3>
+            <h3 className="text-xl font-bold text-slate-700">ยังไม่มีข้อมูลการโหวต หรือ ผู้สมัคร</h3>
             <p className="text-slate-500 mt-2">พิมพ์ "พริมจ๋า เปลี่ยนหัวหน้า" ในไลน์เพื่อเปิดโหวต</p>
           </div>
         ) : (
@@ -107,7 +162,7 @@ export default function ElectionResults({
               key={candidate.name}
               variants={itemVariants}
               whileHover={{ scale: 1.02 }}
-              className={`relative overflow-hidden bg-white rounded-2xl p-6 shadow-sm border flex items-center gap-4 md:gap-6 ${
+              className={`relative overflow-hidden bg-white rounded-2xl p-5 md:p-6 shadow-sm border flex items-center gap-4 md:gap-6 ${
                 index === 0 ? 'border-amber-300 shadow-[0_8px_30px_rgba(251,191,36,0.15)] ring-2 ring-amber-100' : 'border-slate-100'
               }`}
             >
@@ -121,11 +176,36 @@ export default function ElectionResults({
                 }`}
               />
 
-              <div className="shrink-0 flex justify-center items-center w-12 h-12 bg-slate-50 rounded-full border border-slate-200 z-10">
+              <div className="shrink-0 flex justify-center items-center w-14 h-14 bg-slate-50 rounded-full border border-slate-200 z-10 shadow-inner">
                 {getRankIcon(index)}
               </div>
 
-              <div className="flex-1 z-10 min-w-0">
+              {/* Candidate Image */}
+              <div className="shrink-0 z-10 relative">
+                {candidate.image_url ? (
+                  <img 
+                    src={candidate.image_url} 
+                    alt={candidate.name} 
+                    className={`w-16 h-16 md:w-20 md:h-20 object-cover rounded-full border-4 shadow-md ${
+                      index === 0 ? 'border-amber-400' : 'border-white'
+                    }`}
+                  />
+                ) : (
+                  <div className={`w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center border-4 shadow-md ${
+                    index === 0 ? 'bg-amber-100 border-amber-400 text-amber-500' : 'bg-slate-100 border-white text-slate-400'
+                  }`}>
+                    <Users size={32} />
+                  </div>
+                )}
+                
+                {index === 0 && (
+                  <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap shadow-sm border border-amber-600">
+                    ว่าที่หัวหน้า!
+                  </div>
+                )}
+              </div>
+
+              <div className="flex-1 z-10 min-w-0 pl-2">
                 <h3 className={`text-xl md:text-2xl font-bold truncate ${index === 0 ? 'text-slate-900' : 'text-slate-700'}`}>
                   {candidate.name}
                 </h3>
@@ -136,7 +216,7 @@ export default function ElectionResults({
                   {candidate.count}
                   <span className="text-sm md:text-base font-medium text-slate-500">โหวต</span>
                 </div>
-                <div className="text-sm font-semibold text-indigo-600 mt-1">
+                <div className="text-sm font-semibold text-indigo-600 mt-1 bg-indigo-50 inline-block px-2 py-0.5 rounded-md border border-indigo-100">
                   {candidate.percentage}%
                 </div>
               </div>

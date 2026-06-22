@@ -35,7 +35,15 @@ export default async function EditElectionPage() {
         </Link>
 
         <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100">
-          <h1 className="text-3xl font-bold text-slate-800 mb-6 border-b pb-4">ระบบจัดการผลโหวตหัวหน้าห้อง</h1>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 border-b pb-4 gap-4">
+            <h1 className="text-3xl font-bold text-slate-800">ระบบจัดการผลโหวตหัวหน้าห้อง</h1>
+            <Link
+              href="/election/candidates"
+              className="bg-amber-100 text-amber-700 hover:bg-amber-200 px-4 py-2 rounded-xl font-semibold transition-colors flex items-center gap-2 text-sm"
+            >
+              จัดการรายชื่อผู้สมัคร
+            </Link>
+          </div>
           
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">

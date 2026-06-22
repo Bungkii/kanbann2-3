@@ -472,27 +472,16 @@ export function createMenuFlexMessage() {
   };
 }
 
-export function createVoteLeaderFlexMessage() {
-  const candidates = [
-    "บุ้งกี๋",
-    "ฉงฉง",
-    "แสตมป์",
-    "สาทร",
-    "ฟอส",
-    "เฟิส",
-    "ปอเช่(ถาพัด)",
-    "งดออกเสียง"
-  ];
-
-  const buttons = candidates.map(name => ({
+export function createVoteLeaderFlexMessage(candidates: { name: string }[]) {
+  const buttons = candidates.map(candidate => ({
     type: "button",
     style: "primary",
-    color: name === "งดออกเสียง" ? "#6B7280" : "#4F46E5",
+    color: candidate.name === "งดออกเสียง" ? "#6B7280" : "#4F46E5",
     margin: "sm",
     action: {
       type: "message",
-      label: name,
-      text: `โหวตหัวหน้า: ${name}`,
+      label: candidate.name.substring(0, 20), // LINE label max length is 20
+      text: `โหวตหัวหน้า: ${candidate.name}`,
     },
   }));
 

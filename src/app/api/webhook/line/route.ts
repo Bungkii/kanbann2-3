@@ -139,8 +139,22 @@ export async function POST(request: Request) {
 
         // ถ้าพิมพ์คำว่า "พริมจ๋า เปลี่ยนหัวหน้า" หรือ "พริมจ๋าเปลี่ยนหัวหน้า"
         if (text === 'พริมจ๋า เปลี่ยนหัวหน้า' || text === 'พริมจ๋าเปลี่ยนหัวหน้า') {
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+          const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+          const supabase = createClient(supabaseUrl, supabaseKey);
+
+          const { data: candidates, error } = await supabase
+            .from('candidates')
+            .select('name')
+            .order('created_at', { ascending: true });
+
+          if (error || !candidates || candidates.length === 0) {
+            await replyToLine(event.replyToken, [{ type: 'text', text: 'ยังไม่มีรายชื่อผู้สมัครในระบบ กรุณาเพิ่มผู้สมัครผ่านหน้าเว็บก่อนจ้า' }], lineToken);
+            continue;
+          }
+
           const { createVoteLeaderFlexMessage } = await import('@/utils/line/flex');
-          const flexMessage = createVoteLeaderFlexMessage();
+          const flexMessage = createVoteLeaderFlexMessage(candidates);
           await replyToLine(event.replyToken, [flexMessage], lineToken);
           continue;
         }
