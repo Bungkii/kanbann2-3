@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, Variants } from 'framer-motion';
-import { Users, Crown, Medal, TrendingUp } from 'lucide-react';
+import { Users, Crown, Medal, TrendingUp, Clock } from 'lucide-react';
 
 type Candidate = {
   name: string;
@@ -25,6 +25,32 @@ export default function ElectionResults({
   turnoutPercentage
 }: ElectionResultsProps) {
   
+  const [timeLeft, setTimeLeft] = useState<{ days: number, hours: number, minutes: number, seconds: number } | null>(null);
+
+  useEffect(() => {
+    // Target date: July 1, 2026 00:00:00 (Thailand time UTC+7)
+    const targetDate = new Date('2026-07-01T00:00:00+07:00').getTime();
+
+    const interval = setInterval(() => {
+      const now = new Date().getTime();
+      const difference = targetDate - now;
+
+      if (difference <= 0) {
+        clearInterval(interval);
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+      } else {
+        setTimeLeft({
+          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+          minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
+          seconds: Math.floor((difference % (1000 * 60)) / 1000)
+        });
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
     show: {
@@ -62,6 +88,34 @@ export default function ElectionResults({
           ผลการเลือกตั้งหัวหน้าห้อง
           <span className="block text-amber-500 mt-2 text-2xl drop-shadow-sm">ปี 2569</span>
         </h1>
+
+        {/* Countdown Timer with Glassmorphism */}
+        <div className="mt-8 mb-4 inline-block bg-white/40 backdrop-blur-md rounded-2xl p-5 shadow-sm border border-white/60 w-full max-w-lg mx-auto">
+          <div className="flex items-center justify-center gap-2 mb-4 text-slate-600 font-bold text-sm tracking-widest uppercase">
+            <Clock size={18} className="text-amber-500" /> นับถอยหลังวันยุบสภา (1 ก.ค. 2569)
+          </div>
+          <div className="flex justify-center gap-4 text-center">
+            <div className="flex flex-col bg-white/50 rounded-xl p-3 min-w-[70px] shadow-sm">
+              <span className="text-3xl font-black font-mono text-slate-800">{timeLeft ? timeLeft.days : '--'}</span>
+              <span className="text-xs text-slate-500 font-medium">วัน</span>
+            </div>
+            <div className="text-3xl font-bold text-slate-400 mt-2">:</div>
+            <div className="flex flex-col bg-white/50 rounded-xl p-3 min-w-[70px] shadow-sm">
+              <span className="text-3xl font-black font-mono text-slate-800">{timeLeft ? timeLeft.hours.toString().padStart(2, '0') : '--'}</span>
+              <span className="text-xs text-slate-500 font-medium">ชม.</span>
+            </div>
+            <div className="text-3xl font-bold text-slate-400 mt-2">:</div>
+            <div className="flex flex-col bg-white/50 rounded-xl p-3 min-w-[70px] shadow-sm">
+              <span className="text-3xl font-black font-mono text-slate-800">{timeLeft ? timeLeft.minutes.toString().padStart(2, '0') : '--'}</span>
+              <span className="text-xs text-slate-500 font-medium">นาที</span>
+            </div>
+            <div className="text-3xl font-bold text-slate-400 mt-2">:</div>
+            <div className="flex flex-col bg-amber-100/50 rounded-xl p-3 min-w-[70px] shadow-sm border border-amber-200/50">
+              <span className="text-3xl font-black font-mono text-amber-600 drop-shadow-sm">{timeLeft ? timeLeft.seconds.toString().padStart(2, '0') : '--'}</span>
+              <span className="text-xs text-amber-600/80 font-medium">วินาที</span>
+            </div>
+          </div>
+        </div>
 
         <div className="flex flex-col md:flex-row items-center justify-center gap-6 mt-8">
           <div className="bg-white/60 backdrop-blur-md border border-white/80 rounded-2xl p-5 flex items-center gap-4 min-w-[240px] shadow-sm">
@@ -111,6 +165,8 @@ export default function ElectionResults({
               className={`relative overflow-hidden rounded-2xl p-5 md:p-6 shadow-sm border flex items-center gap-4 md:gap-6 backdrop-blur-lg transition-all ${
                 index === 0 
                   ? 'bg-amber-50/70 border-amber-200/80 shadow-[0_8px_30px_rgba(251,191,36,0.15)] ring-1 ring-amber-100/50' 
+                  : index === 1
+                  ? 'bg-slate-50/70 border-slate-200/80 shadow-[0_8px_30px_rgba(148,163,184,0.15)] ring-1 ring-slate-100/50'
                   : 'bg-white/60 border-white/80 hover:bg-white/80'
               }`}
             >
@@ -120,7 +176,7 @@ export default function ElectionResults({
                 animate={{ width: `${candidate.percentage}%` }}
                 transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
                 className={`absolute left-0 top-0 h-full opacity-[0.08] mix-blend-multiply ${
-                  index === 0 ? 'bg-amber-500' : index === 1 ? 'bg-slate-400' : index === 2 ? 'bg-orange-500' : 'bg-indigo-500'
+                  index === 0 ? 'bg-amber-500' : index === 1 ? 'bg-slate-500' : index === 2 ? 'bg-orange-500' : 'bg-indigo-500'
                 }`}
               />
 
@@ -135,12 +191,12 @@ export default function ElectionResults({
                     src={candidate.image_url} 
                     alt={candidate.name} 
                     className={`w-16 h-16 md:w-20 md:h-20 object-cover rounded-full border-4 shadow-sm ${
-                      index === 0 ? 'border-amber-300/80' : 'border-white/80'
+                      index === 0 ? 'border-amber-300/80' : index === 1 ? 'border-slate-300/80' : 'border-white/80'
                     }`}
                   />
                 ) : (
                   <div className={`w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center border-4 shadow-sm backdrop-blur-md ${
-                    index === 0 ? 'bg-amber-100/80 border-amber-300/80 text-amber-500' : 'bg-slate-100/80 border-white/80 text-slate-400'
+                    index === 0 ? 'bg-amber-100/80 border-amber-300/80 text-amber-500' : index === 1 ? 'bg-slate-200/80 border-slate-300/80 text-slate-500' : 'bg-slate-100/80 border-white/80 text-slate-400'
                   }`}>
                     <Users size={32} />
                   </div>
@@ -151,10 +207,16 @@ export default function ElectionResults({
                     ว่าที่หัวหน้า!
                   </div>
                 )}
+                
+                {index === 1 && (
+                  <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-slate-500/90 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap shadow-sm border border-slate-400">
+                    รองหัวหน้า
+                  </div>
+                )}
               </div>
 
               <div className="flex-1 z-10 min-w-0 pl-2">
-                <h3 className={`text-xl md:text-2xl font-bold truncate ${index === 0 ? 'text-slate-900 drop-shadow-sm' : 'text-slate-700'}`}>
+                <h3 className={`text-xl md:text-2xl font-bold truncate ${index === 0 ? 'text-slate-900 drop-shadow-sm' : index === 1 ? 'text-slate-800' : 'text-slate-700'}`}>
                   {candidate.name}
                 </h3>
               </div>
