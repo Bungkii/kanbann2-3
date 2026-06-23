@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, Variants, AnimatePresence } from 'framer-motion';
 import { Users, Crown, Medal, TrendingUp, Clock, X, FileText } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/utils/supabase/client';
 
 type Candidate = {
   name: string;
@@ -27,8 +29,27 @@ export default function ElectionResults({
   turnoutPercentage
 }: ElectionResultsProps) {
   
+  const router = useRouter();
   const [timeLeft, setTimeLeft] = useState<{ days: number, hours: number, minutes: number, seconds: number } | null>(null);
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    
+    // Subscribe to both candidates and leader_votes tables
+    const channel = supabase.channel('election-updates')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leader_votes' }, () => {
+        router.refresh();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'candidates' }, () => {
+        router.refresh();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [router]);
 
   useEffect(() => {
     // Target date: July 1, 2026 00:00:00 (Thailand time UTC+7)
@@ -223,6 +244,21 @@ export default function ElectionResults({
                 <h3 className={`text-xl md:text-2xl font-bold truncate ${index === 0 ? 'text-slate-900 drop-shadow-sm' : index === 1 ? 'text-slate-800' : 'text-slate-700'}`}>
                   {candidate.name}
                 </h3>
+                
+                {(candidate.policy_text || candidate.policy_image_url) && (
+                  <div className="flex flex-wrap items-center gap-2 mt-2">
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-100">
+                      <FileText size={12} /> มีนโยบาย
+                    </span>
+                    {candidate.policy_image_url && (
+                      <img 
+                        src={candidate.policy_image_url} 
+                        alt="Policy Thumbnail" 
+                        className="h-6 w-auto max-w-[60px] object-cover rounded shadow-sm border border-slate-200"
+                      />
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="shrink-0 text-right z-10">
