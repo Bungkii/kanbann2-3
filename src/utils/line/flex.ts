@@ -665,3 +665,181 @@ export function createUniformFlexMessage(dayName: string, uniformName: string, t
     },
   };
 }
+
+export function createCleaningFlexMessage(dayName: string, cleaners: string) {
+  return {
+    type: "flex" as const,
+    altText: `เวรทำความสะอาด: ${cleaners}`,
+    contents: {
+      type: "bubble",
+      size: "mega",
+      header: {
+        type: "box",
+        layout: "vertical",
+        backgroundColor: "#10b981", // emerald-500
+        contents: [
+          {
+            type: "text",
+            text: "🧹 เวรทำความสะอาด",
+            weight: "bold",
+            size: "xl",
+            color: "#FFFFFF",
+          },
+          {
+            type: "text",
+            text: dayName,
+            color: "#FFFFFF",
+            size: "md",
+            margin: "sm",
+          },
+        ],
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          {
+            type: "text",
+            text: cleaners,
+            weight: "bold",
+            size: "lg",
+            color: "#111827",
+            wrap: true,
+            align: "start",
+            margin: "md",
+          },
+        ],
+      },
+    },
+  };
+}
+
+export function createNextPeriodFlexMessage(period: number, subject: string, teacher: string, timeStr: string, isNext: boolean) {
+  return {
+    type: "flex" as const,
+    altText: `คาบ${isNext ? 'ต่อไป' : 'นี้'}: ${subject}`,
+    contents: {
+      type: "bubble",
+      size: "mega",
+      header: {
+        type: "box",
+        layout: "vertical",
+        backgroundColor: "#4f46e5", // indigo-600
+        contents: [
+          {
+            type: "text",
+            text: `📚 คาบ${isNext ? 'ต่อไป' : 'นี้'} (คาบ ${period})`,
+            weight: "bold",
+            size: "xl",
+            color: "#FFFFFF",
+          },
+          {
+            type: "text",
+            text: timeStr,
+            color: "#e0e7ff",
+            size: "sm",
+            margin: "sm",
+          },
+        ],
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        spacing: "md",
+        contents: [
+          {
+            type: "text",
+            text: subject,
+            weight: "bold",
+            size: "xl",
+            color: "#111827",
+            wrap: true,
+          },
+          {
+            type: "text",
+            text: `ครูผู้สอน: ${teacher || '-'}`,
+            color: "#6b7280",
+            size: "md",
+            wrap: true,
+          },
+        ],
+      },
+    },
+  };
+}
+
+export function createDailyScheduleFlexMessage(dayName: string, classes: {period: number, subject: string, teacher: string}[]) {
+  const classBoxes = classes.map(c => ({
+    type: "box",
+    layout: "horizontal",
+    margin: "md",
+    contents: [
+      {
+        type: "text",
+        text: `${c.period}`,
+        color: "#9ca3af",
+        size: "sm",
+        flex: 1,
+        align: "center",
+        weight: "bold"
+      },
+      {
+        type: "box",
+        layout: "vertical",
+        flex: 8,
+        contents: [
+          {
+            type: "text",
+            text: c.subject,
+            weight: "bold",
+            size: "sm",
+            color: "#1f2937",
+            wrap: true
+          },
+          {
+            type: "text",
+            text: c.teacher || '-',
+            size: "xs",
+            color: "#6b7280",
+            wrap: true
+          }
+        ]
+      }
+    ]
+  }));
+
+  return {
+    type: "flex" as const,
+    altText: `ตารางเรียน: ${dayName}`,
+    contents: {
+      type: "bubble",
+      size: "mega",
+      header: {
+        type: "box",
+        layout: "vertical",
+        backgroundColor: "#4f46e5", // indigo-600
+        contents: [
+          {
+            type: "text",
+            text: "📅 ตารางเรียน",
+            weight: "bold",
+            size: "xl",
+            color: "#FFFFFF",
+          },
+          {
+            type: "text",
+            text: dayName,
+            color: "#e0e7ff",
+            size: "sm",
+            margin: "sm",
+          },
+        ],
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        contents: classBoxes,
+      },
+    },
+  };
+}

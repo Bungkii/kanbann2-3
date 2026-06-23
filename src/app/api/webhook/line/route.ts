@@ -65,7 +65,7 @@ export async function POST(request: Request) {
 
         // ถ้าพิมพ์คำว่า "คำสั่งเพิ่มเติม"
         if (text === 'คำสั่งเพิ่มเติม') {
-          const replyText = `คู่มือการใช้งานของชามนพิ\nสามารถพิมพ์คำสั่งเหล่านี้ในแชทได้เลยคราบ\n🔹 "พริมจ๋า" - เรียกเมนูหลัก\n🔹 "พริมจ๋า งานวันนี้" - ดูงานที่ต้องส่งวันนี้\n🔹 "พริมจ๋า งานค้าง" - ดูงานที่เลยกำหนดแล้ว\n🔹 "พริมจ๋า สรุปงาน" - ดูงานทั้งหมดในระบบ\n🔹 "พริมจ๋าวันนี้ใส่ชุดไร" - ดูชุดนักเรียนที่ต้องใส่\n🔹 "พริมจ๋า เปลี่ยนหัวหน้า" - เปิดโหวตเปลี่ยนหัวหน้า\n🔹 "พริมจ๋า สรุปโหวตหัวหน้า" - ดูสรุปคะแนนโหวต\n🔹 "พริมจ๋า ดูไอดี" - ดูไอดีกลุ่ม`;
+          const replyText = `คู่มือการใช้งานของชามนพิ\nสามารถพิมพ์คำสั่งเหล่านี้ในแชทได้เลยคราบ\n🔹 "พริมจ๋า" - เรียกเมนูหลัก\n🔹 "พริมจ๋า งานวันนี้" - ดูงานที่ต้องส่งวันนี้\n🔹 "พริมจ๋า งานค้าง" - ดูงานที่เลยกำหนดแล้ว\n🔹 "พริมจ๋า สรุปงาน" - ดูงานทั้งหมดในระบบ\n🔹 "พริมจ๋าวันนี้ใส่ชุดไร" - ดูชุดนักเรียนที่ต้องใส่\n🔹 "พริมจ๋า วันนี้ใครเวร" - ดูเวรทำความสะอาด\n🔹 "พริมจ๋า ต่อไปคาบไร" - ดูวิชาเรียนคาบต่อไป\n🔹 "พริมจ๋า พรุ่งนี้เรียนไร" - ดูตารางเรียนพรุ่งนี้\n🔹 "พริมจ๋า เปลี่ยนหัวหน้า" - เปิดโหวตเปลี่ยนหัวหน้า\n🔹 "พริมจ๋า สรุปโหวตหัวหน้า" - ดูสรุปคะแนนโหวต\n🔹 "พริมจ๋า ดูไอดี" - ดูไอดีกลุ่ม`;
           
           await replyToLine(event.replyToken, [{ type: 'text', text: replyText }], lineToken);
           continue;
@@ -162,6 +162,132 @@ export async function POST(request: Request) {
           
           const flexMessage = createUniformFlexMessage(displayDayName, schedule.uniform_name, schedule.theme_color, isFuture);
 
+          await replyToLine(event.replyToken, [flexMessage], lineToken);
+          continue;
+        }
+
+        // ตารางเวร: พริมจ๋าใครเวร, วันนี้ใครเวร
+        if (text.includes('พริม') && text.includes('ใครเวร')) {
+          let targetDayOfWeek = -1;
+          const today = new Date();
+          const thDate = new Date(today.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
+          const currentDayOfWeek = thDate.getDay();
+
+          if (text.includes('พรุ่งนี้')) targetDayOfWeek = (currentDayOfWeek + 1) % 7;
+          else if (text.includes('วันจันทร์')) targetDayOfWeek = 1;
+          else if (text.includes('วันอังคาร')) targetDayOfWeek = 2;
+          else if (text.includes('วันพุธ')) targetDayOfWeek = 3;
+          else if (text.includes('วันพฤหัส')) targetDayOfWeek = 4;
+          else if (text.includes('วันศุกร์')) targetDayOfWeek = 5;
+          else if (text.includes('วันเสาร์')) targetDayOfWeek = 6;
+          else if (text.includes('วันอาทิตย์')) targetDayOfWeek = 0;
+          else targetDayOfWeek = currentDayOfWeek;
+
+          if (targetDayOfWeek === 0 || targetDayOfWeek === 6) {
+             const dayStr = text.includes('พรุ่งนี้') ? 'พรุ่งนี้' : 'วันนี้';
+             await replyToLine(event.replyToken, [{ type: 'text', text: `${dayStr}เป็นวันหยุด ไม่มีเวรจ้า! 🎉` }], lineToken);
+             continue;
+          }
+
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+          const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+          const supabase = createClient(supabaseUrl, supabaseKey);
+
+          const { data: schedule } = await supabase.from('cleaning_schedule').select('*').eq('day_of_week', targetDayOfWeek).single();
+
+          if (!schedule) {
+            await replyToLine(event.replyToken, [{ type: 'text', text: 'ยังไม่มีข้อมูลเวรของวันนั้นจ้า' }], lineToken);
+            continue;
+          }
+
+          const { createCleaningFlexMessage } = await import('@/utils/line/flex');
+          const flexMessage = createCleaningFlexMessage(schedule.day_name, schedule.cleaners);
+          await replyToLine(event.replyToken, [flexMessage], lineToken);
+          continue;
+        }
+
+        // คาบต่อไป: พริมจ๋าต่อไปคาบไร
+        if (text.includes('พริม') && (text.includes('ต่อไป') || text.includes('คาบไหน')) && (text.includes('เรียน') || text.includes('คาบ'))) {
+          const { getCurrentOrNextPeriod } = await import('@/utils/schedule');
+          const periodInfo = getCurrentOrNextPeriod();
+          
+          if (!periodInfo) {
+             await replyToLine(event.replyToken, [{ type: 'text', text: 'หมดคาบเรียนของวันนี้แล้วจ้า พักผ่อนได้เลย! 🎉' }], lineToken);
+             continue;
+          }
+
+          const today = new Date();
+          const thDate = new Date(today.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
+          const currentDayOfWeek = thDate.getDay();
+
+          if (currentDayOfWeek === 0 || currentDayOfWeek === 6) {
+             await replyToLine(event.replyToken, [{ type: 'text', text: 'วันนี้วันหยุดนะ ไม่มีเรียนจ้า! 🎉' }], lineToken);
+             continue;
+          }
+
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+          const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+          const supabase = createClient(supabaseUrl, supabaseKey);
+
+          const { data: classData } = await supabase
+            .from('class_schedule')
+            .select('*')
+            .eq('day_of_week', currentDayOfWeek)
+            .eq('period', periodInfo.period)
+            .single();
+
+          if (!classData) {
+            await replyToLine(event.replyToken, [{ type: 'text', text: `คาบ ${periodInfo.period} ยังไม่มีข้อมูลวิชาจ้า` }], lineToken);
+            continue;
+          }
+
+          const { createNextPeriodFlexMessage } = await import('@/utils/line/flex');
+          const flexMessage = createNextPeriodFlexMessage(periodInfo.period, classData.subject, classData.teacher, periodInfo.timeStr, periodInfo.isNext);
+          await replyToLine(event.replyToken, [flexMessage], lineToken);
+          continue;
+        }
+
+        // ตารางเรียน: พริมจ๋าพรุ่งนี้เรียนไร / วันนี้เรียนไร
+        if (text.includes('พริม') && text.includes('เรียนไร')) {
+          let targetDayOfWeek = -1;
+          const today = new Date();
+          const thDate = new Date(today.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
+          const currentDayOfWeek = thDate.getDay();
+
+          if (text.includes('พรุ่งนี้')) targetDayOfWeek = (currentDayOfWeek + 1) % 7;
+          else if (text.includes('วันจันทร์')) targetDayOfWeek = 1;
+          else if (text.includes('วันอังคาร')) targetDayOfWeek = 2;
+          else if (text.includes('วันพุธ')) targetDayOfWeek = 3;
+          else if (text.includes('วันพฤหัส')) targetDayOfWeek = 4;
+          else if (text.includes('วันศุกร์')) targetDayOfWeek = 5;
+          else targetDayOfWeek = currentDayOfWeek;
+
+          if (targetDayOfWeek === 0 || targetDayOfWeek === 6) {
+             const dayStr = text.includes('พรุ่งนี้') ? 'พรุ่งนี้' : 'วันนี้';
+             await replyToLine(event.replyToken, [{ type: 'text', text: `${dayStr}เป็นวันหยุด พักผ่อนได้เลยจ้าไม่ต้องเรียน! 🎉` }], lineToken);
+             continue;
+          }
+
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+          const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+          const supabase = createClient(supabaseUrl, supabaseKey);
+
+          const { data: classes } = await supabase
+            .from('class_schedule')
+            .select('*')
+            .eq('day_of_week', targetDayOfWeek)
+            .order('period', { ascending: true });
+
+          if (!classes || classes.length === 0) {
+            await replyToLine(event.replyToken, [{ type: 'text', text: 'ยังไม่มีข้อมูลตารางเรียนของวันนั้นจ้า' }], lineToken);
+            continue;
+          }
+
+          const dayNames = ['วันอาทิตย์', 'วันจันทร์', 'วันอังคาร', 'วันพุธ', 'วันพฤหัสบดี', 'วันศุกร์', 'วันเสาร์'];
+          const dayName = text.includes('พรุ่งนี้') ? `พรุ่งนี้ (${dayNames[targetDayOfWeek]})` : dayNames[targetDayOfWeek];
+
+          const { createDailyScheduleFlexMessage } = await import('@/utils/line/flex');
+          const flexMessage = createDailyScheduleFlexMessage(dayName, classes);
           await replyToLine(event.replyToken, [flexMessage], lineToken);
           continue;
         }

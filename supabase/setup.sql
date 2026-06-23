@@ -135,3 +135,92 @@ INSERT INTO uniform_schedule (day_of_week, day_name, uniform_name, theme_color) 
 (4, 'วันพฤหัสบดี', 'ชุดนักเรียน', '#FFA500'),
 (5, 'วันศุกร์', 'ชุดนักเรียน', '#00BFFF')
 ON CONFLICT (day_of_week) DO NOTHING;
+
+-- Create table for cleaning schedule
+CREATE TABLE IF NOT EXISTS cleaning_schedule (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    day_of_week integer UNIQUE NOT NULL,
+    day_name text NOT NULL,
+    cleaners text NOT NULL,
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+ALTER TABLE cleaning_schedule ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public read access on cleaning_schedule" ON cleaning_schedule FOR SELECT USING (true);
+CREATE POLICY "Allow authenticated all access on cleaning_schedule" ON cleaning_schedule FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- Insert default cleaning schedule (empty string)
+INSERT INTO cleaning_schedule (day_of_week, day_name, cleaners) VALUES 
+(1, 'วันจันทร์', '-'),
+(2, 'วันอังคาร', '-'),
+(3, 'วันพุธ', '-'),
+(4, 'วันพฤหัสบดี', '-'),
+(5, 'วันศุกร์', '-')
+ON CONFLICT (day_of_week) DO NOTHING;
+
+-- Create table for class schedule
+CREATE TABLE IF NOT EXISTS class_schedule (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    day_of_week integer NOT NULL,
+    period integer NOT NULL,
+    subject text NOT NULL,
+    teacher text,
+    UNIQUE(day_of_week, period)
+);
+
+ALTER TABLE class_schedule ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public read access on class_schedule" ON class_schedule FOR SELECT USING (true);
+CREATE POLICY "Allow authenticated all access on class_schedule" ON class_schedule FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- Insert class schedule for M.2/3
+INSERT INTO class_schedule (day_of_week, period, subject, teacher) VALUES 
+-- Monday
+(1, 1, 'คณิตศาสตร์ 3', 'มิสเสาวลักษณ์'),
+(1, 2, 'CEL', 'Nicholas, Ollie, Kate'),
+(1, 3, 'วิทยาศาสตร์ 3', 'ม.ธนากร'),
+(1, 4, 'วิทยาศาสตร์ 3', 'ม.ธนากร'),
+(1, 5, 'ภาษาอังกฤษ 3', 'ม.อัคเดช'),
+(1, 6, 'วิทยาการคำนวณ 2', 'ม.ธนพล'),
+(1, 7, 'วิทยาการคำนวณ 2', 'ม.ธนพล'),
+(1, 8, 'สอนเสริม', '-'),
+
+-- Tuesday
+(2, 1, 'พื้นฐานดนตรี 3', 'มิสเนตรชนก'),
+(2, 2, 'คณิตศาสตร์ 3', 'มิสเสาวลักษณ์'),
+(2, 3, 'ภาษาไทย 3', 'ม.คมสันต์'),
+(2, 4, 'CEL', 'Nicholas, Ollie, Kate'),
+(2, 5, 'วิทยาศาสตร์ 3', 'ม.ธนากร'),
+(2, 6, 'มงฟอร์ตศึกษา 3', 'มิสจุฑามาศ'),
+(2, 7, 'ทักษะภาษาอังกฤษ', 'Mr. Joemar'),
+(2, 8, 'สอนเสริม', '-'),
+
+-- Wednesday
+(3, 1, 'ทักษะภาษาอังกฤษ', 'Mr. Marlon'),
+(3, 2, 'CEL', 'Nicholas, Ollie, Kate'),
+(3, 3, 'สุข-พละ', 'ม.มาโนช บุญผ่องใส'),
+(3, 4, 'สุข-พละ', 'ม.มาโนช บุญผ่องใส'),
+(3, 5, 'STEM ACTIVITY 3', 'มิสภัสสร, มิสรัชนีภรณ์, ม.ธนากร, มิสเสาวลักษณ์'),
+(3, 6, 'STEM ACTIVITY 3', 'มิสภัสสร, มิสรัชนีภรณ์, ม.ธนากร, มิสเสาวลักษณ์'),
+(3, 7, 'STEM ACTIVITY 3', 'มิสภัสสร, มิสรัชนีภรณ์, ม.ธนากร, มิสเสาวลักษณ์'),
+(3, 8, 'สอนเสริม', '-'),
+
+-- Thursday
+(4, 1, 'ภาษาอังกฤษ 3', 'ม.อัคเดช'),
+(4, 2, 'ศิลปพื้นฐาน 3', 'ม.ปณวัชร'),
+(4, 3, 'ทักษะการปฏิบัติดนตรี 2', 'ม.ปริญญา/ม.วรรษรักษ์'),
+(4, 4, 'ภาษาไทย 3', 'ม.คมสันต์'),
+(4, 5, 'CEL', 'Nicholas, Ollie, Kate'),
+(4, 6, 'ลูกเสือ', '-'),
+(4, 7, 'ชมรม', '-'),
+(4, 8, 'สอนเสริม', '-'),
+
+-- Friday
+(5, 1, 'สังคมศึกษา 3', 'มิสธนวรรณ'),
+(5, 2, 'CEL', 'Nicholas, Ollie, Kate'),
+(5, 3, 'ภาษาไทย 3', 'ม.คมสันต์'),
+(5, 4, 'คณิตศาสตร์ 3', 'มิสเสาวลักษณ์'),
+(5, 5, 'ภาษาอังกฤษ 3', 'ม.อัคเดช'),
+(5, 6, 'สังคมศึกษา 3', 'มิสธนวรรณ'),
+(5, 7, 'การงานอาชีพ 3', 'มิสรุ่งนภา'),
+(5, 8, 'ประวัติศาสตร์ 3', 'ม.เตชพัฒน์')
+ON CONFLICT (day_of_week, period) DO NOTHING;
