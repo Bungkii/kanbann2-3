@@ -601,3 +601,67 @@ export function createCustomPollFlexMessage(pollId: string, question: string, op
     },
   };
 }
+
+export function createUniformFlexMessage(dayName: string, uniformName: string, themeColor: string) {
+  return {
+    type: "flex" as const,
+    altText: `วันนี้ใส่ชุด: ${uniformName}`,
+    contents: {
+      type: "bubble",
+      size: "kilo",
+      header: {
+        type: "box",
+        layout: "vertical",
+        backgroundColor: themeColor,
+        contents: [
+          {
+            type: "text",
+            text: "👗 เครื่องแบบวันนี้",
+            weight: "bold",
+            size: "xl",
+            color: "#FFFFFF",
+          },
+          {
+            type: "text",
+            text: dayName,
+            color: "#FFFFFF",
+            size: "md",
+            margin: "sm",
+          },
+        ],
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          {
+            type: "text",
+            text: uniformName,
+            weight: "bold",
+            size: "xl",
+            color: "#111827",
+            wrap: true,
+            align: "center",
+            margin: "md",
+          },
+        ],
+      },
+      footer: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          {
+            type: "button",
+            style: "secondary",
+            height: "sm",
+            action: {
+              type: "uri",
+              label: "เปลี่ยนตารางการแต่งกาย",
+              uri: "https://kanbann.bungkii.vercel.app/settings/uniform",
+            },
+          },
+        ],
+      },
+    },
+  };
+}

@@ -112,3 +112,26 @@ CREATE POLICY "Allow public read access on candidates" ON candidates FOR SELECT 
 CREATE POLICY "Allow authenticated insert on candidates" ON candidates FOR INSERT TO authenticated WITH CHECK (true);
 CREATE POLICY "Allow authenticated update on candidates" ON candidates FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Allow authenticated delete on candidates" ON candidates FOR DELETE TO authenticated USING (true);
+
+-- Create table for uniform schedule
+CREATE TABLE IF NOT EXISTS uniform_schedule (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    day_of_week integer UNIQUE NOT NULL, -- 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday
+    day_name text NOT NULL,
+    uniform_name text NOT NULL,
+    theme_color text DEFAULT '#1E3A8A',
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+ALTER TABLE uniform_schedule ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public read access on uniform_schedule" ON uniform_schedule FOR SELECT USING (true);
+CREATE POLICY "Allow authenticated all access on uniform_schedule" ON uniform_schedule FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- Insert default uniform schedule
+INSERT INTO uniform_schedule (day_of_week, day_name, uniform_name, theme_color) VALUES 
+(1, 'วันจันทร์', 'ชุดนักเรียน', '#FFD700'),
+(2, 'วันอังคาร', 'ชุดนักเรียน', '#FF69B4'),
+(3, 'วันพุธ', 'ชุดพละและเสื้อช้อป', '#32CD32'),
+(4, 'วันพฤหัสบดี', 'ชุดนักเรียน', '#FFA500'),
+(5, 'วันศุกร์', 'ชุดนักเรียน', '#00BFFF')
+ON CONFLICT (day_of_week) DO NOTHING;

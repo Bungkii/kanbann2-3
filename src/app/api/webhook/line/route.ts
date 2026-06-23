@@ -65,7 +65,7 @@ export async function POST(request: Request) {
 
         // ถ้าพิมพ์คำว่า "คำสั่งเพิ่มเติม"
         if (text === 'คำสั่งเพิ่มเติม') {
-          const replyText = `คู่มือการใช้งานของชามนพิ\nสามารถพิมพ์คำสั่งเหล่านี้ในแชทได้เลยคราบ\n🔹 "พริมจ๋า" - เรียกเมนูหลัก\n🔹 "พริมจ๋า งานวันนี้" - ดูงานที่ต้องส่งวันนี้\n🔹 "พริมจ๋า งานค้าง" - ดูงานที่เลยกำหนดแล้ว\n🔹 "พริมจ๋า สรุปงาน" - ดูงานทั้งหมดในระบบ\n🔹 "พริมจ๋า เปลี่ยนหัวหน้า" - เปิดโหวตเปลี่ยนหัวหน้า\n🔹 "พริมจ๋า สรุปโหวตหัวหน้า" - ดูสรุปคะแนนโหวต\n🔹 "พริมจ๋า ดูไอดี" - ดูไอดีกลุ่ม`;
+          const replyText = `คู่มือการใช้งานของชามนพิ\nสามารถพิมพ์คำสั่งเหล่านี้ในแชทได้เลยคราบ\n🔹 "พริมจ๋า" - เรียกเมนูหลัก\n🔹 "พริมจ๋า งานวันนี้" - ดูงานที่ต้องส่งวันนี้\n🔹 "พริมจ๋า งานค้าง" - ดูงานที่เลยกำหนดแล้ว\n🔹 "พริมจ๋า สรุปงาน" - ดูงานทั้งหมดในระบบ\n🔹 "พริมจ๋าวันนี้ใส่ชุดไร" - ดูชุดนักเรียนที่ต้องใส่\n🔹 "พริมจ๋า เปลี่ยนหัวหน้า" - เปิดโหวตเปลี่ยนหัวหน้า\n🔹 "พริมจ๋า สรุปโหวตหัวหน้า" - ดูสรุปคะแนนโหวต\n🔹 "พริมจ๋า ดูไอดี" - ดูไอดีกลุ่ม`;
           
           await replyToLine(event.replyToken, [{ type: 'text', text: replyText }], lineToken);
           continue;
@@ -103,6 +103,44 @@ export async function POST(request: Request) {
           } else {
             flexMessage = createEveningFlexMessage(tasks as Task[]);
           }
+
+          await replyToLine(event.replyToken, [flexMessage], lineToken);
+          continue;
+        }
+
+        // ถ้าพิมพ์ "พริมจ๋าวันนี้ใส่ชุดไร" หรือ "วันนี้ใส่ชุดอะไร" หรือ "พริมจ๋า วันนี้ใส่ชุดไร"
+        const uniformKeywords = ['พริมจ๋าวันนี้ใส่ชุดไร', 'วันนี้ใส่ชุดอะไร', 'พริมจ๋า วันนี้ใส่ชุดไร'];
+        if (uniformKeywords.includes(text)) {
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+          const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+          const supabase = createClient(supabaseUrl, supabaseKey);
+
+          // Get current day of week in Thailand (1-5 for Mon-Fri)
+          // JavaScript getDay() returns 0 for Sunday, 1 for Monday
+          const today = new Date();
+          const options = { timeZone: 'Asia/Bangkok' };
+          const thDate = new Date(today.toLocaleString('en-US', options));
+          let dayOfWeek = thDate.getDay();
+
+          // If Saturday(6) or Sunday(0), we can just tell them it's a holiday, or fallback to Monday(1)
+          if (dayOfWeek === 0 || dayOfWeek === 6) {
+             await replyToLine(event.replyToken, [{ type: 'text', text: 'วันนี้วันหยุด พักผ่อนได้เลยจ้าไม่ต้องใส่ชุดไปเรียน! 🎉' }], lineToken);
+             continue;
+          }
+
+          const { data: schedule, error: scheduleError } = await supabase
+            .from('uniform_schedule')
+            .select('*')
+            .eq('day_of_week', dayOfWeek)
+            .single();
+
+          if (scheduleError || !schedule) {
+            await replyToLine(event.replyToken, [{ type: 'text', text: 'ยังไม่มีข้อมูลชุดของวันนี้จ้า (แอดมินลืมเพิ่มข้อมูล)' }], lineToken);
+            continue;
+          }
+
+          const { createUniformFlexMessage } = await import('@/utils/line/flex');
+          const flexMessage = createUniformFlexMessage(schedule.day_name, schedule.uniform_name, schedule.theme_color);
 
           await replyToLine(event.replyToken, [flexMessage], lineToken);
           continue;
