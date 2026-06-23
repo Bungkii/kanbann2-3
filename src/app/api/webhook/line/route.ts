@@ -108,39 +108,59 @@ export async function POST(request: Request) {
           continue;
         }
 
-        // ถ้าพิมพ์ "พริมจ๋าวันนี้ใส่ชุดไร" หรือ "วันนี้ใส่ชุดอะไร" หรือ "พริมจ๋า วันนี้ใส่ชุดไร"
-        const uniformKeywords = ['พริมจ๋าวันนี้ใส่ชุดไร', 'วันนี้ใส่ชุดอะไร', 'พริมจ๋า วันนี้ใส่ชุดไร'];
-        if (uniformKeywords.includes(text)) {
+        // ถ้าถามเรื่องชุด เช่น พริมจ๋าวันนี้ใส่ชุดไร, พรุ่งนี้ใส่ชุดอะไร, วันจันทร์ใส่ชุดอะไร
+        if (text.includes('พริม') && (text.includes('ใส่ชุด') || text.includes('ชุดอะไร') || text.includes('ชุดไร') || text.includes('ชุดไหน'))) {
+          let targetDayOfWeek = -1;
+          let isFuture = false;
+          let isSpecificDay = false;
+          
+          const today = new Date();
+          const options = { timeZone: 'Asia/Bangkok' };
+          const thDate = new Date(today.toLocaleString('en-US', options));
+          const currentDayOfWeek = thDate.getDay();
+
+          if (text.includes('พรุ่งนี้')) {
+            targetDayOfWeek = (currentDayOfWeek + 1) % 7;
+            isFuture = true;
+          } else if (text.includes('วันจันทร์')) { targetDayOfWeek = 1; isSpecificDay = true; }
+          else if (text.includes('วันอังคาร')) { targetDayOfWeek = 2; isSpecificDay = true; }
+          else if (text.includes('วันพุธ')) { targetDayOfWeek = 3; isSpecificDay = true; }
+          else if (text.includes('วันพฤหัส')) { targetDayOfWeek = 4; isSpecificDay = true; }
+          else if (text.includes('วันศุกร์')) { targetDayOfWeek = 5; isSpecificDay = true; }
+          else if (text.includes('วันเสาร์')) { targetDayOfWeek = 6; isSpecificDay = true; }
+          else if (text.includes('วันอาทิตย์')) { targetDayOfWeek = 0; isSpecificDay = true; }
+          else {
+            // Default to today
+            targetDayOfWeek = currentDayOfWeek;
+          }
+
+          isFuture = isFuture || isSpecificDay;
+
           const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
           const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
           const supabase = createClient(supabaseUrl, supabaseKey);
 
-          // Get current day of week in Thailand (1-5 for Mon-Fri)
-          // JavaScript getDay() returns 0 for Sunday, 1 for Monday
-          const today = new Date();
-          const options = { timeZone: 'Asia/Bangkok' };
-          const thDate = new Date(today.toLocaleString('en-US', options));
-          let dayOfWeek = thDate.getDay();
-
-          // If Saturday(6) or Sunday(0), we can just tell them it's a holiday, or fallback to Monday(1)
-          if (dayOfWeek === 0 || dayOfWeek === 6) {
-             await replyToLine(event.replyToken, [{ type: 'text', text: 'วันนี้วันหยุด พักผ่อนได้เลยจ้าไม่ต้องใส่ชุดไปเรียน! 🎉' }], lineToken);
+          if (targetDayOfWeek === 0 || targetDayOfWeek === 6) {
+             const dayStr = text.includes('พรุ่งนี้') ? 'พรุ่งนี้' : (isSpecificDay ? 'วันหยุด' : 'วันนี้');
+             await replyToLine(event.replyToken, [{ type: 'text', text: `${dayStr}เป็นวันหยุด พักผ่อนได้เลยจ้าไม่ต้องใส่ชุดไปเรียน! 🎉` }], lineToken);
              continue;
           }
 
           const { data: schedule, error: scheduleError } = await supabase
             .from('uniform_schedule')
             .select('*')
-            .eq('day_of_week', dayOfWeek)
+            .eq('day_of_week', targetDayOfWeek)
             .single();
 
           if (scheduleError || !schedule) {
-            await replyToLine(event.replyToken, [{ type: 'text', text: 'ยังไม่มีข้อมูลชุดของวันนี้จ้า (แอดมินลืมเพิ่มข้อมูล)' }], lineToken);
+            await replyToLine(event.replyToken, [{ type: 'text', text: 'ยังไม่มีข้อมูลชุดของวันนั้นจ้า (แอดมินลืมเพิ่มข้อมูล)' }], lineToken);
             continue;
           }
 
           const { createUniformFlexMessage } = await import('@/utils/line/flex');
-          const flexMessage = createUniformFlexMessage(schedule.day_name, schedule.uniform_name, schedule.theme_color);
+          const displayDayName = text.includes('พรุ่งนี้') ? `พรุ่งนี้ (${schedule.day_name})` : schedule.day_name;
+          
+          const flexMessage = createUniformFlexMessage(displayDayName, schedule.uniform_name, schedule.theme_color, isFuture);
 
           await replyToLine(event.replyToken, [flexMessage], lineToken);
           continue;

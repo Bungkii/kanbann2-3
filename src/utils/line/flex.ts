@@ -602,10 +602,37 @@ export function createCustomPollFlexMessage(pollId: string, question: string, op
   };
 }
 
-export function createUniformFlexMessage(dayName: string, uniformName: string, themeColor: string) {
+export function createUniformFlexMessage(dayName: string, uniformName: string, themeColor: string, isFuture: boolean = false) {
+  const headerText = isFuture ? "👗 เครื่องแบบ" : "👗 เครื่องแบบวันนี้";
+  
+  const contents: any[] = [
+    {
+      type: "text",
+      text: uniformName,
+      weight: "bold",
+      size: "xl",
+      color: "#111827",
+      wrap: true,
+      align: "center",
+      margin: "md",
+    },
+  ];
+
+  if (isFuture) {
+    contents.push({
+      type: "text",
+      text: "(อาจมีการเปลี่ยนแปลง)",
+      color: "#f59e0b",
+      size: "sm",
+      align: "center",
+      margin: "md",
+      weight: "bold"
+    });
+  }
+
   return {
     type: "flex" as const,
-    altText: `วันนี้ใส่ชุด: ${uniformName}`,
+    altText: `ชุดที่ต้องใส่: ${uniformName}`,
     contents: {
       type: "bubble",
       size: "kilo",
@@ -616,7 +643,7 @@ export function createUniformFlexMessage(dayName: string, uniformName: string, t
         contents: [
           {
             type: "text",
-            text: "👗 เครื่องแบบวันนี้",
+            text: headerText,
             weight: "bold",
             size: "xl",
             color: "#FFFFFF",
@@ -633,34 +660,7 @@ export function createUniformFlexMessage(dayName: string, uniformName: string, t
       body: {
         type: "box",
         layout: "vertical",
-        contents: [
-          {
-            type: "text",
-            text: uniformName,
-            weight: "bold",
-            size: "xl",
-            color: "#111827",
-            wrap: true,
-            align: "center",
-            margin: "md",
-          },
-        ],
-      },
-      footer: {
-        type: "box",
-        layout: "vertical",
-        contents: [
-          {
-            type: "button",
-            style: "secondary",
-            height: "sm",
-            action: {
-              type: "uri",
-              label: "เปลี่ยนตารางการแต่งกาย",
-              uri: "https://kanbann.bungkii.vercel.app/settings/uniform",
-            },
-          },
-        ],
+        contents: contents,
       },
     },
   };
