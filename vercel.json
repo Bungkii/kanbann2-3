@@ -15,6 +15,18 @@
     {
       "path": "/api/cron/reset-uniform",
       "schedule": "0 17 * * 0"
+    },
+    {
+      "path": "/api/cron/bot-0500",
+      "schedule": "0 22 * * *"
+    },
+    {
+      "path": "/api/cron/bot-anthem",
+      "schedule": "0 1,11 * * *"
+    },
+    {
+      "path": "/api/cron/bot-2200",
+      "schedule": "0 15 * * *"
     }
   ]
 }

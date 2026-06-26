@@ -63,6 +63,47 @@ export async function POST(request: Request) {
           continue;
         }
 
+        // New funny commands
+        if (text === 'พลอยจี') {
+          await replyToLine(event.replyToken, [{ type: 'text', text: 'อุ๊วะฮะฮ่า เจี๊ยกๆ อุกๆ กรู๊ววว! 🐒' }], lineToken);
+          continue;
+        }
+        if (text === 'อัยย์แจ๋') {
+          await replyToLine(event.replyToken, [{ type: 'text', text: 'ระนาดเอก: เป็นเครื่องดนตรีประเภทตี ทำหน้าที่เป็นผู้นำวง มีเสียงสดใสและกังวาน 🎶' }], lineToken);
+          continue;
+        }
+        if (text === 'ยูกิจือ') {
+          await replyToLine(event.replyToken, [{ type: 'text', text: 'Skibidi Toilet คือสงครามระหว่างโถส้วมมีหัวคนร้องเพลง Skibidi Bop Bop Yes Yes กับกองทัพตากล้อง (Cameraman) ส่วน Italian Brainrot คือมุกตลกปั่นๆ สไตล์อิตาลี 🚽🎥' }], lineToken);
+          continue;
+        }
+        if (text === 'ออสตินจีจ้าบูกิ๊ก') {
+          await replyToLine(event.replyToken, [{ type: 'text', text: 'ไม่เป็นไรนะ เรื่องแค่นี้เอง เราให้อภัยเสมอ ปล่อยวางเถอะ 🤍' }], lineToken);
+          continue;
+        }
+        if (text === 'ดินปืนปู๊ดแป่ว') {
+          const today = new Date();
+          const options: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Bangkok' };
+          const thDateString = today.toLocaleDateString('th-TH', options);
+          await replyToLine(event.replyToken, [{ type: 'text', text: `อรุณสวัสดิ์จ้า! วันนี้คือ ${thDateString} ขอให้เป็นวันที่ดีนะ ☀️` }], lineToken);
+          continue;
+        }
+        if (text === 'ฟอสเฟี้ยวฟ้าว') {
+          await replyToLine(event.replyToken, [{ type: 'text', text: 'เมนูวันนี้น่ารักสุดๆ: นมสดสตรอว์เบอร์รีปั่นหวานน้อย ท็อปด้วยไอศกรีมวานิลลาและวิปครีมเรนโบว์ 🍓🍦✨' }], lineToken);
+          continue;
+        }
+        if (text === 'แสตมป์') {
+          await replyToLine(event.replyToken, [{ type: 'text', text: 'กำลังค้นหาพิกัดห้องน้ำทั่วโลก... 🌍 🚽 พบห้องน้ำที่ใกล้ที่สุด: อยู่ในใจเธอ (หยอกๆ ไปเข้าห้องน้ำโรงเรียนเถอะ)' }], lineToken);
+          continue;
+        }
+        if (text === 'ซิน') {
+          await replyToLine(event.replyToken, [{ type: 'text', text: 'ว่างเปล่า...' }], lineToken);
+          continue;
+        }
+        if (text.includes('ฉงฉึกฉัก') || text === 'ฉง') {
+          await replyToLine(event.replyToken, [{ type: 'text', text: 'ฮอร์โมนเพศชาย (Testosterone) ทำให้เสียงแตกหน่อและมีกล้ามเนื้อ ส่วนฮอร์โมนเพศหญิง (Estrogen) ควบคุมรอบเดือนและการเปลี่ยนแปลงของร่างกาย 🧬' }], lineToken);
+          continue;
+        }
+
         // ถ้าพิมพ์คำว่า "คำสั่งเพิ่มเติม"
         if (text === 'คำสั่งเพิ่มเติม') {
           const replyText = `คู่มือการใช้งานของชามนพิ\nสามารถพิมพ์คำสั่งเหล่านี้ในแชทได้เลยคราบ\n🔹 "พริมจ๋า" - เรียกเมนูหลัก\n🔹 "พริมจ๋า งานวันนี้" - ดูงานที่ต้องส่งวันนี้\n🔹 "พริมจ๋า งานค้าง" - ดูงานที่เลยกำหนดแล้ว\n🔹 "พริมจ๋า สรุปงาน" - ดูงานทั้งหมดในระบบ\n🔹 "พริมจ๋าวันนี้ใส่ชุดไร" - ดูชุดนักเรียนที่ต้องใส่\n🔹 "พริมจ๋า วันนี้ใครเวร" - ดูเวรทำความสะอาด\n🔹 "พริมจ๋า ต่อไปคาบไร" - ดูวิชาเรียนคาบต่อไป\n🔹 "พริมจ๋า พรุ่งนี้เรียนไร" - ดูตารางเรียนพรุ่งนี้\n🔹 "พริมจ๋า เปลี่ยนหัวหน้า" - เปิดโหวตเปลี่ยนหัวหน้า\n🔹 "พริมจ๋า สรุปโหวตหัวหน้า" - ดูสรุปคะแนนโหวต\n🔹 "พริมจ๋า ดูไอดี" - ดูไอดีกลุ่ม`;
