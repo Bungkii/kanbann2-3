@@ -65,15 +65,39 @@ export async function POST(request: Request) {
 
         // New funny commands
         if (text === 'พลอยจี') {
-          await replyToLine(event.replyToken, [{ type: 'text', text: 'อุ๊วะฮะฮ่า เจี๊ยกๆ อุกๆ กรู๊ววว! 🐒' }], lineToken);
+          const texts = [
+            'ระบบ AI พลอยจี กำลังประมวลผล... อุ๊วะฮะฮ่า เจี๊ยกๆ อุกๆ กรู๊ววว! 🤖🐒',
+            'AI พลอยจี ตรวจพบความเหงา... ทำการปล่อยคลื่นเสียง: อุกๆ เจี๊ยกๆ แคร่กๆ! 🍌',
+            'Hello Human. I am AI Ployjee. อุบ๊ะ เจี๊ยกกกๆๆๆ อู้วววววว 🤖🐒',
+            'ระบบขัดข้อง... beep boop... เจี๊ยกๆๆๆๆ อุกๆๆๆ แฮ่! 🐒',
+            'AI พลอยจี สแตนด์บาย! พร้อมส่งเสียงร้อง: เจี๊ยกๆๆ อุกๆๆๆ กิ้วๆๆ! 🐵'
+          ];
+          const randomText = texts[Math.floor(Math.random() * texts.length)];
+          await replyToLine(event.replyToken, [{ type: 'text', text: randomText }], lineToken);
           continue;
         }
         if (text === 'อัยย์แจ๋') {
-          await replyToLine(event.replyToken, [{ type: 'text', text: 'ระนาดเอก: เป็นเครื่องดนตรีประเภทตี ทำหน้าที่เป็นผู้นำวง มีเสียงสดใสและกังวาน 🎶' }], lineToken);
+          const texts = [
+            'ระนาดเอก: เป็นเครื่องดนตรีประเภทตี ทำหน้าที่เป็นผู้นำวง มีเสียงสดใสและกังวาน 🎶',
+            'จะเข้: เครื่องดนตรีประเภทดีด มี 3 สาย นิยมเล่นในวงมโหรีและเครื่องสาย 🐊',
+            'ฆ้องวงใหญ่: เป็นหลักของวงปี่พาทย์ มีลูกฆ้อง 16 ลูก ตีเป็นทำนองหลัก 🎵',
+            'ซอด้วง: เครื่องสีที่มีเสียงแหลม กระบอกซอทำจากไม้เนื้อแข็งหรืองาช้าง 🎻',
+            'ขลุ่ยเพียงออ: เครื่องเป่าทำจากไม้รวก มีเสียงไพเราะ นุ่มนวล 🌬️'
+          ];
+          const randomText = texts[Math.floor(Math.random() * texts.length)];
+          await replyToLine(event.replyToken, [{ type: 'text', text: randomText }], lineToken);
           continue;
         }
         if (text === 'ยูกิจือ') {
-          await replyToLine(event.replyToken, [{ type: 'text', text: 'Skibidi Toilet คือสงครามระหว่างโถส้วมมีหัวคนร้องเพลง Skibidi Bop Bop Yes Yes กับกองทัพตากล้อง (Cameraman) ส่วน Italian Brainrot คือมุกตลกปั่นๆ สไตล์อิตาลี 🚽🎥' }], lineToken);
+          const texts = [
+            'Skibidi Toilet คือสงครามระหว่างโถส้วมมีหัวคนร้องเพลง Skibidi Bop Bop Yes Yes กับกองทัพตากล้อง (Cameraman) 🚽🎥',
+            'Italian Brainrot คือมุกตลกปั่นๆ สไตล์อิตาลี ที่คนชอบเอามาทำมีมกาวๆ 🍝🤪',
+            'Sigma Male rule #1: อย่าไปสนใจ Skibidi Toilet มากเดี๋ยวสมองไหลนะน้องนะ 🗿🍷',
+            'What the dog doin? อ๋อ หมาไปดู Skibidi Toilet อยู่ 🐕🚽',
+            'โอ้มายก้อด บราเธอร์! นี่มัน Italian Brainrot ชัดๆ ไปกินพิซซ่าใส่สับปะรดแป๊บ 🍕🍍'
+          ];
+          const randomText = texts[Math.floor(Math.random() * texts.length)];
+          await replyToLine(event.replyToken, [{ type: 'text', text: randomText }], lineToken);
           continue;
         }
         if (text === 'ออสตินจีจ้าบูกิ๊ก') {
@@ -88,7 +112,15 @@ export async function POST(request: Request) {
           continue;
         }
         if (text === 'ฟอสเฟี้ยวฟ้าว') {
-          await replyToLine(event.replyToken, [{ type: 'text', text: 'เมนูวันนี้น่ารักสุดๆ: นมสดสตรอว์เบอร์รีปั่นหวานน้อย ท็อปด้วยไอศกรีมวานิลลาและวิปครีมเรนโบว์ 🍓🍦✨' }], lineToken);
+          const texts = [
+            'เมนูวันนี้น่ารักสุดๆ: นมสดสตรอว์เบอร์รีปั่นหวานน้อย ท็อปด้วยไอศกรีมวานิลลาและวิปครีมเรนโบว์ 🍓🍦✨',
+            'เมนูแบ๊วๆ: ชาเขียวมัทฉะปั่น ใส่บุกไข่มุกสีพาสเทล พร้อมมาชเมลโล่นุ่มฟู 🍵🍡',
+            'เมนูคาวาอี้: นมหมีปั่นคาราเมล หมีพูห์ยังต้องยอมแพ้ พร้อมวิปครีมล้นๆ 🐻🍯',
+            'เมนูฟรุ้งฟริ้ง: โซดาป๊อปอวกาศสีม่วงวิ้งๆ ใส่เยลลี่รูปดาวและพระจันทร์ 🌌⭐',
+            'เมนูน่ารักกรุบกริบ: แพนเค้กมินิราดน้ำผึ้ง ทานคู่กับสมูทตี้พีชหอมละมุน 🥞🍑'
+          ];
+          const randomText = texts[Math.floor(Math.random() * texts.length)];
+          await replyToLine(event.replyToken, [{ type: 'text', text: randomText }], lineToken);
           continue;
         }
         if (text === 'แสตมป์') {
@@ -96,11 +128,11 @@ export async function POST(request: Request) {
           continue;
         }
         if (text === 'ซิน') {
-          await replyToLine(event.replyToken, [{ type: 'text', text: 'ว่างเปล่า...' }], lineToken);
+          await replyToLine(event.replyToken, [{ type: 'text', text: 'ว่าวเซส' }], lineToken);
           continue;
         }
         if (text.includes('ฉงฉึกฉัก') || text === 'ฉง') {
-          await replyToLine(event.replyToken, [{ type: 'text', text: 'ฮอร์โมนเพศชาย (Testosterone) ทำให้เสียงแตกหน่อและมีกล้ามเนื้อ ส่วนฮอร์โมนเพศหญิง (Estrogen) ควบคุมรอบเดือนและการเปลี่ยนแปลงของร่างกาย 🧬' }], lineToken);
+          await replyToLine(event.replyToken, [{ type: 'text', text: 'ชาย ชาย ชาย ชาย ชาย น้องเคยเห็นชายหรือป่าว ชายนั้นไข่ใหญ่ไม่เบา อันทะของเขาสร้าง sperm' }], lineToken);
           continue;
         }
 
