@@ -110,7 +110,7 @@ export default function ElectionResults({
         <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-amber-400 via-orange-500 to-red-500 opacity-80"></div>
         <h1 className="text-4xl font-extrabold text-slate-800 mb-4 tracking-tight drop-shadow-sm">
           ผลการเลือกตั้งหัวหน้าห้อง
-          <span className="block text-amber-500 mt-2 text-2xl drop-shadow-sm">ปี 2569</span>
+          <span className="block text-amber-500 mt-2 text-2xl drop-shadow-sm">ประจำปี 2569</span>
         </h1>
 
         {/* Countdown Timer with Glassmorphism */}
@@ -159,7 +159,7 @@ export default function ElectionResults({
               <TrendingUp size={24} />
             </div>
             <div className="text-left">
-              <p className="text-sm text-slate-500 font-medium">คิดเป็นร้อยละ</p>
+              <p className="text-sm text-slate-500 font-medium">คิดเป็นเปอร์เซนะ</p>
               <p className="text-2xl font-bold text-emerald-600">
                 {turnoutPercentage}%
               </p>
