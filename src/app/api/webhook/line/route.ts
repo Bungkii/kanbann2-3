@@ -73,7 +73,9 @@ export async function POST(request: Request) {
             'AI พลอยจี สแตนด์บาย! พร้อมส่งเสียงร้อง: เจี๊ยกๆๆ อุกๆๆๆ กิ้วๆๆ! 🐵'
           ];
           const randomText = texts[Math.floor(Math.random() * texts.length)];
-          await replyToLine(event.replyToken, [{ type: 'text', text: randomText }], lineToken);
+          const { createFunnyFlexMessage } = await import('@/utils/line/flex');
+          const flexMsg = createFunnyFlexMessage('พลอยจี 🐵', randomText, '✨', '#f59e0b');
+          await replyToLine(event.replyToken, [flexMsg], lineToken);
           continue;
         }
         if (text === 'อัยย์แจ๋') {
@@ -85,7 +87,9 @@ export async function POST(request: Request) {
             'ขลุ่ยเพียงออ: เครื่องเป่าทำจากไม้รวก มีเสียงไพเราะ นุ่มนวล 🌬️'
           ];
           const randomText = texts[Math.floor(Math.random() * texts.length)];
-          await replyToLine(event.replyToken, [{ type: 'text', text: randomText }], lineToken);
+          const { createFunnyFlexMessage } = await import('@/utils/line/flex');
+          const flexMsg = createFunnyFlexMessage('อัยย์แจ๋ 🎵', randomText, '✨', '#3b82f6');
+          await replyToLine(event.replyToken, [flexMsg], lineToken);
           continue;
         }
         if (text === 'ยูกิจือ') {
@@ -97,18 +101,24 @@ export async function POST(request: Request) {
             'โอ้มายก้อด บราเธอร์! นี่มัน Italian Brainrot ชัดๆ ไปกินพิซซ่าใส่สับปะรดแป๊บ 🍕🍍'
           ];
           const randomText = texts[Math.floor(Math.random() * texts.length)];
-          await replyToLine(event.replyToken, [{ type: 'text', text: randomText }], lineToken);
+          const { createFunnyFlexMessage } = await import('@/utils/line/flex');
+          const flexMsg = createFunnyFlexMessage('ยูกิจือ 🚽', randomText, '✨', '#8b5cf6');
+          await replyToLine(event.replyToken, [flexMsg], lineToken);
           continue;
         }
         if (text === 'ออสตินจีจ้าบูกิ๊ก') {
-          await replyToLine(event.replyToken, [{ type: 'text', text: 'ไม่เป็นไรนะ เรื่องแค่นี้เอง เราให้อภัยเสมอ ปล่อยวางเถอะ 🤍' }], lineToken);
+          const { createFunnyFlexMessage } = await import('@/utils/line/flex');
+          const flexMsg = createFunnyFlexMessage('ออสตินจีจ้าบูกิ๊ก 🤍', 'ไม่เป็นไรนะ เรื่องแค่นี้เอง เราให้อภัยเสมอ ปล่อยวางเถอะ', '✨', '#ec4899');
+          await replyToLine(event.replyToken, [flexMsg], lineToken);
           continue;
         }
         if (text === 'ดินปืนปู๊ดแป่ว') {
           const today = new Date();
           const options: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Bangkok' };
           const thDateString = today.toLocaleDateString('th-TH', options);
-          await replyToLine(event.replyToken, [{ type: 'text', text: `อรุณสวัสดิ์จ้า! วันนี้คือ ${thDateString} ขอให้เป็นวันที่ดีนะ ☀️` }], lineToken);
+          const { createFunnyFlexMessage } = await import('@/utils/line/flex');
+          const flexMsg = createFunnyFlexMessage('ดินปืนปู๊ดแป่ว ☀️', `อรุณสวัสดิ์จ้า! วันนี้คือ ${thDateString} ขอให้เป็นวันที่ดีนะ`, '✨', '#f59e0b');
+          await replyToLine(event.replyToken, [flexMsg], lineToken);
           continue;
         }
         if (text === 'ฟอสเฟี้ยวฟ้าว') {
@@ -120,25 +130,33 @@ export async function POST(request: Request) {
             'เมนูน่ารักกรุบกริบ: แพนเค้กมินิราดน้ำผึ้ง ทานคู่กับสมูทตี้พีชหอมละมุน 🥞🍑'
           ];
           const randomText = texts[Math.floor(Math.random() * texts.length)];
-          await replyToLine(event.replyToken, [{ type: 'text', text: randomText }], lineToken);
+          const { createFunnyFlexMessage } = await import('@/utils/line/flex');
+          const flexMsg = createFunnyFlexMessage('ฟอสเฟี้ยวฟ้าว 🍰', randomText, '✨', '#ef4444');
+          await replyToLine(event.replyToken, [flexMsg], lineToken);
           continue;
         }
         if (text === 'แสตมป์') {
-          await replyToLine(event.replyToken, [{ type: 'text', text: 'กำลังค้นหาพิกัดห้องน้ำทั่วโลก... 🌍 🚽 พบห้องน้ำที่ใกล้ที่สุด: อยู่ในใจเธอ (หยอกๆ ไปเข้าห้องน้ำโรงเรียนเถอะ)' }], lineToken);
+          const { createFunnyFlexMessage } = await import('@/utils/line/flex');
+          const flexMsg = createFunnyFlexMessage('แสตมป์ 🌍', 'กำลังค้นหาพิกัดห้องน้ำทั่วโลก... พบห้องน้ำที่ใกล้ที่สุด: อยู่ในใจเธอ (หยอกๆ ไปเข้าห้องน้ำโรงเรียนเถอะ)', '✨', '#10b981');
+          await replyToLine(event.replyToken, [flexMsg], lineToken);
           continue;
         }
         if (text === 'ซิน') {
-          await replyToLine(event.replyToken, [{ type: 'text', text: 'ว่าวเซส' }], lineToken);
+          const { createFunnyFlexMessage } = await import('@/utils/line/flex');
+          const flexMsg = createFunnyFlexMessage('ซิน', 'ว่าวเซส', '✨', '#6b7280');
+          await replyToLine(event.replyToken, [flexMsg], lineToken);
           continue;
         }
         if (text.includes('ฉงฉึกฉัก') || text === 'ฉง') {
-          await replyToLine(event.replyToken, [{ type: 'text', text: 'ชาย ชาย ชาย ชาย ชาย น้องเคยเห็นชายหรือป่าว ชายนั้นไข่ใหญ่ไม่เบา อันทะของเขาสร้าง sperm' }], lineToken);
+          const { createFunnyFlexMessage } = await import('@/utils/line/flex');
+          const flexMsg = createFunnyFlexMessage('ฉงฉึกฉัก 🧬', 'ชาย ชาย ชาย ชาย ชาย น้องเคยเห็นชายหรือป่าว ชายนั้นไข่ใหญ่ไม่เบา อันทะของเขาสร้าง sperm', '✨', '#0ea5e9');
+          await replyToLine(event.replyToken, [flexMsg], lineToken);
           continue;
         }
 
         // ถ้าพิมพ์คำว่า "คำสั่งเพิ่มเติม"
         if (text === 'คำสั่งเพิ่มเติม') {
-          const replyText = `คู่มือการใช้งานของชามนพิ\nสามารถพิมพ์คำสั่งเหล่านี้ในแชทได้เลยคราบ\n🔹 "พริมจ๋า" - เรียกเมนูหลัก\n🔹 "พริมจ๋า งานวันนี้" - ดูงานที่ต้องส่งวันนี้\n🔹 "พริมจ๋า งานค้าง" - ดูงานที่เลยกำหนดแล้ว\n🔹 "พริมจ๋า สรุปงาน" - ดูงานทั้งหมดในระบบ\n🔹 "พริมจ๋าวันนี้ใส่ชุดไร" - ดูชุดนักเรียนที่ต้องใส่\n🔹 "พริมจ๋า วันนี้ใครเวร" - ดูเวรทำความสะอาด\n🔹 "พริมจ๋า ต่อไปคาบไร" - ดูวิชาเรียนคาบต่อไป\n🔹 "พริมจ๋า พรุ่งนี้เรียนไร" - ดูตารางเรียนพรุ่งนี้\n🔹 "พริมจ๋า เปลี่ยนหัวหน้า" - เปิดโหวตเปลี่ยนหัวหน้า\n🔹 "พริมจ๋า สรุปโหวตหัวหน้า" - ดูสรุปคะแนนโหวต\n🔹 "พริมจ๋า ดูไอดี" - ดูไอดีกลุ่ม`;
+          const replyText = `คู่มือการใช้งานของชามนพิ\nสามารถพิมพ์คำสั่งเหล่านี้ในแชทได้เลยคราบ\n\n🔹 "พริมจ๋า" - เรียกเมนูหลัก\n🔹 "พริมจ๋า งานวันนี้" - ดูงานที่ต้องส่งวันนี้\n🔹 "พริมจ๋า งานค้าง" - ดูงานที่เลยกำหนดแล้ว\n🔹 "พริมจ๋า สรุปงาน" - ดูงานทั้งหมด\n🔹 "พริมจ๋าวันนี้ใส่ชุดไร" - ดูชุดนักเรียน\n🔹 "พริมจ๋า วันนี้ใครเวร" - ดูเวรทำความสะอาด\n🔹 "พริมจ๋า ต่อไปคาบไร" - ดูวิชาเรียนคาบต่อไป\n🔹 "พริมจ๋า พรุ่งนี้เรียนไร" - ดูตารางเรียน\n🔹 "พริมจ๋า เปลี่ยนหัวหน้า" - เปิดโหวตเปลี่ยนหัวหน้า\n🔹 "พริมจ๋า สรุปโหวตหัวหน้า" - ดูคะแนนโหวต\n🔹 "พริมจ๋า ดูไอดี" - ดูไอดีกลุ่ม\n\n🌟 คำสั่งปั่นๆ (แยกจากพริมจ๋า) 🌟\n🔸 "พลอยจี" - คุยแก้เหงา\n🔸 "อัยย์แจ๋" - ความรู้ดนตรีไทย\n🔸 "ยูกิจือ" - สาระ Skibidi Toilet\n🔸 "ออสตินจีจ้าบูกิ๊ก" - คำให้อภัย\n🔸 "ดินปืนปู๊ดแป่ว" - อรุณสวัสดิ์บอกวันที่\n🔸 "ฟอสเฟี้ยวฟ้าว" - สุ่มเมนูอาหาร\n🔸 "แสตมป์" - หาพิกัดห้องน้ำ\n🔸 "ซิน" - ว่างเปล่า\n🔸 "ฉงฉึกฉัก" หรือ "ฉง" - ฮอร์โมนเพศ`;
           
           await replyToLine(event.replyToken, [{ type: 'text', text: replyText }], lineToken);
           continue;
