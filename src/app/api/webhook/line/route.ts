@@ -136,8 +136,20 @@ export async function POST(request: Request) {
           continue;
         }
         if (text === 'แสตมป์') {
+          const dirtyToilets = [
+            'ส้วมสาธารณะริมทางรถไฟอินเดีย คราบตะไคร่น้ำเกาะเต็มกำแพง พร้อมกองอึปริศนาที่ยังอุ่นๆ 🚂💩',
+            'ส้วมหลุมกลางป่าดงดิบ แมลงวันบินว่อนนับพันตัว กลิ่นหมักหมมทะลุแมสก์ 🪰🌲',
+            'ห้องน้ำร้างในเชอร์โนบิล คราบตะกรันสีเขียวเรืองแสง แถมมีคราบเหลืองๆ หยดจากเพดาน ☢️🤢',
+            'ส้วมปั๊มร้างชานเมืองที่ไม่ได้ล้างมา 10 ปี ขี้ลอยฟ่องเต็มคอห่าน กดชักโครกไม่ลง น้ำเจิ่งนองเต็มพื้น 🚽💦',
+            'ส้วมซึมแตกๆ ในตรอกมืด มีหนอนยั้วเยี้ยในร่องกระเบื้อง และกองกระดาษชำระใช้แล้วเปียกแฉะ 🐛🧻',
+            'ห้องน้ำสถานีรถไฟใต้ดินนิวยอร์ก กลิ่นฉี่ฉุนกึกเตะจมูก มีคราบสไลม์เหนียวหนืดเกาะที่ขอบฝารองนั่ง 🚇☣️'
+          ];
+          const lat = (Math.random() * 180 - 90).toFixed(4);
+          const lng = (Math.random() * 360 - 180).toFixed(4);
+          const randomToilet = dirtyToilets[Math.floor(Math.random() * dirtyToilets.length)];
+          
           const { createFunnyFlexMessage } = await import('@/utils/line/flex');
-          const flexMsg = createFunnyFlexMessage('แสตมป์ 🌍', 'กำลังค้นหาพิกัดห้องน้ำทั่วโลก... พบห้องน้ำที่ใกล้ที่สุด: อยู่ในใจเธอ (หยอกๆ ไปเข้าห้องน้ำโรงเรียนเถอะ)', '✨', '#10b981');
+          const flexMsg = createFunnyFlexMessage('แสตมป์ 🚽', `กำลังสแกนหาพิกัดห้องน้ำทั่วโลก...\n\n📍 พิกัด: ${lat}°, ${lng}°\n\nสภาพที่พบ: ${randomToilet}`, '✨', '#10b981');
           await replyToLine(event.replyToken, [flexMsg], lineToken);
           continue;
         }
