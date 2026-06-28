@@ -16,6 +16,63 @@ export default function LinePage() {
   const [pollEndTime, setPollEndTime] = useState('');
   const [isStartingPoll, setIsStartingPoll] = useState(false);
 
+  // Status States
+  const [primjaStatus, setPrimjaStatus] = useState<'active' | 'offline'>('active');
+  const [isLoadingStatus, setIsLoadingStatus] = useState(true);
+  const [isSavingStatus, setIsSavingStatus] = useState(false);
+  const [offlineUntilInput, setOfflineUntilInput] = useState('');
+
+  import { useEffect } from 'react';
+
+  useEffect(() => {
+    import('./actions').then(({ getPrimjaStatus }) => {
+      getPrimjaStatus().then(data => {
+        setPrimjaStatus(data.status as 'active' | 'offline');
+        if (data.offlineUntil) {
+          // Keep it in YYYY-MM-DDTHH:mm format for datetime-local
+          setOfflineUntilInput(data.offlineUntil.substring(0, 16));
+        }
+        setIsLoadingStatus(false);
+      });
+    });
+  }, []);
+
+  const handleToggleStatus = async () => {
+    const newStatus = primjaStatus === 'active' ? 'offline' : 'active';
+    const toastId = toast.loading('กำลังบันทึกสถานะ...');
+    setIsSavingStatus(true);
+    
+    const { setPrimjaStatus: setStatusAction } = await import('./actions');
+    const result = await setStatusAction(newStatus, newStatus === 'offline' ? offlineUntilInput : undefined);
+    
+    setIsSavingStatus(false);
+    if (result.error) {
+      toast.error(result.error, { id: toastId });
+    } else {
+      setPrimjaStatus(newStatus);
+      toast.success(newStatus === 'active' ? 'พริมจ๋าเปิดใช้งานแล้ว! 🎉' : 'พริมจ๋าปิดระบบชั่วคราวแล้ว! 🛠️', { id: toastId });
+    }
+  };
+
+  const handleSaveOfflineTime = async () => {
+    if (!offlineUntilInput) {
+      toast.error('กรุณาเลือกเวลาปิดระบบ');
+      return;
+    }
+    const toastId = toast.loading('กำลังบันทึกเวลา...');
+    setIsSavingStatus(true);
+    
+    const { setPrimjaStatus: setStatusAction } = await import('./actions');
+    const result = await setStatusAction('offline', new Date(offlineUntilInput).toISOString());
+    
+    setIsSavingStatus(false);
+    if (result.error) {
+      toast.error(result.error, { id: toastId });
+    } else {
+      toast.success('บันทึกเวลาปิดระบบเรียบร้อย!', { id: toastId });
+    }
+  };
+
   const handleSendCustomMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!customMessage.trim()) {
@@ -137,6 +194,60 @@ export default function LinePage() {
             </svg>
             กลับหน้าหลัก
           </Link>
+        </div>
+
+        {/* Status Toggle Section */}
+        <div className="bg-white rounded-3xl p-6 md:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100">
+          <div className="flex items-start justify-between flex-col md:flex-row md:items-center gap-4">
+            <div className="flex items-center gap-4">
+              <div className={`p-3 rounded-2xl ${primjaStatus === 'active' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2a10 10 0 1 0 10 10H12V2z"/><path d="M22 12A10 10 0 0 0 12 2v10z"/>
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-slate-800">สถานะพริมจ๋า (บอทและหน้าเว็บ)</h2>
+                <p className="text-slate-500 text-sm">
+                  {isLoadingStatus ? 'กำลังโหลด...' : (primjaStatus === 'active' ? 'ทำงานปกติ (Active)' : 'ปรับปรุงระบบอยู่ (Offline)')}
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex flex-col gap-2 w-full md:w-auto">
+              <div className="flex items-center justify-end gap-3 w-full">
+                <button
+                  onClick={handleToggleStatus}
+                  disabled={isLoadingStatus}
+                  className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 ${primjaStatus === 'active' ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                >
+                  <span className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${primjaStatus === 'active' ? 'translate-x-7' : 'translate-x-1'}`} />
+                </button>
+              </div>
+              {primjaStatus === 'offline' && (
+                <div className="flex flex-col gap-1 mt-2">
+                  <label htmlFor="offlineUntil" className="text-xs font-medium text-slate-700">
+                    ปรับปรุงถึงเวลา (เวลาปิดระบบ):
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="datetime-local"
+                      id="offlineUntil"
+                      value={offlineUntilInput}
+                      onChange={(e) => setOfflineUntilInput(e.target.value)}
+                      className="text-sm px-3 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-red-500"
+                    />
+                    <button
+                      onClick={handleSaveOfflineTime}
+                      disabled={isSavingStatus}
+                      className="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-sm disabled:opacity-50"
+                    >
+                      บันทึก
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Start Poll Section */}

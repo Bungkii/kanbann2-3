@@ -70,3 +70,52 @@ export async function createCustomPoll(question: string, options: string[], endT
   return { success: true, requireTrigger: true, pollId: poll.id };
 }
 
+export async function getPrimjaStatus() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
+
+  const { data: statusData } = await supabase
+    .from('system_settings')
+    .select('value')
+    .eq('key', 'primja_status')
+    .single();
+
+  const { data: timeData } = await supabase
+    .from('system_settings')
+    .select('value')
+    .eq('key', 'primja_offline_until')
+    .single();
+
+  return {
+    status: statusData?.value || 'active',
+    offlineUntil: timeData?.value || null
+  };
+}
+
+export async function setPrimjaStatus(status: 'active' | 'offline', offlineUntil?: string) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
+
+  const updates = [
+    { key: 'primja_status', value: status, updated_at: new Date().toISOString() },
+  ];
+
+  if (status === 'offline' && offlineUntil) {
+    updates.push({ key: 'primja_offline_until', value: offlineUntil, updated_at: new Date().toISOString() });
+  } else if (status === 'active') {
+    updates.push({ key: 'primja_offline_until', value: '', updated_at: new Date().toISOString() });
+  }
+
+  const { error } = await supabase
+    .from('system_settings')
+    .upsert(updates);
+
+  if (error) {
+    console.error('Error setting status:', error);
+    return { error: 'เกิดข้อผิดพลาดในการบันทึกสถานะ' };
+  }
+  return { success: true };
+}
+

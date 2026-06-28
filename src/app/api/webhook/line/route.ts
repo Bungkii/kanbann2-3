@@ -54,6 +54,38 @@ export async function POST(request: Request) {
         const text = event.message.text.trim().replace(/^["']|["']$/g, '');
         console.log(`Received text message: "${text}"`);
         
+        // --- Offline Check ---
+        const isCommand = text.startsWith('พริมจ๋า') || text === 'คำสั่งเพิ่มเติม' || text.startsWith('โหวตโพล:') || text.startsWith('สรุปโพล:');
+        if (isCommand) {
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+          const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+          const supabase = createClient(supabaseUrl, supabaseKey);
+
+          const { data: statusSetting } = await supabase
+            .from('system_settings')
+            .select('value')
+            .eq('key', 'primja_status')
+            .single();
+
+          if (statusSetting?.value === 'offline') {
+            const { data: timeSetting } = await supabase
+              .from('system_settings')
+              .select('value')
+              .eq('key', 'primja_offline_until')
+              .single();
+
+            let offlineMsg = 'พริมจ๋ากำลังปรับปรุงระบบอยู่จ้า 🛠️\nเดี๋ยวมาใหม่นะ';
+            if (timeSetting?.value) {
+              const untilDate = new Date(timeSetting.value);
+              offlineMsg = `พริมจ๋ากำลังปรับปรุงระบบอยู่จ้า 🛠️\nคาดว่าจะกลับมาใช้งานได้เวลา: ${untilDate.toLocaleString('th-TH')}`;
+            }
+
+            await replyToLine(event.replyToken, [{ type: 'text', text: offlineMsg }], lineToken);
+            continue;
+          }
+        }
+        // ----------------------
+
         // ถ้าพิมพ์คำว่า "พริมจ๋า ดูไอดี" หรือ "พริมจ๋าดูไอดี"
         if (text === 'พริมจ๋า ดูไอดี' || text === 'พริมจ๋าดูไอดี') {
           const groupId = event.source.groupId || event.source.roomId;

@@ -66,7 +66,21 @@ export default async function Home() {
               <p className="text-slate-500 text-center">พริมง่วงทวงความยุติธรรม</p>
             </div>
           </Link>
-          <div className="h-[104px] hidden md:block"></div>
+
+          {/* Leader Assessment (Coming Soon) */}
+          <div className="relative group cursor-not-allowed">
+            <div className="bg-white/60 rounded-3xl p-8 border border-slate-200 flex flex-col items-center justify-center transition-all duration-300 opacity-80 backdrop-blur-sm">
+              <div className="absolute top-4 right-4 bg-amber-100 text-amber-700 text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/></svg>
+                เร็วๆ นี้
+              </div>
+              <div className="bg-slate-100 text-slate-400 p-4 rounded-full mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10.4 12.6a2 2 0 1 1 3 3L8 21l-4 1 1-4Z"/><path d="M18 21v-8a2 2 0 0 0-2-2h-3"/><path d="M4 14.5V7a2 2 0 0 1 2-2h6l4 4"/></svg>
+              </div>
+              <h2 className="text-xl font-bold text-slate-600 mb-1">ระบบประเมินหัวหน้า</h2>
+              <p className="text-slate-400 text-center text-sm">ยังไม่เปิดใช้งาน (Under Construction)</p>
+            </div>
+          </div>
         </div>
 
         {/* Right Section (Election) */}
@@ -108,6 +122,7 @@ export default async function Home() {
                 เข้าสู่ระบบแอดมิน
               </Link>
             )}
+          </div>
           </div>
         </div>
       </div>

@@ -16,6 +16,28 @@ export default function AddTaskPage() {
   const supabase = createClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [isCheckingStatus, setIsCheckingStatus] = useState(true);
+  const [offlineInfo, setOfflineInfo] = useState<{ isOffline: boolean; until: string | null }>({ isOffline: false, until: null });
+
+  import { useEffect } from 'react';
+
+  useEffect(() => {
+    const checkStatus = async () => {
+      try {
+        const { getPrimjaStatus } = await import('../line/actions');
+        const data = await getPrimjaStatus();
+        if (data.status === 'offline') {
+          setOfflineInfo({ isOffline: true, until: data.offlineUntil });
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setIsCheckingStatus(false);
+      }
+    };
+    checkStatus();
+  }, []);
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -104,6 +126,37 @@ export default function AddTaskPage() {
       setLoading(false);
     }
   };
+
+  if (isCheckingStatus) {
+    return (
+      <main className="min-h-screen bg-slate-50 py-12 flex justify-center items-center">
+        <svg className="animate-spin h-8 w-8 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+      </main>
+    );
+  }
+
+  if (offlineInfo.isOffline) {
+    let offlineMsg = 'พริมจ๋ากำลังปรับปรุงระบบอยู่จ้า 🛠️';
+    if (offlineInfo.until) {
+      const untilDate = new Date(offlineInfo.until);
+      offlineMsg = `คาดว่าจะกลับมาใช้งานได้เวลา: ${untilDate.toLocaleString('th-TH')}`;
+    }
+
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-8 text-center">
+        <div className="bg-white rounded-3xl p-10 max-w-md shadow-sm border border-slate-200">
+          <div className="bg-amber-100 text-amber-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+          </div>
+          <h2 className="text-2xl font-bold text-slate-800 mb-2">ปรับปรุงระบบอยู่จ้า 🛠️</h2>
+          <p className="text-slate-500 mb-6">{offlineMsg}</p>
+          <Link href="/" className="bg-slate-800 hover:bg-slate-900 text-white font-medium px-6 py-2.5 rounded-full transition-colors inline-block">
+            กลับหน้าหลัก
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 flex justify-center items-start">
