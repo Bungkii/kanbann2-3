@@ -18,6 +18,15 @@ CREATE TABLE IF NOT EXISTS homework_tasks (
 ALTER TABLE homework_tasks ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for access
+-- Drop existing policies if any
+DROP POLICY IF EXISTS "Allow public read access" ON homework_tasks;
+DROP POLICY IF EXISTS "Allow authenticated insert access" ON homework_tasks;
+DROP POLICY IF EXISTS "Allow authenticated update access" ON homework_tasks;
+DROP POLICY IF EXISTS "Allow authenticated delete access" ON homework_tasks;
+DROP POLICY IF EXISTS "Allow admin and jod insert access" ON homework_tasks;
+DROP POLICY IF EXISTS "Allow admin and jod update access" ON homework_tasks;
+DROP POLICY IF EXISTS "Allow admin and jod delete access" ON homework_tasks;
+
 -- Allow ANYONE (including public) to read tasks
 CREATE POLICY "Allow public read access" ON homework_tasks FOR SELECT USING (true);
 -- Allow admin and jod to insert, update, and delete
@@ -248,6 +257,10 @@ CREATE TABLE IF NOT EXISTS user_roles (
 );
 
 ALTER TABLE user_roles ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public read access on user_roles" ON user_roles;
+DROP POLICY IF EXISTS "Allow admin to manage user_roles" ON user_roles;
+DROP POLICY IF EXISTS "Allow users to insert their own role" ON user_roles;
+
 CREATE POLICY "Allow public read access on user_roles" ON user_roles FOR SELECT USING (true);
 CREATE POLICY "Allow admin to manage user_roles" ON user_roles FOR ALL TO authenticated USING (
     EXISTS (
@@ -274,6 +287,9 @@ CREATE TABLE IF NOT EXISTS class_funds (
 );
 
 ALTER TABLE class_funds ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public read access on class_funds" ON class_funds;
+DROP POLICY IF EXISTS "Allow admin and tuang to manage class_funds" ON class_funds;
+
 CREATE POLICY "Allow public read access on class_funds" ON class_funds FOR SELECT USING (true);
 -- Only admin and tuang can update/insert class_funds
 CREATE POLICY "Allow admin and tuang to manage class_funds" ON class_funds FOR ALL TO authenticated USING (
