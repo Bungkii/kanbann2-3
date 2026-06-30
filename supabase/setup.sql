@@ -20,10 +20,26 @@ ALTER TABLE homework_tasks ENABLE ROW LEVEL SECURITY;
 -- Create policies for access
 -- Allow ANYONE (including public) to read tasks
 CREATE POLICY "Allow public read access" ON homework_tasks FOR SELECT USING (true);
--- Allow only authenticated users to insert, update, and delete
-CREATE POLICY "Allow authenticated insert access" ON homework_tasks FOR INSERT TO authenticated WITH CHECK (true);
-CREATE POLICY "Allow authenticated update access" ON homework_tasks FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "Allow authenticated delete access" ON homework_tasks FOR DELETE TO authenticated USING (true);
+-- Allow admin and jod to insert, update, and delete
+CREATE POLICY "Allow admin and jod insert access" ON homework_tasks FOR INSERT TO authenticated WITH CHECK (
+    EXISTS (
+        SELECT 1 FROM user_roles ur WHERE ur.user_id = auth.uid() AND ur.role IN ('admin', 'jod')
+    )
+);
+CREATE POLICY "Allow admin and jod update access" ON homework_tasks FOR UPDATE TO authenticated USING (
+    EXISTS (
+        SELECT 1 FROM user_roles ur WHERE ur.user_id = auth.uid() AND ur.role IN ('admin', 'jod')
+    )
+) WITH CHECK (
+    EXISTS (
+        SELECT 1 FROM user_roles ur WHERE ur.user_id = auth.uid() AND ur.role IN ('admin', 'jod')
+    )
+);
+CREATE POLICY "Allow admin and jod delete access" ON homework_tasks FOR DELETE TO authenticated USING (
+    EXISTS (
+        SELECT 1 FROM user_roles ur WHERE ur.user_id = auth.uid() AND ur.role IN ('admin', 'jod')
+    )
+);
 
 -- Create storage bucket for homework images
 INSERT INTO storage.buckets (id, name, public) 
