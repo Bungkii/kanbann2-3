@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { sendCustomLineMessage, createCustomPoll } from './actions';
@@ -21,8 +21,6 @@ export default function LinePage() {
   const [isLoadingStatus, setIsLoadingStatus] = useState(true);
   const [isSavingStatus, setIsSavingStatus] = useState(false);
   const [offlineUntilInput, setOfflineUntilInput] = useState('');
-
-  import { useEffect } from 'react';
 
   useEffect(() => {
     import('./actions').then(({ getPrimjaStatus }) => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
@@ -18,8 +18,6 @@ export default function AddTaskPage() {
 
   const [isCheckingStatus, setIsCheckingStatus] = useState(true);
   const [offlineInfo, setOfflineInfo] = useState<{ isOffline: boolean; until: string | null }>({ isOffline: false, until: null });
-
-  import { useEffect } from 'react';
 
   useEffect(() => {
     const checkStatus = async () => {

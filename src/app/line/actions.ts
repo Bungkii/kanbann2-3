@@ -98,7 +98,7 @@ export async function setPrimjaStatus(status: 'active' | 'offline', offlineUntil
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
   const supabase = createClient(supabaseUrl, supabaseKey);
 
-  const updates = [
+  const updates: { key: string, value: string, updated_at: string }[] = [
     { key: 'primja_status', value: status, updated_at: new Date().toISOString() },
   ];
 
