@@ -905,3 +905,146 @@ export function createFunnyFlexMessage(title: string, message: string, emoji: st
     }
   };
 }
+
+export function createFundsFlexMessage(paidCount: number, unpaidStudents: number[], totalFunds: number, weekLabel: string) {
+  const unpaidText = unpaidStudents.length > 0 
+    ? unpaidStudents.join(', ') 
+    : 'ไม่มี (จ่ายครบทุกคนแล้ว! 🎉)';
+  
+  return {
+    type: 'flex',
+    altText: '💰 สถานะเงินห้องสัปดาห์นี้มาแล้วจ้า!',
+    contents: {
+      type: 'bubble',
+      size: 'mega',
+      header: {
+        type: 'box',
+        layout: 'vertical',
+        contents: [
+          {
+            type: 'box',
+            layout: 'horizontal',
+            contents: [
+              {
+                type: 'text',
+                text: '💰',
+                size: 'xxl',
+                flex: 0
+              },
+              {
+                type: 'text',
+                text: 'สถานะเงินห้อง',
+                weight: 'bold',
+                color: '#ffffff',
+                size: 'xl',
+                margin: 'md',
+                align: 'start',
+                gravity: 'center'
+              }
+            ],
+            alignItems: 'center'
+          },
+          {
+            type: 'text',
+            text: `ประจำสัปดาห์: ${weekLabel}`,
+            color: '#ffffffcc',
+            size: 'sm',
+            margin: 'md'
+          }
+        ],
+        backgroundColor: '#059669',
+        paddingAll: 'xl'
+      },
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        contents: [
+          {
+            type: 'box',
+            layout: 'vertical',
+            contents: [
+              {
+                type: 'text',
+                text: 'ยอดเงินกองกลางทั้งหมด',
+                color: '#64748b',
+                size: 'xs',
+                weight: 'bold'
+              },
+              {
+                type: 'text',
+                text: `${totalFunds.toLocaleString()} บาท`,
+                size: 'xxl',
+                weight: 'bold',
+                color: '#0f172a',
+                margin: 'sm'
+              }
+            ],
+            backgroundColor: '#f8fafc',
+            paddingAll: 'md',
+            cornerRadius: 'md',
+            margin: 'md'
+          },
+          {
+            type: 'box',
+            layout: 'horizontal',
+            contents: [
+              {
+                type: 'text',
+                text: '✅ จ่ายแล้ว',
+                size: 'sm',
+                color: '#64748b'
+              },
+              {
+                type: 'text',
+                text: `${paidCount} / 52 คน`,
+                size: 'sm',
+                color: '#10b981',
+                align: 'end',
+                weight: 'bold'
+              }
+            ],
+            margin: 'xl'
+          },
+          {
+            type: 'separator',
+            margin: 'lg'
+          },
+          {
+            type: 'text',
+            text: '❌ รายชื่อคนยังไม่จ่าย (รีบหน่อยนะ!):',
+            weight: 'bold',
+            color: '#ef4444',
+            size: 'sm',
+            margin: 'xl'
+          },
+          {
+            type: 'text',
+            text: unpaidText,
+            wrap: true,
+            size: 'sm',
+            color: '#334155',
+            margin: 'md',
+            weight: 'bold'
+          }
+        ],
+        paddingAll: 'xl'
+      },
+      footer: {
+        type: 'box',
+        layout: 'vertical',
+        contents: [
+          {
+            type: 'button',
+            action: {
+              type: 'uri',
+              label: 'ดูรายละเอียด/จัดการ',
+              uri: 'https://kanbann.bungkii.vercel.app/funds'
+            },
+            style: 'primary',
+            color: '#059669'
+          }
+        ]
+      }
+    }
+  };
+}

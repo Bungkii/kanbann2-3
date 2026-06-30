@@ -185,6 +185,48 @@ export async function POST(request: Request) {
           await replyToLine(event.replyToken, [flexMsg], lineToken);
           continue;
         }
+        if (text === 'ตาล ทวงเงิน' || text === 'ตาลจ๋า ทวงเงิน') {
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+          const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder';
+          const supabase = createClient(supabaseUrl, supabaseKey);
+          
+          function getMonday(d: Date) {
+            d = new Date(d);
+            const day = d.getDay();
+            const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+            d.setDate(diff);
+            return d.toISOString().split('T')[0];
+          }
+          const weekStart = getMonday(new Date());
+
+          const { data: fundsData } = await supabase
+            .from('class_funds')
+            .select('*')
+            .eq('week_start_date', weekStart);
+
+          const funds = fundsData || [];
+          const paidCount = funds.filter((f: any) => f.is_paid).length;
+          
+          const allStudents = Array.from({ length: 52 }, (_, i) => i + 1);
+          const unpaidStudents = allStudents.filter(s => {
+            const f = funds.find((f: any) => f.student_number === s);
+            return !f || !f.is_paid;
+          });
+
+          const { data: allFundsData } = await supabase
+            .from('class_funds')
+            .select('amount')
+            .eq('is_paid', true);
+          
+          const totalFunds = (allFundsData || []).reduce((acc: number, f: any) => acc + Number(f.amount), 0);
+
+          const { createFundsFlexMessage } = await import('@/utils/line/flex');
+          const weekLabel = new Date(weekStart).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+          const flexMsg = createFundsFlexMessage(paidCount, unpaidStudents, totalFunds, weekLabel);
+          await replyToLine(event.replyToken, [flexMsg], lineToken);
+          continue;
+        }
+
         if (text === 'ชิน') {
           const { createFunnyFlexMessage } = await import('@/utils/line/flex');
           const flexMsg = createFunnyFlexMessage('ชิน', 'ว่าวเซส', '✨', '#6b7280');

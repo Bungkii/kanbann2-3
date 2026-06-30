@@ -224,3 +224,48 @@ INSERT INTO class_schedule (day_of_week, period, subject, teacher) VALUES
 (5, 7, 'การงานอาชีพ 3', 'มิสรุ่งนภา'),
 (5, 8, 'ประวัติศาสตร์ 3', 'ม.เตชพัฒน์')
 ON CONFLICT (day_of_week, period) DO NOTHING;
+
+-- Create table for user roles
+CREATE TABLE IF NOT EXISTS user_roles (
+    user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
+    role text NOT NULL DEFAULT 'user' -- Roles: 'admin', 'jod', 'tuang', 'user'
+);
+
+ALTER TABLE user_roles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public read access on user_roles" ON user_roles FOR SELECT USING (true);
+CREATE POLICY "Allow admin to manage user_roles" ON user_roles FOR ALL TO authenticated USING (
+    EXISTS (
+        SELECT 1 FROM user_roles ur WHERE ur.user_id = auth.uid() AND ur.role = 'admin'
+    )
+) WITH CHECK (
+    EXISTS (
+        SELECT 1 FROM user_roles ur WHERE ur.user_id = auth.uid() AND ur.role = 'admin'
+    )
+);
+-- Allow users to insert their own initial role if it doesn't exist (optional, for setup)
+CREATE POLICY "Allow users to insert their own role" ON user_roles FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+
+-- Create table for class funds
+CREATE TABLE IF NOT EXISTS class_funds (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    week_start_date date NOT NULL,
+    student_number integer NOT NULL CHECK (student_number >= 1 AND student_number <= 52),
+    is_paid boolean DEFAULT false,
+    amount numeric DEFAULT 20.00,
+    updated_at timestamp with time zone DEFAULT now(),
+    updated_by uuid REFERENCES auth.users(id),
+    UNIQUE(week_start_date, student_number)
+);
+
+ALTER TABLE class_funds ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public read access on class_funds" ON class_funds FOR SELECT USING (true);
+-- Only admin and tuang can update/insert class_funds
+CREATE POLICY "Allow admin and tuang to manage class_funds" ON class_funds FOR ALL TO authenticated USING (
+    EXISTS (
+        SELECT 1 FROM user_roles ur WHERE ur.user_id = auth.uid() AND ur.role IN ('admin', 'tuang')
+    )
+) WITH CHECK (
+    EXISTS (
+        SELECT 1 FROM user_roles ur WHERE ur.user_id = auth.uid() AND ur.role IN ('admin', 'tuang')
+    )
+);
