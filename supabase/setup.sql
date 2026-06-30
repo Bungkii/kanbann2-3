@@ -81,6 +81,12 @@ VALUES ('homework-images', 'homework-images', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- Storage policies for homework-images
+-- Drop existing policies if any
+DROP POLICY IF EXISTS "Public access to read images" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated users can upload images" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated users can update images" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated users can delete images" ON storage.objects;
+
 -- Allow public access to read images
 CREATE POLICY "Public access to read images" ON storage.objects FOR SELECT USING (bucket_id = 'homework-images');
 
@@ -106,6 +112,7 @@ CREATE TABLE IF NOT EXISTS leader_votes (
 ALTER TABLE leader_votes ENABLE ROW LEVEL SECURITY;
 
 -- Allow public access to leader_votes for webhook operations
+DROP POLICY IF EXISTS "Allow public all access on leader_votes" ON leader_votes;
 CREATE POLICY "Allow public all access on leader_votes" ON leader_votes FOR ALL USING (true) WITH CHECK (true);
 
 -- Create table for system settings (e.g., poll end times)
@@ -128,6 +135,7 @@ CREATE TABLE IF NOT EXISTS custom_polls (
 
 -- Enable Row Level Security for custom_polls
 ALTER TABLE custom_polls ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public all access on custom_polls" ON custom_polls;
 CREATE POLICY "Allow public all access on custom_polls" ON custom_polls FOR ALL USING (true) WITH CHECK (true);
 
 -- Create table for custom poll votes
@@ -142,9 +150,11 @@ CREATE TABLE IF NOT EXISTS custom_poll_votes (
 
 -- Enable Row Level Security for custom_poll_votes
 ALTER TABLE custom_poll_votes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public all access on custom_poll_votes" ON custom_poll_votes;
 CREATE POLICY "Allow public all access on custom_poll_votes" ON custom_poll_votes FOR ALL USING (true) WITH CHECK (true);
 
 -- Allow public access to system_settings for webhook operations and client-side access
+DROP POLICY IF EXISTS "Allow public all access on system_settings" ON system_settings;
 CREATE POLICY "Allow public all access on system_settings" ON system_settings FOR ALL USING (true) WITH CHECK (true);
 
 -- Create table for election candidates
@@ -158,6 +168,11 @@ CREATE TABLE IF NOT EXISTS candidates (
 );
 
 ALTER TABLE candidates ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public read access on candidates" ON candidates;
+DROP POLICY IF EXISTS "Allow authenticated insert on candidates" ON candidates;
+DROP POLICY IF EXISTS "Allow authenticated update on candidates" ON candidates;
+DROP POLICY IF EXISTS "Allow authenticated delete on candidates" ON candidates;
+
 CREATE POLICY "Allow public read access on candidates" ON candidates FOR SELECT USING (true);
 CREATE POLICY "Allow authenticated insert on candidates" ON candidates FOR INSERT TO authenticated WITH CHECK (true);
 CREATE POLICY "Allow authenticated update on candidates" ON candidates FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
@@ -174,6 +189,9 @@ CREATE TABLE IF NOT EXISTS uniform_schedule (
 );
 
 ALTER TABLE uniform_schedule ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public read access on uniform_schedule" ON uniform_schedule;
+DROP POLICY IF EXISTS "Allow authenticated all access on uniform_schedule" ON uniform_schedule;
+
 CREATE POLICY "Allow public read access on uniform_schedule" ON uniform_schedule FOR SELECT USING (true);
 CREATE POLICY "Allow authenticated all access on uniform_schedule" ON uniform_schedule FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
@@ -196,6 +214,9 @@ CREATE TABLE IF NOT EXISTS cleaning_schedule (
 );
 
 ALTER TABLE cleaning_schedule ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public read access on cleaning_schedule" ON cleaning_schedule;
+DROP POLICY IF EXISTS "Allow authenticated all access on cleaning_schedule" ON cleaning_schedule;
+
 CREATE POLICY "Allow public read access on cleaning_schedule" ON cleaning_schedule FOR SELECT USING (true);
 CREATE POLICY "Allow authenticated all access on cleaning_schedule" ON cleaning_schedule FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
@@ -219,6 +240,9 @@ CREATE TABLE IF NOT EXISTS class_schedule (
 );
 
 ALTER TABLE class_schedule ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public read access on class_schedule" ON class_schedule;
+DROP POLICY IF EXISTS "Allow authenticated all access on class_schedule" ON class_schedule;
+
 CREATE POLICY "Allow public read access on class_schedule" ON class_schedule FOR SELECT USING (true);
 CREATE POLICY "Allow authenticated all access on class_schedule" ON class_schedule FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
