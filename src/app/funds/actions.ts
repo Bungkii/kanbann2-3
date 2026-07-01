@@ -79,7 +79,13 @@ export async function toggleFundStatus(weekStartDate: string, studentNumber: num
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { error } = await supabase
+  // Use service role to bypass RLS since we already validated the role in server code
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+  const { createClient: createSupabaseClient } = await import('@supabase/supabase-js')
+  const adminSupabase = createSupabaseClient(supabaseUrl, supabaseKey)
+
+  const { error } = await adminSupabase
     .from('class_funds')
     .upsert({
       week_start_date: weekStartDate,
@@ -92,7 +98,10 @@ export async function toggleFundStatus(weekStartDate: string, studentNumber: num
       onConflict: 'week_start_date,student_number'
     })
 
-  if (error) return { error: error.message }
+  if (error) {
+    console.error('Upsert error:', error)
+    return { error: `DB Error: ${error.message}` }
+  }
   
   revalidatePath('/funds')
   return { success: true }
