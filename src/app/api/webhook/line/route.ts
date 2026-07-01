@@ -185,7 +185,7 @@ export async function POST(request: Request) {
           await replyToLine(event.replyToken, [flexMsg], lineToken);
           continue;
         }
-        if (text === 'ตาล ทวงเงิน' || text === 'ตาลจ๋า ทวงเงิน') {
+        if (text === 'ตาล ทวงเงิน' || text === 'ตาลจ๋า ทวงเงิน' || text === 'ตาลทวงทำไม' || text === 'ตาลทวงยับ') {
           const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
           const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder';
           const supabase = createClient(supabaseUrl, supabaseKey);
@@ -222,7 +222,9 @@ export async function POST(request: Request) {
 
           const { createFundsFlexMessage } = await import('@/utils/line/flex');
           const weekLabel = new Date(weekStart).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
-          const flexMsg = createFundsFlexMessage(paidCount, unpaidStudents, totalFunds, weekLabel);
+          
+          const isHardcore = text === 'ตาลทวงยับ';
+          const flexMsg = createFundsFlexMessage(paidCount, unpaidStudents, totalFunds, weekLabel, isHardcore);
           await replyToLine(event.replyToken, [flexMsg], lineToken);
           continue;
         }

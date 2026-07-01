@@ -906,14 +906,18 @@ export function createFunnyFlexMessage(title: string, message: string, emoji: st
   };
 }
 
-export function createFundsFlexMessage(paidCount: number, unpaidStudents: number[], totalFunds: number, weekLabel: string) {
-  const unpaidText = unpaidStudents.length > 0 
-    ? unpaidStudents.join(', ') 
-    : 'ไม่มี (จ่ายครบทุกคนแล้ว! 🎉)';
+export function createFundsFlexMessage(paidCount: number, unpaidStudents: number[], totalFunds: number, weekLabel: string, isHardcore: boolean = false) {
+  let unpaidText = unpaidStudents.length > 0 
+    ? unpaidStudents.map(num => `เลขที่ ${num}`).join(', ')
+    : 'จ่ายครบทุกคนแล้วจ้า! 🎉';
+  
+  const headerColor = isHardcore ? '#dc2626' : '#059669'; // Red for hardcore, Green for normal
+  const title = isHardcore ? '🚨 ประกาศจับคนยังไม่จ่ายเงินห้อง!' : 'สถานะเงินห้อง';
+  const subtitleLabel = isHardcore ? '🔥 รีบจ่ายเดี๋ยวนี้เลยนะ:' : '❌ รายชื่อคนยังไม่จ่าย:';
   
   return {
     type: 'flex',
-    altText: '💰 สถานะเงินห้องสัปดาห์นี้มาแล้วจ้า!',
+    altText: isHardcore ? 'ประจานคนไม่จ่ายเงินห้อง!' : 'สรุปยอดเงินห้องสัปดาห์นี้',
     contents: {
       type: 'bubble',
       size: 'mega',
@@ -927,13 +931,13 @@ export function createFundsFlexMessage(paidCount: number, unpaidStudents: number
             contents: [
               {
                 type: 'text',
-                text: '💰',
+                text: isHardcore ? '🤬' : '💰',
                 size: 'xxl',
                 flex: 0
               },
               {
                 type: 'text',
-                text: 'สถานะเงินห้อง',
+                text: title,
                 weight: 'bold',
                 color: '#ffffff',
                 size: 'xl',
@@ -952,7 +956,7 @@ export function createFundsFlexMessage(paidCount: number, unpaidStudents: number
             margin: 'md'
           }
         ],
-        backgroundColor: '#059669',
+        backgroundColor: headerColor,
         paddingAll: 'xl'
       },
       body: {
