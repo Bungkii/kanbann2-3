@@ -317,6 +317,53 @@ DROP POLICY IF EXISTS "Allow public read access on class_funds" ON class_funds;
 DROP POLICY IF EXISTS "Allow admin and tuang to manage class_funds" ON class_funds;
 
 CREATE POLICY "Allow public read access on class_funds" ON class_funds FOR SELECT USING (true);
+
+-- Create table for exam summaries
+CREATE TABLE IF NOT EXISTS exam_summaries (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    title text NOT NULL,
+    subject text NOT NULL,
+    description text,
+    file_url text NOT NULL,
+    uploader_id uuid REFERENCES auth.users(id),
+    created_at timestamp with time zone DEFAULT now()
+);
+
+ALTER TABLE exam_summaries ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public read access on exam_summaries" ON exam_summaries;
+DROP POLICY IF EXISTS "Allow authenticated users to insert exam_summaries" ON exam_summaries;
+DROP POLICY IF EXISTS "Allow users to update own exam_summaries or admin" ON exam_summaries;
+DROP POLICY IF EXISTS "Allow users to delete own exam_summaries or admin" ON exam_summaries;
+
+CREATE POLICY "Allow public read access on exam_summaries" ON exam_summaries FOR SELECT USING (true);
+CREATE POLICY "Allow authenticated users to insert exam_summaries" ON exam_summaries FOR INSERT TO authenticated WITH CHECK (auth.uid() = uploader_id);
+CREATE POLICY "Allow users to update own exam_summaries or admin" ON exam_summaries FOR UPDATE TO authenticated USING (
+    auth.uid() = uploader_id OR 
+    EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = auth.uid() AND ur.role = 'admin')
+) WITH CHECK (
+    auth.uid() = uploader_id OR 
+    EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = auth.uid() AND ur.role = 'admin')
+);
+CREATE POLICY "Allow users to delete own exam_summaries or admin" ON exam_summaries FOR DELETE TO authenticated USING (
+    auth.uid() = uploader_id OR 
+    EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = auth.uid() AND ur.role = 'admin')
+);
+
+-- Create storage bucket for exam summaries
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('exam-summaries', 'exam-summaries', true) 
+ON CONFLICT (id) DO NOTHING;
+
+-- Storage policies for exam-summaries
+DROP POLICY IF EXISTS "Public access to read exam summaries" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated users can upload exam summaries" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated users can update own exam summaries or admin" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated users can delete own exam summaries or admin" ON storage.objects;
+
+CREATE POLICY "Public access to read exam summaries" ON storage.objects FOR SELECT USING (bucket_id = 'exam-summaries');
+CREATE POLICY "Authenticated users can upload exam summaries" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'exam-summaries');
+CREATE POLICY "Authenticated users can update own exam summaries or admin" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'exam-summaries');
+CREATE POLICY "Authenticated users can delete own exam summaries or admin" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'exam-summaries');
 -- Only admin and tuang can update/insert class_funds
 CREATE POLICY "Allow admin and tuang to manage class_funds" ON class_funds FOR ALL TO authenticated USING (
     EXISTS (

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
+import Countdown from '@/components/Countdown';
 
 export default async function Home() {
   const supabase = await createClient();
@@ -67,20 +68,24 @@ export default async function Home() {
             </div>
           </Link>
 
-          {/* Leader Assessment (Coming Soon) */}
-          <div className="relative group cursor-not-allowed">
-            <div className="bg-white/60 rounded-3xl p-8 border border-slate-200 flex flex-col items-center justify-center transition-all duration-300 opacity-80 backdrop-blur-sm">
-              <div className="absolute top-4 right-4 bg-amber-100 text-amber-700 text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm">
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/></svg>
-                เร็วๆ นี้
+          {/* Exam Summaries */}
+          <Link href="/summaries" className="group">
+            <div className="bg-gradient-to-br from-rose-500 to-pink-600 rounded-3xl p-8 border border-rose-100 flex flex-col items-center justify-center transition-all duration-300 hover:shadow-[0_8px_30px_rgb(225,29,72,0.2)] hover:-translate-y-1 relative overflow-hidden h-full">
+              {/* Decorative elements */}
+              <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white opacity-10 rounded-full blur-2xl"></div>
+              <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-24 h-24 bg-white opacity-10 rounded-full blur-2xl"></div>
+              
+              <div className="bg-white/20 text-white p-4 rounded-full mb-4 group-hover:scale-110 transition-transform backdrop-blur-md">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
               </div>
-              <div className="bg-slate-100 text-slate-400 p-4 rounded-full mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10.4 12.6a2 2 0 1 1 3 3L8 21l-4 1 1-4Z"/><path d="M18 21v-8a2 2 0 0 0-2-2h-3"/><path d="M4 14.5V7a2 2 0 0 1 2-2h6l4 4"/></svg>
+              <h2 className="text-xl font-bold text-white mb-2 text-center">แจกสรุปสอบกลางภาค 1/69</h2>
+              <div className="bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full mt-2 border border-white/30">
+                <p className="text-white text-xs font-medium tracking-wide">
+                  <Countdown date="2026-07-13T00:00:00+07:00" />
+                </p>
               </div>
-              <h2 className="text-xl font-bold text-slate-600 mb-1">ระบบประเมินหัวหน้า</h2>
-              <p className="text-slate-400 text-center text-sm">ยังไม่เปิดใช้งาน (Under Construction)</p>
             </div>
-          </div>
+          </Link>
         </div>
 
         {/* Right Section (Election) */}
