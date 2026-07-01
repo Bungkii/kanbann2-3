@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import { Banknote, ChevronLeft, ChevronRight, CheckCircle2, Circle, AlertCircle, RefreshCw, HandCoins, Settings } from 'lucide-react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
-import { toggleFundStatus, assignSelfRole } from './actions'
+import { toggleFundStatus, setFundsBalanceAdjustment } from './actions'
 
 type FundRecord = {
   student_number: number;
@@ -42,6 +42,25 @@ export default function FundsClient({ role, totalFunds, currentWeekStart, fundsD
     window.location.href = `/funds?week=${newDate.toISOString().split('T')[0]}`
   }
 
+  const handleAdjustBalance = async () => {
+    const amountStr = prompt('ตั้งยอดเงินปรับฐาน (Balance Adjustment)\n\nหากต้องการบวกเพิ่มให้พิมพ์ตัวเลขปกติ\nหากต้องการหักลบ (เช่น ค่าใช้จ่าย) ให้ใส่เครื่องหมายลบด้านหน้า\nเช่น -500')
+    if (amountStr === null) return
+    const amount = Number(amountStr)
+    if (isNaN(amount)) {
+      toast.error('กรุณาใส่ตัวเลขที่ถูกต้อง')
+      return
+    }
+    
+    const toastId = toast.loading('กำลังอัปเดตยอดเงิน...')
+    const res = await setFundsBalanceAdjustment(amount)
+    if (res.success) {
+      toast.success('อัปเดตยอดเงินสำเร็จ!', { id: toastId })
+      window.location.reload()
+    } else {
+      toast.error(res.error || 'เกิดข้อผิดพลาด', { id: toastId })
+    }
+  }
+
   const handleToggle = async (studentNo: number, currentlyPaid: boolean) => {
     if (!canEdit) {
       toast.error('คุณไม่มีสิทธิ์จัดการเงินห้อง (ต้องเป็น Admin หรือ ทวง)')
@@ -65,18 +84,7 @@ export default function FundsClient({ role, totalFunds, currentWeekStart, fundsD
     }
   }
 
-  const handleClaimAdmin = async () => {
-    if (!confirm('ยืนยันรับ Role Admin? (เฉพาะแอดมินเท่านั้น)')) return
-    setClaimingRole(true)
-    const res = await assignSelfRole('admin')
-    if (res.success) {
-      toast.success('ได้รับ Role Admin แล้ว! รีเฟรชหน้าเว็บ')
-      window.location.reload()
-    } else {
-      toast.error(res.error || 'Failed')
-    }
-    setClaimingRole(false)
-  }
+
 
   // Calculate summary
   const paidCount = fundsData.filter(f => f.is_paid).length
@@ -100,15 +108,18 @@ export default function FundsClient({ role, totalFunds, currentWeekStart, fundsD
             </div>
             <div>
               <p className="text-sm font-semibold text-slate-500">ยอดเงินคงเหลือห้อง</p>
-              <p className="text-2xl font-bold text-slate-800">{totalFunds.toLocaleString()} ฿</p>
+              <div className="flex items-center gap-2">
+                <p className="text-2xl font-bold text-slate-800">{totalFunds.toLocaleString()} ฿</p>
+                {canEdit && (
+                  <button onClick={handleAdjustBalance} className="text-slate-400 hover:text-slate-600 transition-colors" title="ปรับลด/เพิ่มยอดเงิน">
+                    <Settings size={18} />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
           <div className="flex gap-2">
-            {!role && (
-              <button onClick={handleClaimAdmin} disabled={claimingRole} className="text-xs text-indigo-600 hover:underline">
-                Claim Admin Role
-              </button>
-            )}
+
             <span className={`text-xs px-2 py-1 rounded-full font-medium ${role === 'admin' ? 'bg-indigo-100 text-indigo-700' : role === 'tuang' ? 'bg-rose-100 text-rose-700' : 'bg-slate-200 text-slate-600'}`}>
               Role: {role || 'User (Read Only)'}
             </span>

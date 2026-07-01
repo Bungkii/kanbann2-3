@@ -64,9 +64,39 @@ export async function getTotalFunds() {
     .select('amount')
     .eq('is_paid', true)
 
-  if (error) return 0
+  let total = 0
+  if (!error && data) {
+    total = data.reduce((sum, item) => sum + Number(item.amount), 0)
+  }
   
-  return data.reduce((total, item) => total + Number(item.amount), 0)
+  const { data: adjData } = await supabase
+    .from('system_settings')
+    .select('value')
+    .eq('key', 'funds_balance_adjustment')
+    .single()
+    
+  const adjustment = Number(adjData?.value) || 0
+  
+  return total + adjustment
+}
+
+export async function setFundsBalanceAdjustment(amount: number) {
+  const role = await getUserRole()
+  if (role !== 'admin' && role !== 'tuang') return { error: 'Unauthorized' }
+  
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+  const { createClient: createSupabaseClient } = await import('@supabase/supabase-js')
+  const adminSupabase = createSupabaseClient(supabaseUrl, supabaseKey)
+  
+  const { error } = await adminSupabase
+    .from('system_settings')
+    .upsert({ key: 'funds_balance_adjustment', value: amount.toString() })
+    
+  if (error) return { error: error.message }
+  
+  revalidatePath('/funds')
+  return { success: true }
 }
 
 export async function toggleFundStatus(weekStartDate: string, studentNumber: number, isPaid: boolean, amount: number = 20) {
