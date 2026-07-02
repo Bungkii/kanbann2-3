@@ -61,6 +61,10 @@ export default function FundsClient({ isLoggedIn, fundsStats: initialFundsStats,
   const [adjType, setAdjType] = useState<'add' | 'sub' | 'set'>('set')
   const [adjAmount, setAdjAmount] = useState('')
   
+  // Edit Student Amount State
+  const [editingStudent, setEditingStudent] = useState<{ num: number, amount: number, isPaid: boolean } | null>(null)
+  const [editStudentAmount, setEditStudentAmount] = useState('')
+  
   // Expense Modal State
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false)
   const [expAmount, setExpAmount] = useState('')
@@ -260,6 +264,52 @@ export default function FundsClient({ isLoggedIn, fundsStats: initialFundsStats,
     }
   }
 
+  const submitEditStudent = async () => {
+    if (!editingStudent) return
+    const numAmt = Number(editStudentAmount)
+    if (isNaN(numAmt) || numAmt < 0) return toast.error('กรุณาใส่ตัวเลขที่ถูกต้อง')
+    
+    const newIsPaid = numAmt > 0
+    
+    // Calculate difference for stats
+    const oldRecord = localFundsData.find(f => f.student_number === editingStudent.num)
+    const oldAmount = oldRecord?.is_paid ? (oldRecord.amount || 20) : 0
+    const difference = numAmt - oldAmount
+    
+    // Optimistic Update
+    setLocalFundsData(prev => {
+      const exists = prev.find(p => p.student_number === editingStudent.num)
+      if (exists) {
+        return prev.map(p => p.student_number === editingStudent.num ? { ...p, is_paid: newIsPaid, amount: numAmt } : p)
+      } else {
+        return [...prev, { student_number: editingStudent.num, is_paid: newIsPaid, amount: numAmt }]
+      }
+    })
+
+    setLocalFundsStats(prev => ({
+      ...prev,
+      sumPaid: prev.sumPaid + difference,
+      totalFunds: prev.totalFunds + difference
+    }))
+
+    const toastId = toast.loading('กำลังบันทึกยอดเงิน...')
+    setEditingStudent(null)
+
+    // Server request in background
+    try {
+      const res = await toggleFundStatus(weekStart, editingStudent.num, newIsPaid, numAmt)
+      if (res.error) {
+        toast.error(res.error, { id: toastId })
+        router.refresh()
+      } else {
+        toast.success('บันทึกยอดสำเร็จ', { id: toastId })
+      }
+    } catch (err) {
+      toast.error('เกิดข้อผิดพลาด', { id: toastId })
+      router.refresh()
+    }
+  }
+
   const unpaidStudents = students.filter(num => !(localFundsData.find(f => f.student_number === num)?.is_paid))
   const paidStudents = students.filter(num => localFundsData.find(f => f.student_number === num)?.is_paid)
 
@@ -271,34 +321,50 @@ export default function FundsClient({ isLoggedIn, fundsStats: initialFundsStats,
     const amount = fundRecord?.amount || 20
 
     return (
-      <motion.button
+      <motion.div
         key={num}
         layout
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.8 }}
-        whileHover={isLoggedIn ? { scale: 1.05 } : {}}
-        whileTap={isLoggedIn ? { scale: 0.95 } : {}}
-        onClick={() => handleToggle(num, isPaid)}
-        disabled={!isLoggedIn}
-        className={`relative flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all duration-200 ${
-          isPaid 
-            ? 'bg-emerald-50 border-emerald-200 hover:border-emerald-300' 
-            : 'bg-white border-slate-200 hover:border-rose-200'
-        } ${!isLoggedIn && 'cursor-default opacity-80'}`}
+        className="relative"
       >
-        <span className={`text-lg font-bold mb-1 ${isPaid ? 'text-emerald-700' : 'text-slate-600'}`}>
-          {num}
-        </span>
-        {isPaid ? (
-          <div className="flex flex-col items-center">
-            <CheckCircle2 size={16} className="text-emerald-500 mb-0.5" />
-            <span className="text-xs font-semibold text-emerald-600">{amount}฿</span>
-          </div>
-        ) : (
-          <Circle size={20} className="text-slate-300" />
+        <button
+          onClick={() => handleToggle(num, isPaid)}
+          disabled={!isLoggedIn}
+          className={`w-full h-full relative flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all duration-200 ${
+            isPaid 
+              ? 'bg-emerald-50 border-emerald-200 hover:border-emerald-300' 
+              : 'bg-white border-slate-200 hover:border-rose-200'
+          } ${!isLoggedIn && 'cursor-default opacity-80'}`}
+        >
+          <span className={`text-lg font-bold mb-1 ${isPaid ? 'text-emerald-700' : 'text-slate-600'}`}>
+            {num}
+          </span>
+          {isPaid ? (
+            <div className="flex flex-col items-center">
+              <CheckCircle2 size={16} className="text-emerald-500 mb-0.5" />
+              <span className="text-xs font-semibold text-emerald-600">{amount}฿</span>
+            </div>
+          ) : (
+            <Circle size={20} className="text-slate-300" />
+          )}
+        </button>
+
+        {isLoggedIn && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              setEditingStudent({ num, amount, isPaid })
+              setEditStudentAmount(amount.toString())
+            }}
+            className="absolute top-1 right-1 p-1 text-slate-400 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-colors z-10"
+            title="แก้ไขยอดเงิน"
+          >
+            <Settings size={12} />
+          </button>
         )}
-      </motion.button>
+      </motion.div>
     )
   }
 
@@ -540,6 +606,55 @@ export default function FundsClient({ isLoggedIn, fundsStats: initialFundsStats,
                   className="w-full py-3 px-4 bg-rose-500 text-white rounded-xl font-bold hover:bg-rose-600 transition-colors shadow-sm"
                 >
                   บันทึกข้อมูล
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Edit Student Amount Modal */}
+      {editingStudent && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden"
+          >
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white">
+              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                <Settings className="text-amber-500" size={24} />
+                แก้ไขยอดเงิน เลขที่ {editingStudent.num}
+              </h2>
+              <button onClick={() => setEditingStudent(null)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">จำนวนเงินที่จ่าย (บาท)</label>
+                <input
+                  type="number"
+                  value={editStudentAmount}
+                  onChange={(e) => setEditStudentAmount(e.target.value)}
+                  className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium text-slate-800 text-center text-lg"
+                />
+                <p className="text-xs text-slate-500 mt-2 text-center">หากใส่ 0 จะถือว่ายังไม่ได้จ่ายเงิน</p>
+              </div>
+
+              <div className="pt-2 flex gap-3">
+                <button 
+                  onClick={() => setEditingStudent(null)}
+                  className="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition-colors"
+                >
+                  ยกเลิก
+                </button>
+                <button 
+                  onClick={submitEditStudent}
+                  className="flex-1 px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white font-medium rounded-xl transition-colors shadow-sm"
+                >
+                  บันทึก
                 </button>
               </div>
             </div>
