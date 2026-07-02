@@ -266,33 +266,41 @@ export default function FundsClient({ isLoggedIn, fundsStats: initialFundsStats,
   const paidCount = paidStudents.length
   const unpaidCount = unpaidStudents.length
 
-  const renderStudentBtn = (num: number, isPaid: boolean) => (
-    <motion.button
-      key={num}
-      layout
-      initial={{ opacity: 0, scale: 0.8 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.8 }}
-      whileHover={isLoggedIn ? { scale: 1.05 } : {}}
-      whileTap={isLoggedIn ? { scale: 0.95 } : {}}
-      onClick={() => handleToggle(num, isPaid)}
-      disabled={!isLoggedIn}
-      className={`relative flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all duration-200 ${
-        isPaid 
-          ? 'bg-emerald-50 border-emerald-200 hover:border-emerald-300' 
-          : 'bg-white border-slate-200 hover:border-rose-200'
-      } ${!isLoggedIn && 'cursor-default opacity-80'}`}
-    >
-      <span className={`text-lg font-bold mb-1 ${isPaid ? 'text-emerald-700' : 'text-slate-600'}`}>
-        {num}
-      </span>
-      {isPaid ? (
-        <CheckCircle2 size={20} className="text-emerald-500" />
-      ) : (
-        <Circle size={20} className="text-slate-300" />
-      )}
-    </motion.button>
-  )
+  const renderStudentBtn = (num: number, isPaid: boolean) => {
+    const fundRecord = localFundsData.find(f => f.student_number === num)
+    const amount = fundRecord?.amount || 20
+
+    return (
+      <motion.button
+        key={num}
+        layout
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.8 }}
+        whileHover={isLoggedIn ? { scale: 1.05 } : {}}
+        whileTap={isLoggedIn ? { scale: 0.95 } : {}}
+        onClick={() => handleToggle(num, isPaid)}
+        disabled={!isLoggedIn}
+        className={`relative flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all duration-200 ${
+          isPaid 
+            ? 'bg-emerald-50 border-emerald-200 hover:border-emerald-300' 
+            : 'bg-white border-slate-200 hover:border-rose-200'
+        } ${!isLoggedIn && 'cursor-default opacity-80'}`}
+      >
+        <span className={`text-lg font-bold mb-1 ${isPaid ? 'text-emerald-700' : 'text-slate-600'}`}>
+          {num}
+        </span>
+        {isPaid ? (
+          <div className="flex flex-col items-center">
+            <CheckCircle2 size={16} className="text-emerald-500 mb-0.5" />
+            <span className="text-xs font-semibold text-emerald-600">{amount}฿</span>
+          </div>
+        ) : (
+          <Circle size={20} className="text-slate-300" />
+        )}
+      </motion.button>
+    )
+  }
 
   return (
     <main className="max-w-5xl mx-auto p-4 sm:p-8 pt-20">
