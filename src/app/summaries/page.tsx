@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getExamSummaries } from './actions';
 import Countdown from '@/components/Countdown';
-import { BookOpen, Download, FileText, ArrowLeft, Upload, Clock } from 'lucide-react';
+import { BookOpen, Download, FileText, ArrowLeft, Upload, Clock, Image as ImageIcon, ExternalLink } from 'lucide-react';
 
 type SummaryData = {
   id: string;
@@ -12,13 +12,20 @@ type SummaryData = {
   subject: string;
   description: string;
   file_url: string;
+  file_urls?: string[];
   created_at: string;
-  uploader?: { email: string };
 };
+
+function getFileType(url: string): 'pdf' | 'image' {
+  const lower = url.toLowerCase();
+  if (lower.includes('.pdf')) return 'pdf';
+  return 'image';
+}
 
 export default function SummariesPage() {
   const [summaries, setSummaries] = useState<SummaryData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [lightboxImg, setLightboxImg] = useState<string | null>(null);
 
   useEffect(() => {
     fetchSummaries();
@@ -31,6 +38,12 @@ export default function SummariesPage() {
       setSummaries(result.summaries);
     }
     setIsLoading(false);
+  };
+
+  const getUrls = (summary: SummaryData): string[] => {
+    if (summary.file_urls && summary.file_urls.length > 0) return summary.file_urls;
+    if (summary.file_url) return [summary.file_url];
+    return [];
   };
 
   return (
@@ -108,40 +121,143 @@ export default function SummariesPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {summaries.map((summary) => (
-                <div key={summary.id} className="bg-white rounded-2xl p-6 border border-slate-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-all flex flex-col h-full group">
-                  <div className="flex-1">
-                    <div className="bg-rose-50 text-rose-600 text-xs font-bold px-3 py-1.5 rounded-full inline-block mb-4">
-                      {summary.subject}
+              {summaries.map((summary) => {
+                const urls = getUrls(summary);
+                const pdfUrls = urls.filter(u => getFileType(u) === 'pdf');
+                const imageUrls = urls.filter(u => getFileType(u) === 'image');
+
+                return (
+                  <div key={summary.id} className="bg-white rounded-2xl border border-slate-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-all flex flex-col h-full group overflow-hidden">
+                    {/* Image preview strip */}
+                    {imageUrls.length > 0 && (
+                      <div className={`grid ${imageUrls.length === 1 ? 'grid-cols-1' : imageUrls.length === 2 ? 'grid-cols-2' : 'grid-cols-3'} gap-0.5 bg-slate-100`}>
+                        {imageUrls.slice(0, 3).map((url, i) => (
+                          <div key={i} className="relative aspect-[4/3] cursor-pointer overflow-hidden" onClick={() => setLightboxImg(url)}>
+                            <img src={url} alt={`Preview ${i + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform" />
+                            {i === 2 && imageUrls.length > 3 && (
+                              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                <span className="text-white font-bold text-lg">+{imageUrls.length - 3}</span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="p-6 flex flex-col flex-1">
+                      <div className="flex-1">
+                        <div className="bg-rose-50 text-rose-600 text-xs font-bold px-3 py-1.5 rounded-full inline-block mb-4">
+                          {summary.subject}
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-800 mb-2 group-hover:text-rose-600 transition-colors line-clamp-2">
+                          {summary.title}
+                        </h3>
+                        <p className="text-slate-500 text-sm mb-4 line-clamp-3">
+                          {summary.description || 'ไม่มีรายละเอียดเพิ่มเติม'}
+                        </p>
+
+                        {/* File counts */}
+                        <div className="flex gap-3 text-xs text-slate-400 mb-4">
+                          {pdfUrls.length > 0 && (
+                            <span className="flex items-center gap-1">
+                              <FileText size={14} /> {pdfUrls.length} PDF
+                            </span>
+                          )}
+                          {imageUrls.length > 0 && (
+                            <span className="flex items-center gap-1">
+                              <ImageIcon size={14} /> {imageUrls.length} รูป
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Action buttons */}
+                      <div className="mt-auto pt-4 border-t border-slate-50 flex flex-wrap gap-2">
+                        {pdfUrls.map((url, i) => (
+                          <a
+                            key={`pdf-${i}`}
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 bg-rose-50 text-rose-600 text-xs font-medium px-3 py-2 rounded-full hover:bg-rose-100 transition-colors"
+                          >
+                            <FileText size={14} />
+                            เปิด PDF {pdfUrls.length > 1 ? `#${i + 1}` : ''}
+                          </a>
+                        ))}
+                        {imageUrls.length > 0 && (
+                          <button
+                            onClick={() => setLightboxImg(imageUrls[0])}
+                            className="flex items-center gap-1.5 bg-indigo-50 text-indigo-600 text-xs font-medium px-3 py-2 rounded-full hover:bg-indigo-100 transition-colors"
+                          >
+                            <ImageIcon size={14} />
+                            ดูรูป ({imageUrls.length})
+                          </button>
+                        )}
+                        {urls.length > 0 && (
+                          <a
+                            href={urls[0]}
+                            download
+                            className="flex items-center gap-1.5 bg-slate-50 text-slate-600 text-xs font-medium px-3 py-2 rounded-full hover:bg-slate-100 transition-colors ml-auto"
+                          >
+                            <Download size={14} />
+                          </a>
+                        )}
+                      </div>
                     </div>
-                    <h3 className="text-xl font-bold text-slate-800 mb-2 group-hover:text-rose-600 transition-colors line-clamp-2">
-                      {summary.title}
-                    </h3>
-                    <p className="text-slate-500 text-sm mb-6 line-clamp-3">
-                      {summary.description || 'ไม่มีรายละเอียดเพิ่มเติม'}
-                    </p>
                   </div>
-                  
-                  <div className="mt-auto pt-4 border-t border-slate-50 flex items-center justify-between">
-                    <div className="text-xs text-slate-400">
-                      อัปโหลดโดย {summary.uploader?.email?.split('@')[0] || 'Unknown'}
-                    </div>
-                    <a
-                      href={summary.file_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="bg-rose-500 hover:bg-rose-600 text-white p-2.5 rounded-full shadow-sm transition-transform hover:scale-110"
-                      title="เปิดอ่าน / ดาวน์โหลด"
-                    >
-                      <Download size={18} />
-                    </a>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
       </div>
+
+      {/* Lightbox */}
+      {lightboxImg && (
+        <div 
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 cursor-pointer"
+          onClick={() => setLightboxImg(null)}
+        >
+          <button 
+            className="absolute top-6 right-6 text-white/80 hover:text-white bg-white/10 p-2 rounded-full backdrop-blur-sm"
+            onClick={() => setLightboxImg(null)}
+          >
+            ✕
+          </button>
+          <img 
+            src={lightboxImg} 
+            alt="Full view" 
+            className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+          {/* Navigation dots for multiple images */}
+          {summaries.some(s => {
+            const urls = getUrls(s);
+            const imgs = urls.filter(u => getFileType(u) === 'image');
+            return imgs.includes(lightboxImg) && imgs.length > 1;
+          }) && (() => {
+            const currentSummary = summaries.find(s => {
+              const urls = getUrls(s);
+              return urls.filter(u => getFileType(u) === 'image').includes(lightboxImg);
+            });
+            if (!currentSummary) return null;
+            const imgs = getUrls(currentSummary).filter(u => getFileType(u) === 'image');
+            const currentIdx = imgs.indexOf(lightboxImg);
+            return (
+              <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-3" onClick={(e) => e.stopPropagation()}>
+                {imgs.map((img, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setLightboxImg(img)}
+                    className={`w-3 h-3 rounded-full transition-all ${i === currentIdx ? 'bg-white scale-125' : 'bg-white/40 hover:bg-white/70'}`}
+                  />
+                ))}
+              </div>
+            );
+          })()}
+        </div>
+      )}
     </main>
   );
 }

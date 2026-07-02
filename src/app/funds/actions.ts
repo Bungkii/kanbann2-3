@@ -3,43 +3,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 
-export async function getUserRole() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  
-  if (!user) return null
-
-  const { data: roleData } = await supabase
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', user.id)
-    .single()
-    
-  return roleData?.role || 'user'
-}
-
-export async function assignSelfRole(role: string) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
-
-  // Check if role exists
-  const { data: existing } = await supabase
-    .from('user_roles')
-    .select('*')
-    .eq('user_id', user.id)
-    .single()
-
-  if (existing) return { error: 'Role already assigned' }
-
-  const { error } = await supabase
-    .from('user_roles')
-    .insert([{ user_id: user.id, role }])
-
-  if (error) return { error: error.message }
-  return { success: true }
-}
-
 export async function getFundsForWeek(weekStartDate: string) {
   const supabase = await createClient()
   const { data, error } = await supabase
@@ -58,7 +21,6 @@ export async function getFundsForWeek(weekStartDate: string) {
 
 export async function getTotalFunds() {
   const supabase = await createClient()
-  // sum all paid amounts
   const { data, error } = await supabase
     .from('class_funds')
     .select('amount')
@@ -81,8 +43,9 @@ export async function getTotalFunds() {
 }
 
 export async function setFundsBalanceAdjustment(amount: number) {
-  const role = await getUserRole()
-  if (role !== 'admin' && role !== 'tuang') return { error: 'Unauthorized' }
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'กรุณาล็อกอินก่อน' }
   
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -101,15 +64,13 @@ export async function setFundsBalanceAdjustment(amount: number) {
 
 export async function toggleFundStatus(weekStartDate: string, studentNumber: number, isPaid: boolean, amount: number = 20) {
   const supabase = await createClient()
-  const role = await getUserRole()
-  
-  if (role !== 'admin' && role !== 'tuang') {
-    return { error: 'Unauthorized. Only admin or tuang can update funds.' }
-  }
-
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Use service role to bypass RLS since we already validated the role in server code
+  if (!user) {
+    return { error: 'กรุณาล็อกอินก่อน' }
+  }
+
+  // Use service role to bypass RLS
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
   const { createClient: createSupabaseClient } = await import('@supabase/supabase-js')

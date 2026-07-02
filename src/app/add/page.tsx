@@ -10,7 +10,7 @@ import { Users, User, Trophy, ArrowLeft, Image as ImageIcon, Send, X, ClipboardL
 
 export default function AddTaskPage() {
   const [loading, setLoading] = useState(false);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imagePreviews, setImagePreviews] = useState<{file: File; preview: string}[]>([]);
   const [workType, setWorkType] = useState<'individual' | 'group'>('individual');
   const router = useRouter();
   const supabase = createClient();
@@ -37,25 +37,22 @@ export default function AddTaskPage() {
   }, []);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
+    const files = e.target.files;
+    if (!files) return;
+    
+    Array.from(files).forEach(file => {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreview(reader.result as string);
+        setImagePreviews(prev => [...prev, { file, preview: reader.result as string }]);
       };
       reader.readAsDataURL(file);
-    } else {
-      setImagePreview(null);
-    }
+    });
+    
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const removeImage = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setImagePreview(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+  const removeImage = (index: number) => {
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -70,30 +67,31 @@ export default function AddTaskPage() {
     const submissionMethod = formData.get('submission_method') as string;
     const maxScore = formData.get('max_score') as string;
     const groupSize = workType === 'group' ? formData.get('group_size') as string : null;
-    const imageFile = formData.get('image') as File | null;
 
-    let imageUrl = null;
+    const imageUrls: string[] = [];
 
     const toastId = toast.loading('กำลังบันทึกข้อมูล...');
 
     try {
-      if (imageFile && imageFile.size > 0) {
-        toast.loading('กำลังอัปโหลดรูปภาพ...', { id: toastId });
-        const fileExt = imageFile.name.split('.').pop();
-        const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-        const filePath = `${fileName}`;
+      if (imagePreviews.length > 0) {
+        for (let i = 0; i < imagePreviews.length; i++) {
+          toast.loading(`กำลังอัปโหลดรูป ${i + 1}/${imagePreviews.length}...`, { id: toastId });
+          const imgFile = imagePreviews[i].file;
+          const fileExt = imgFile.name.split('.').pop();
+          const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
 
-        const { error: uploadError } = await supabase.storage
-          .from('homework-images')
-          .upload(filePath, imageFile);
+          const { error: uploadError } = await supabase.storage
+            .from('homework-images')
+            .upload(fileName, imgFile);
 
-        if (uploadError) throw uploadError;
+          if (uploadError) throw uploadError;
 
-        const { data: { publicUrl } } = supabase.storage
-          .from('homework-images')
-          .getPublicUrl(filePath);
-        
-        imageUrl = publicUrl;
+          const { data: { publicUrl } } = supabase.storage
+            .from('homework-images')
+            .getPublicUrl(fileName);
+          
+          imageUrls.push(publicUrl);
+        }
       }
 
       toast.loading('กำลังบันทึกลงระบบ...', { id: toastId });
@@ -105,7 +103,8 @@ export default function AddTaskPage() {
           details,
           teacher_name: teacherName || null,
           submission_method: submissionMethod || null,
-          image_url: imageUrl,
+          image_url: imageUrls[0] || null,
+          image_urls: imageUrls.length > 0 ? imageUrls : null,
           status: 'todo',
           work_type: workType,
           group_size: groupSize ? parseInt(groupSize) : null,
@@ -258,39 +257,44 @@ export default function AddTaskPage() {
           </div>
           
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">รูปภาพปลากรอบ</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">รูปภาพประกอบ (เลือกได้หลายรูป)</label>
+            
+            {/* Preview grid */}
+            {imagePreviews.length > 0 && (
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-4">
+                {imagePreviews.map((img, index) => (
+                  <div key={index} className="relative group aspect-square rounded-xl overflow-hidden border-2 border-indigo-200">
+                    <img src={img.preview} alt={`Preview ${index + 1}`} className="w-full h-full object-cover" />
+                    <button 
+                      type="button"
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeImage(index); }}
+                      className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full shadow-md hover:bg-red-600 transition-colors opacity-0 group-hover:opacity-100"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div 
-              className={`border-2 border-dashed rounded-xl p-6 transition-colors text-center cursor-pointer relative ${imagePreview ? 'border-indigo-300 bg-indigo-50/50' : 'border-slate-300 hover:border-indigo-400 hover:bg-slate-50'}`}
+              className="border-2 border-dashed rounded-xl p-6 transition-colors text-center cursor-pointer border-slate-300 hover:border-indigo-400 hover:bg-slate-50"
               onClick={() => fileInputRef.current?.click()}
             >
-              {imagePreview ? (
-                <div className="relative group">
-                  <img src={imagePreview} alt="Preview" className="max-h-60 mx-auto rounded-lg object-contain" />
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
-                    <span className="text-white font-medium">คลิกเพื่อเปลี่ยนรูปภาพ</span>
-                  </div>
-                  <button 
-                    type="button"
-                    onClick={removeImage}
-                    className="absolute -top-3 -right-3 bg-red-500 text-white p-1 rounded-full shadow-md hover:bg-red-600 transition-colors z-10"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-6">
-                  <ImageIcon className="text-slate-400 mb-3" size={40} />
-                  <span className="text-slate-500 font-medium mb-1">คลิกเพื่ออัปโหลดรูปภาพ</span>
-                  <span className="text-xs text-slate-400">รองรับไฟล์ JPG, PNG</span>
-                </div>
-              )}
+              <div className="flex flex-col items-center justify-center py-4">
+                <ImageIcon className="text-slate-400 mb-3" size={36} />
+                <span className="text-slate-500 font-medium mb-1">
+                  {imagePreviews.length > 0 ? 'คลิกเพื่อเพิ่มรูปภาพ' : 'คลิกเพื่ออัปโหลดรูปภาพ'}
+                </span>
+                <span className="text-xs text-slate-400">รองรับ JPG, PNG • เลือกได้หลายรูป</span>
+              </div>
             </div>
             <input 
               ref={fileInputRef}
               type="file" 
-              name="image" 
               accept="image/*" 
               onChange={handleImageChange}
+              multiple
               className="hidden" 
             />
           </div>

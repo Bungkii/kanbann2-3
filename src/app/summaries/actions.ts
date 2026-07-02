@@ -9,7 +9,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 export async function getExamSummaries() {
   const { data, error } = await supabase
     .from('exam_summaries')
-    .select('*, uploader:uploader_id(email)')
+    .select('*')
     .order('created_at', { ascending: false });
 
   if (error) {

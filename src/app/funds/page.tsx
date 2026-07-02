@@ -1,5 +1,6 @@
 import FundsClient from './FundsClient'
-import { getFundsForWeek, getTotalFunds, getUserRole } from './actions'
+import { getFundsForWeek, getTotalFunds } from './actions'
+import { createClient } from '@/utils/supabase/server'
 import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
 
@@ -8,15 +9,18 @@ export const dynamic = 'force-dynamic'
 function getMonday(d: Date) {
   d = new Date(d)
   const day = d.getDay()
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1) // adjust when day is sunday
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1)
   d.setDate(diff)
   return d.toISOString().split('T')[0]
 }
 
 export default async function FundsPage(props: { searchParams: Promise<{ week?: string }> }) {
   const searchParams = await props.searchParams
-  const role = await getUserRole()
   const totalFunds = await getTotalFunds()
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const isLoggedIn = !!user
 
   const currentWeekStart = getMonday(new Date())
   const weekStart = searchParams.week || currentWeekStart
@@ -31,7 +35,7 @@ export default async function FundsPage(props: { searchParams: Promise<{ week?: 
         </Link>
       </div>
       <FundsClient 
-        role={role} 
+        isLoggedIn={isLoggedIn} 
         totalFunds={totalFunds} 
         currentWeekStart={currentWeekStart}
         fundsData={fundsData}

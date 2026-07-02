@@ -5,13 +5,18 @@ import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
-import { BookOpen, ArrowLeft, Upload, File as FileIcon, X } from 'lucide-react';
+import { BookOpen, ArrowLeft, Upload, File as FileIcon, X, Image as ImageIcon, FileText } from 'lucide-react';
+
+type SelectedFile = {
+  file: File;
+  preview?: string; // data URL for image preview
+};
 
 export default function UploadSummaryPage() {
   const [title, setTitle] = useState('');
   const [subject, setSubject] = useState('');
   const [description, setDescription] = useState('');
-  const [file, setFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
   const [loading, setLoading] = useState(false);
   
   const router = useRouter();
@@ -31,28 +36,48 @@ export default function UploadSummaryPage() {
   }, [supabase.auth, router]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-      if (selectedFile.size > 20 * 1024 * 1024) { // 20MB limit
-        toast.error('ไฟล์มีขนาดใหญ่เกินไป (จำกัด 20MB)');
-        e.target.value = '';
+    const files = e.target.files;
+    if (!files) return;
+
+    const newFiles: SelectedFile[] = [];
+    
+    Array.from(files).forEach(file => {
+      if (file.size > 20 * 1024 * 1024) {
+        toast.error(`ไฟล์ ${file.name} ใหญ่เกินไป (จำกัด 20MB)`);
         return;
       }
-      setFile(selectedFile);
-    }
+      
+      const entry: SelectedFile = { file };
+      
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setSelectedFiles(prev => prev.map(f => 
+            f.file === file ? { ...f, preview: reader.result as string } : f
+          ));
+        };
+        reader.readAsDataURL(file);
+      }
+      
+      newFiles.push(entry);
+    });
+
+    setSelectedFiles(prev => [...prev, ...newFiles]);
+    
+    // Reset input so same file can be added again
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const removeFile = () => {
-    setFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+  const removeFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
+
+  const isPdf = (file: File) => file.type === 'application/pdf' || file.name.endsWith('.pdf');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !subject.trim() || !file) {
-      toast.error('กรุณากรอกข้อมูลให้ครบและเลือกไฟล์');
+    if (!title.trim() || !subject.trim() || selectedFiles.length === 0) {
+      toast.error('กรุณากรอกข้อมูลให้ครบและเลือกไฟล์อย่างน้อย 1 ไฟล์');
       return;
     }
 
@@ -61,32 +86,40 @@ export default function UploadSummaryPage() {
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Unauthenticated');
+      if (!user) throw new Error('กรุณาล็อกอินก่อน');
 
-      // 1. Upload File
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = `${user.id}/${fileName}`;
+      const uploadedUrls: string[] = [];
 
-      const { error: uploadError, data: uploadData } = await supabase.storage
-        .from('exam-summaries')
-        .upload(filePath, file);
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const { file } = selectedFiles[i];
+        toast.loading(`กำลังอัปโหลด ${i + 1}/${selectedFiles.length}...`, { id: toastId });
+        
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `${user.id}/${fileName}`;
 
-      if (uploadError) throw uploadError;
+        const { error: uploadError } = await supabase.storage
+          .from('exam-summaries')
+          .upload(filePath, file);
 
-      // 2. Get Public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('exam-summaries')
-        .getPublicUrl(filePath);
+        if (uploadError) throw uploadError;
 
-      // 3. Save to DB
+        const { data: { publicUrl } } = supabase.storage
+          .from('exam-summaries')
+          .getPublicUrl(filePath);
+
+        uploadedUrls.push(publicUrl);
+      }
+
+      // Save to DB with file_urls array
       const { error: dbError } = await supabase
         .from('exam_summaries')
         .insert({
           title: title.trim(),
           subject: subject.trim(),
           description: description.trim(),
-          file_url: publicUrl,
+          file_url: uploadedUrls[0] || '', // backwards compat
+          file_urls: uploadedUrls,
           uploader_id: user.id
         });
 
@@ -173,52 +206,66 @@ export default function UploadSummaryPage() {
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                ไฟล์สรุป (รองรับ PDF, รูปภาพ) <span className="text-rose-500">*</span>
+                ไฟล์สรุป (รองรับ PDF + รูปภาพ หลายไฟล์) <span className="text-rose-500">*</span>
               </label>
               
-              {!file ? (
-                <div 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-slate-300 rounded-2xl p-10 text-center cursor-pointer hover:bg-slate-50 hover:border-rose-400 transition-all group"
-                >
-                  <div className="bg-rose-50 text-rose-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                    <BookOpen size={32} />
-                  </div>
-                  <p className="text-slate-600 font-medium mb-1">คลิกเพื่อเลือกไฟล์</p>
-                  <p className="text-slate-400 text-sm">รองรับ .pdf, .jpg, .png (สูงสุด 20MB)</p>
-                </div>
-              ) : (
-                <div className="bg-rose-50 border border-rose-100 rounded-2xl p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3 overflow-hidden">
-                    <div className="bg-rose-100 text-rose-600 p-3 rounded-xl shrink-0">
-                      <FileIcon size={24} />
+              {/* File list */}
+              {selectedFiles.length > 0 && (
+                <div className="space-y-3 mb-4">
+                  {selectedFiles.map((sf, index) => (
+                    <div key={index} className="bg-slate-50 border border-slate-100 rounded-2xl p-3 flex items-center justify-between group">
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        {sf.preview ? (
+                          <img src={sf.preview} alt="Preview" className="w-12 h-12 object-cover rounded-lg shrink-0" />
+                        ) : (
+                          <div className="bg-rose-100 text-rose-600 p-2.5 rounded-xl shrink-0">
+                            {isPdf(sf.file) ? <FileText size={20} /> : <ImageIcon size={20} />}
+                          </div>
+                        )}
+                        <div className="truncate">
+                          <p className="text-slate-800 font-medium truncate text-sm">{sf.file.name}</p>
+                          <p className="text-slate-400 text-xs">{(sf.file.size / (1024 * 1024)).toFixed(2)} MB • {isPdf(sf.file) ? 'PDF' : 'รูปภาพ'}</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeFile(index)}
+                        className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-white rounded-full transition-colors shrink-0"
+                      >
+                        <X size={18} />
+                      </button>
                     </div>
-                    <div className="truncate">
-                      <p className="text-slate-800 font-medium truncate">{file.name}</p>
-                      <p className="text-slate-500 text-xs">{(file.size / (1024 * 1024)).toFixed(2)} MB</p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={removeFile}
-                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-white rounded-full transition-colors shrink-0"
-                  >
-                    <X size={20} />
-                  </button>
+                  ))}
                 </div>
               )}
+
+              {/* Upload area */}
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                className="border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center cursor-pointer hover:bg-slate-50 hover:border-rose-400 transition-all group"
+              >
+                <div className="bg-rose-50 text-rose-500 w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                  <BookOpen size={28} />
+                </div>
+                <p className="text-slate-600 font-medium mb-1">
+                  {selectedFiles.length > 0 ? 'คลิกเพื่อเพิ่มไฟล์' : 'คลิกเพื่อเลือกไฟล์'}
+                </p>
+                <p className="text-slate-400 text-sm">รองรับ .pdf, .jpg, .png (สูงสุด 20MB ต่อไฟล์ • เลือกได้หลายไฟล์)</p>
+              </div>
+
               <input
                 type="file"
                 ref={fileInputRef}
                 onChange={handleFileChange}
                 accept=".pdf,image/jpeg,image/png,image/webp"
+                multiple
                 className="hidden"
               />
             </div>
 
             <button
               type="submit"
-              disabled={loading || !title || !subject || !file}
+              disabled={loading || !title || !subject || selectedFiles.length === 0}
               className="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-4 rounded-2xl shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
@@ -232,7 +279,7 @@ export default function UploadSummaryPage() {
               ) : (
                 <>
                   <Upload size={20} />
-                  ยืนยันการแชร์สรุป
+                  ยืนยันการแชร์สรุป ({selectedFiles.length} ไฟล์)
                 </>
               )}
             </button>

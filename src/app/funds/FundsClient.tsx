@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Banknote, ChevronLeft, ChevronRight, CheckCircle2, Circle, AlertCircle, RefreshCw, HandCoins, Settings } from 'lucide-react'
+import { Banknote, ChevronLeft, ChevronRight, CheckCircle2, Circle, RefreshCw, HandCoins, Settings } from 'lucide-react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 import { toggleFundStatus, setFundsBalanceAdjustment } from './actions'
@@ -14,31 +14,32 @@ type FundRecord = {
 }
 
 type FundsClientProps = {
-  role: string | null;
+  isLoggedIn: boolean;
   totalFunds: number;
   currentWeekStart: string;
   fundsData: FundRecord[];
 }
 
-export default function FundsClient({ role, totalFunds, currentWeekStart, fundsData }: FundsClientProps) {
+export default function FundsClient({ isLoggedIn, totalFunds, currentWeekStart, fundsData }: FundsClientProps) {
   const [weekStart, setWeekStart] = useState<string>(currentWeekStart)
   const [loading, setLoading] = useState(false)
-  const [claimingRole, setClaimingRole] = useState(false)
 
-  // Parse current date info
   const weekDate = new Date(weekStart)
   const isCurrentWeek = weekStart === currentWeekStart
 
-  // Create array of 1-52 students
   const students = Array.from({ length: 52 }, (_, i) => i + 1)
 
-  const canEdit = role === 'admin' || role === 'tuang'
+  function getMonday(d: Date) {
+    d = new Date(d)
+    const day = d.getDay()
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+    d.setDate(diff)
+    return d.toISOString().split('T')[0]
+  }
 
   const changeWeek = (direction: 'prev' | 'next') => {
     const newDate = new Date(weekDate)
     newDate.setDate(newDate.getDate() + (direction === 'next' ? 7 : -7))
-    // We would need to push router to fetch new data or handle it in client state, 
-    // but for simplicity let's reload the page with a query param
     window.location.href = `/funds?week=${newDate.toISOString().split('T')[0]}`
   }
 
@@ -62,8 +63,8 @@ export default function FundsClient({ role, totalFunds, currentWeekStart, fundsD
   }
 
   const handleToggle = async (studentNo: number, currentlyPaid: boolean) => {
-    if (!canEdit) {
-      toast.error('คุณไม่มีสิทธิ์จัดการเงินห้อง (ต้องเป็น Admin หรือ ทวง)')
+    if (!isLoggedIn) {
+      toast.error('กรุณาล็อกอินก่อนถึงจะกดติ๊กจ่ายเงินได้')
       return
     }
 
@@ -84,9 +85,6 @@ export default function FundsClient({ role, totalFunds, currentWeekStart, fundsD
     }
   }
 
-
-
-  // Calculate summary
   const paidCount = fundsData.filter(f => f.is_paid).length
   const unpaidCount = 52 - paidCount
 
@@ -110,19 +108,13 @@ export default function FundsClient({ role, totalFunds, currentWeekStart, fundsD
               <p className="text-sm font-semibold text-slate-500">ยอดเงินคงเหลือห้อง</p>
               <div className="flex items-center gap-2">
                 <p className="text-2xl font-bold text-slate-800">{totalFunds.toLocaleString()} ฿</p>
-                {canEdit && (
+                {isLoggedIn && (
                   <button onClick={handleAdjustBalance} className="text-slate-400 hover:text-slate-600 transition-colors" title="ปรับลด/เพิ่มยอดเงิน">
                     <Settings size={18} />
                   </button>
                 )}
               </div>
             </div>
-          </div>
-          <div className="flex gap-2">
-
-            <span className={`text-xs px-2 py-1 rounded-full font-medium ${role === 'admin' ? 'bg-indigo-100 text-indigo-700' : role === 'tuang' ? 'bg-rose-100 text-rose-700' : 'bg-slate-200 text-slate-600'}`}>
-              Role: {role || 'User (Read Only)'}
-            </span>
           </div>
         </div>
       </div>
@@ -163,12 +155,11 @@ export default function FundsClient({ role, totalFunds, currentWeekStart, fundsD
           />
         </div>
 
-        {!canEdit && (
+        {!isLoggedIn && (
           <div className="mb-6 p-4 bg-blue-50 text-blue-700 rounded-xl flex items-start gap-3 border border-blue-100">
-            <AlertCircle size={20} className="shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold">โหมดผู้เข้าชม (Read-Only)</p>
-              <p className="text-sm opacity-90">คุณสามารถดูสถานะการจ่ายเงินได้เท่านั้น หากต้องการสิทธิ์ "ทวง" ให้ติดต่อ Admin (บุ้งกี๋)</p>
+              <p className="font-semibold">กรุณาล็อกอินเพื่อจัดการเงินห้อง</p>
+              <p className="text-sm opacity-90">ล็อกอินแล้วจะสามารถกดติ๊กจ่ายเงินให้เพื่อนได้ทันทีเลยครับ</p>
             </div>
           </div>
         )}
@@ -181,15 +172,15 @@ export default function FundsClient({ role, totalFunds, currentWeekStart, fundsD
             return (
               <motion.button
                 key={num}
-                whileHover={canEdit ? { scale: 1.05 } : {}}
-                whileTap={canEdit ? { scale: 0.95 } : {}}
+                whileHover={isLoggedIn ? { scale: 1.05 } : {}}
+                whileTap={isLoggedIn ? { scale: 0.95 } : {}}
                 onClick={() => handleToggle(num, isPaid)}
-                disabled={!canEdit || loading}
+                disabled={!isLoggedIn || loading}
                 className={`relative flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all duration-200 ${
                   isPaid 
                     ? 'bg-emerald-50 border-emerald-200 hover:border-emerald-300' 
                     : 'bg-white border-slate-200 hover:border-rose-200'
-                } ${!canEdit && 'cursor-default'}`}
+                } ${!isLoggedIn && 'cursor-default'}`}
               >
                 <span className={`text-lg font-bold mb-1 ${isPaid ? 'text-emerald-700' : 'text-slate-600'}`}>
                   {num}
