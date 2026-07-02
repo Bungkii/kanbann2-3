@@ -29,7 +29,7 @@ function timeAgo(dateStr: string): string {
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMins / 60);
   const diffDays = Math.floor(diffHours / 24);
-  
+
   if (diffDays > 30) {
     return date.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
   }
@@ -66,7 +66,7 @@ export default function SummariesPage() {
 
   const filtered = useMemo(() => {
     return summaries.filter(s => {
-      const matchSearch = !searchQuery || 
+      const matchSearch = !searchQuery ||
         s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         s.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (s.description || '').toLowerCase().includes(searchQuery.toLowerCase());
@@ -106,20 +106,20 @@ export default function SummariesPage() {
         <div className="bg-gradient-to-br from-rose-500 to-pink-600 rounded-3xl p-8 md:p-12 shadow-lg relative overflow-hidden">
           <div className="absolute top-0 right-0 -mt-8 -mr-8 w-48 h-48 bg-white opacity-10 rounded-full blur-3xl"></div>
           <div className="absolute bottom-0 left-0 -mb-8 -ml-8 w-48 h-48 bg-white opacity-10 rounded-full blur-3xl"></div>
-          
+
           <div className="relative z-10 flex flex-col items-center text-center">
             <div className="bg-white/20 text-white p-5 rounded-full mb-6 backdrop-blur-md">
               <BookOpen size={48} />
             </div>
             <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">คลังสรุปสอบกลางภาค 1/69</h1>
             <p className="text-white/80 text-lg max-w-2xl mx-auto mb-8">
-              ศูนย์รวมสรุปเนื้อหาสอบกลางภาค อ่านฟรี โหลดฟรี เพื่อเพื่อนร่วมห้องทุกคน!
+              จุดรวมสรุปเนื้อหาสอบกลางภาค อ่านฟรี โหลดฟรี เพื่อห้อง 3 ทุกท่าน
             </p>
-            
+
             <div className="bg-white/10 backdrop-blur-md px-6 py-4 rounded-2xl border border-white/20 flex flex-col items-center">
               <div className="flex items-center gap-2 text-white/90 mb-2">
                 <Clock size={20} />
-                <span className="font-medium text-lg">นับถอยหลังวันสอบ (13/7/69)</span>
+                <span className="font-medium text-lg">นับถอยหลังวันสอบกลางภาค</span>
               </div>
               <div className="text-3xl md:text-4xl font-bold text-white tracking-wider">
                 <Countdown date="2026-07-13T00:00:00+07:00" />
@@ -140,7 +140,7 @@ export default function SummariesPage() {
               className="w-full pl-12 pr-4 py-3.5 bg-white rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent shadow-sm text-slate-700 placeholder:text-slate-400 transition-all"
             />
           </div>
-          
+
           <div className="relative w-full sm:w-64">
             <select
               value={selectedSubject}
@@ -171,8 +171,8 @@ export default function SummariesPage() {
                 {summaries.length === 0 ? 'ยังไม่มีสรุปสอบเลย' : 'ไม่พบผลลัพธ์'}
               </h3>
               <p className="text-slate-500 mb-6">
-                {summaries.length === 0 
-                  ? 'มาเป็นคนแรกที่แชร์ความรู้ให้เพื่อนๆ กันเถอะ!' 
+                {summaries.length === 0
+                  ? 'มาเป็นคนแรกที่แชร์ความรู้ให้เพื่อนๆ กันเถอะ!'
                   : 'ลองเปลี่ยนคำค้นหาหรือตัวกรองวิชาดูนะ'}
               </p>
               {summaries.length === 0 && (
@@ -239,7 +239,7 @@ export default function SummariesPage() {
                           กลางภาค เทอม 1
                         </span>
                         <span className="bg-emerald-50 text-emerald-600 text-xs font-semibold px-2.5 py-1 rounded-full">
-                          ฟรี
+                          พริมจ๋าลาออก
                         </span>
                         {pdfUrls.length > 0 && (
                           <span className="bg-amber-50 text-amber-600 text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1">
@@ -301,19 +301,19 @@ export default function SummariesPage() {
 
       {/* Lightbox */}
       {lightboxImg && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 cursor-pointer backdrop-blur-sm"
           onClick={() => setLightboxImg(null)}
         >
-          <button 
+          <button
             className="absolute top-6 right-6 text-white/80 hover:text-white bg-white/10 p-2.5 rounded-full backdrop-blur-sm text-lg font-bold"
             onClick={() => setLightboxImg(null)}
           >
             ✕
           </button>
-          <img 
-            src={lightboxImg} 
-            alt="Full view" 
+          <img
+            src={lightboxImg}
+            alt="Full view"
             className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           />

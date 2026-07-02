@@ -1,5 +1,5 @@
 import FundsClient from './FundsClient'
-import { getFundsForWeek, getFundsData } from './actions'
+import { getFundsForWeek, getFundsData, getExpenses } from './actions'
 import { createClient } from '@/utils/supabase/server'
 import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
@@ -26,12 +26,17 @@ export default async function FundsPage(props: { searchParams: Promise<{ week?: 
   const weekStart = searchParams.week || currentWeekStart
   const fundsData = await getFundsForWeek(weekStart)
 
+  const expenses = await getExpenses()
+
   return (
-    <>
-      <div className="absolute top-4 left-4 z-10">
-        <Link href="/" className="flex items-center gap-2 text-slate-500 hover:text-slate-800 bg-white/80 backdrop-blur-md px-4 py-2 rounded-full shadow-sm border border-slate-200 transition-all hover:shadow-md">
+    <div className="min-h-screen bg-slate-50 relative">
+      <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-10">
+        <Link 
+          href="/"
+          className="bg-white/80 backdrop-blur-md text-slate-500 hover:text-slate-800 p-2 sm:px-4 sm:py-2 rounded-full shadow-sm hover:shadow-md transition-all flex items-center gap-2 border border-slate-200/50"
+        >
           <ChevronLeft size={20} />
-          <span className="font-medium">กลับหน้าหลัก</span>
+          <span className="hidden sm:inline font-medium">กลับหน้าหลัก</span>
         </Link>
       </div>
       <FundsClient 
@@ -39,7 +44,8 @@ export default async function FundsPage(props: { searchParams: Promise<{ week?: 
         fundsStats={fundsStats}
         currentWeekStart={currentWeekStart}
         fundsData={fundsData}
+        expenses={expenses}
       />
-    </>
+    </div>
   )
 }
