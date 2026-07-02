@@ -7,6 +7,8 @@ import Link from 'next/link'
 import toast from 'react-hot-toast'
 import { toggleFundStatus, setFundsBalanceAdjustment, addExpense, deleteExpense } from './actions'
 import { createClient } from '@/utils/supabase/client'
+import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 
 type FundRecord = {
   student_number: number;
@@ -38,7 +40,21 @@ type FundsClientProps = {
   expenses: ExpenseRecord[];
 }
 
-export default function FundsClient({ isLoggedIn, fundsStats, currentWeekStart, fundsData, expenses }: FundsClientProps) {
+export default function FundsClient({ isLoggedIn, fundsStats: initialFundsStats, currentWeekStart, fundsData: initialFundsData, expenses: initialExpenses }: FundsClientProps) {
+  const router = useRouter()
+  
+  // Local state for instant updates (Optimistic UI)
+  const [localFundsData, setLocalFundsData] = useState(initialFundsData)
+  const [localFundsStats, setLocalFundsStats] = useState(initialFundsStats)
+  const [localExpenses, setLocalExpenses] = useState(initialExpenses)
+
+  // Sync with props if they change from server
+  useEffect(() => {
+    setLocalFundsData(initialFundsData)
+    setLocalFundsStats(initialFundsStats)
+    setLocalExpenses(initialExpenses)
+  }, [initialFundsData, initialFundsStats, initialExpenses])
+
   const [weekStart, setWeekStart] = useState<string>(currentWeekStart)
   const [loading, setLoading] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -70,7 +86,7 @@ export default function FundsClient({ isLoggedIn, fundsStats, currentWeekStart, 
   const changeWeek = (direction: 'prev' | 'next') => {
     const newDate = new Date(weekDate)
     newDate.setDate(newDate.getDate() + (direction === 'next' ? 7 : -7))
-    window.location.href = `/funds?week=${newDate.toISOString().split('T')[0]}`
+    router.push(`/funds?week=${newDate.toISOString().split('T')[0]}`)
   }
 
   const submitAdjustment = async () => {
@@ -80,18 +96,25 @@ export default function FundsClient({ isLoggedIn, fundsStats, currentWeekStart, 
     
     let finalAdjustment = 0
     if (adjType === 'add') {
-      finalAdjustment = fundsStats.adjustment + num
+      finalAdjustment = localFundsStats.adjustment + num
     } else if (adjType === 'sub') {
-      finalAdjustment = fundsStats.adjustment - num
+      finalAdjustment = localFundsStats.adjustment - num
     } else if (adjType === 'set') {
-      finalAdjustment = num - fundsStats.sumPaid
+      finalAdjustment = num - localFundsStats.sumPaid
     }
 
     const toastId = toast.loading('กำลังอัปเดตยอดเงิน...')
     const res = await setFundsBalanceAdjustment(finalAdjustment)
     if (res.success) {
       toast.success('อัปเดตยอดเงินสำเร็จ!', { id: toastId })
-      window.location.reload()
+      setLocalFundsStats(prev => ({
+        ...prev,
+        adjustment: finalAdjustment,
+        totalFunds: prev.sumPaid + finalAdjustment - prev.sumExpenses
+      }))
+      setIsModalOpen(false)
+      setAdjAmount('')
+      router.refresh()
     } else {
       toast.error(res.error || 'เกิดข้อผิดพลาด', { id: toastId })
     }
@@ -103,7 +126,13 @@ export default function FundsClient({ isLoggedIn, fundsStats, currentWeekStart, 
     const res = await setFundsBalanceAdjustment(0)
     if (res.success) {
       toast.success('ล้างยอดสำเร็จ!', { id: toastId })
-      window.location.reload()
+      setLocalFundsStats(prev => ({
+        ...prev,
+        adjustment: 0,
+        totalFunds: prev.sumPaid - prev.sumExpenses
+      }))
+      setIsModalOpen(false)
+      router.refresh()
     } else {
       toast.error(res.error || 'เกิดข้อผิดพลาด', { id: toastId })
     }
@@ -142,7 +171,19 @@ export default function FundsClient({ isLoggedIn, fundsStats, currentWeekStart, 
       if (res.error) throw new Error(res.error)
       
       toast.success('บันทึกรายจ่ายสำเร็จ!', { id: toastId })
-      window.location.reload()
+      
+      setLocalFundsStats(prev => ({
+        ...prev,
+        sumExpenses: prev.sumExpenses + num,
+        totalFunds: prev.totalFunds - num
+      }))
+      setIsExpenseModalOpen(false)
+      setExpAmount('')
+      setExpDesc('')
+      setExpFile(null)
+      setExpPreview(null)
+      
+      router.refresh()
     } catch (err: any) {
       toast.error(err.message || 'เกิดข้อผิดพลาด', { id: toastId })
     }
@@ -166,7 +207,16 @@ export default function FundsClient({ isLoggedIn, fundsStats, currentWeekStart, 
     const res = await deleteExpense(id)
     if (res.success) {
       toast.success('ลบสำเร็จ!', { id: toastId })
-      window.location.reload()
+      const expToDelete = localExpenses.find(e => e.id === id)
+      if (expToDelete) {
+        setLocalFundsStats(prev => ({
+          ...prev,
+          sumExpenses: prev.sumExpenses - expToDelete.amount,
+          totalFunds: prev.totalFunds + expToDelete.amount
+        }))
+        setLocalExpenses(prev => prev.filter(e => e.id !== id))
+      }
+      router.refresh()
     } else {
       toast.error(res.error || 'เกิดข้อผิดพลาด', { id: toastId })
     }
@@ -178,29 +228,79 @@ export default function FundsClient({ isLoggedIn, fundsStats, currentWeekStart, 
       return
     }
 
-    setLoading(true)
-    const toastId = toast.loading('กำลังอัปเดต...')
-    
-    try {
-      const res = await toggleFundStatus(weekStart, studentNo, !currentlyPaid, 20)
-      if (res.error) {
-        toast.error(res.error, { id: toastId })
+    const amountChanged = 20
+    const newIsPaid = !currentlyPaid
+
+    // Optimistic UI Update
+    setLocalFundsData(prev => {
+      const exists = prev.find(p => p.student_number === studentNo)
+      if (exists) {
+        return prev.map(p => p.student_number === studentNo ? { ...p, is_paid: newIsPaid } : p)
       } else {
-        toast.success(`อัปเดตสถานะเลขที่ ${studentNo} สำเร็จ`, { id: toastId })
+        return [...prev, { student_number: studentNo, is_paid: newIsPaid, amount: amountChanged }]
+      }
+    })
+
+    setLocalFundsStats(prev => ({
+      ...prev,
+      sumPaid: prev.sumPaid + (newIsPaid ? amountChanged : -amountChanged),
+      totalFunds: prev.totalFunds + (newIsPaid ? amountChanged : -amountChanged)
+    }))
+
+    // Server request in background
+    try {
+      const res = await toggleFundStatus(weekStart, studentNo, newIsPaid, amountChanged)
+      if (res.error) {
+        toast.error(res.error)
+        router.refresh() // revert on error
       }
     } catch (err) {
-      toast.error('เกิดข้อผิดพลาด', { id: toastId })
-    } finally {
-      setLoading(false)
+      toast.error('เกิดข้อผิดพลาด')
+      router.refresh()
     }
   }
 
-  const paidCount = fundsData.filter(f => f.is_paid).length
-  const unpaidCount = 52 - paidCount
+  const unpaidStudents = students.filter(num => !(localFundsData.find(f => f.student_number === num)?.is_paid))
+  const paidStudents = students.filter(num => localFundsData.find(f => f.student_number === num)?.is_paid)
+
+  const paidCount = paidStudents.length
+  const unpaidCount = unpaidStudents.length
+
+  const renderStudentBtn = (num: number, isPaid: boolean) => (
+    <motion.button
+      key={num}
+      layout
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.8 }}
+      whileHover={isLoggedIn ? { scale: 1.05 } : {}}
+      whileTap={isLoggedIn ? { scale: 0.95 } : {}}
+      onClick={() => handleToggle(num, isPaid)}
+      disabled={!isLoggedIn}
+      className={`relative flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all duration-200 ${
+        isPaid 
+          ? 'bg-emerald-50 border-emerald-200 hover:border-emerald-300' 
+          : 'bg-white border-slate-200 hover:border-rose-200'
+      } ${!isLoggedIn && 'cursor-default opacity-80'}`}
+    >
+      <span className={`text-lg font-bold mb-1 ${isPaid ? 'text-emerald-700' : 'text-slate-600'}`}>
+        {num}
+      </span>
+      {isPaid ? (
+        <CheckCircle2 size={20} className="text-emerald-500" />
+      ) : (
+        <Circle size={20} className="text-slate-300" />
+      )}
+    </motion.button>
+  )
 
   return (
-    <main className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+    <main className="max-w-5xl mx-auto p-4 sm:p-8 pt-20">
+      <div className="bg-white rounded-3xl p-6 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 mb-8 relative overflow-hidden">
+        {/* Background decorations */}
+        <div className="absolute top-0 right-0 -mt-8 -mr-8 w-48 h-48 bg-emerald-50 opacity-50 rounded-full blur-3xl"></div>
+        
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-800 flex items-center gap-3">
             <HandCoins className="text-amber-500" size={32} />
@@ -217,7 +317,7 @@ export default function FundsClient({ isLoggedIn, fundsStats, currentWeekStart, 
             <div>
               <p className="text-sm font-semibold text-slate-500">ยอดเงินคงเหลือห้อง</p>
               <div className="flex items-center gap-2">
-                <p className="text-2xl font-bold text-slate-800">{fundsStats.totalFunds.toLocaleString()} ฿</p>
+                <p className="text-2xl font-bold text-slate-800">{localFundsStats.totalFunds.toLocaleString()} ฿</p>
                 {isLoggedIn && (
                   <button onClick={() => setIsModalOpen(true)} className="text-slate-400 hover:text-slate-600 transition-colors bg-slate-50 p-2 rounded-full hover:bg-slate-100" title="ตั้งค่า/ปรับยอดเงิน">
                     <Settings size={18} />
@@ -227,8 +327,8 @@ export default function FundsClient({ isLoggedIn, fundsStats, currentWeekStart, 
             </div>
           </div>
         </div>
+        </div>
       </div>
-
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 mb-8">
         <div className="flex justify-between items-center mb-6">
           <button 
@@ -274,35 +374,25 @@ export default function FundsClient({ isLoggedIn, fundsStats, currentWeekStart, 
           </div>
         )}
 
-        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-3">
-          {students.map((num) => {
-            const fundRecord = fundsData.find(f => f.student_number === num)
-            const isPaid = fundRecord?.is_paid || false
+        {/* Students Grids */}
+        <div className="mb-8">
+          <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <Circle className="text-rose-400" size={20} /> 
+            ยังไม่จ่าย ({unpaidStudents.length} คน)
+          </h3>
+          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-3">
+            {unpaidStudents.map(num => renderStudentBtn(num, false))}
+          </div>
+        </div>
 
-            return (
-              <motion.button
-                key={num}
-                whileHover={isLoggedIn ? { scale: 1.05 } : {}}
-                whileTap={isLoggedIn ? { scale: 0.95 } : {}}
-                onClick={() => handleToggle(num, isPaid)}
-                disabled={!isLoggedIn || loading}
-                className={`relative flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all duration-200 ${
-                  isPaid 
-                    ? 'bg-emerald-50 border-emerald-200 hover:border-emerald-300' 
-                    : 'bg-white border-slate-200 hover:border-rose-200'
-                } ${!isLoggedIn && 'cursor-default'}`}
-              >
-                <span className={`text-lg font-bold mb-1 ${isPaid ? 'text-emerald-700' : 'text-slate-600'}`}>
-                  {num}
-                </span>
-                {isPaid ? (
-                  <CheckCircle2 size={20} className="text-emerald-500" />
-                ) : (
-                  <Circle size={20} className="text-slate-300" />
-                )}
-              </motion.button>
-            )
-          })}
+        <div>
+          <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <CheckCircle2 className="text-emerald-500" size={20} /> 
+            จ่ายแล้ว ({paidStudents.length} คน)
+          </h3>
+          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-3">
+            {paidStudents.map(num => renderStudentBtn(num, true))}
+          </div>
         </div>
       </div>
 
@@ -314,7 +404,7 @@ export default function FundsClient({ isLoggedIn, fundsStats, currentWeekStart, 
               <Receipt className="text-rose-500" size={24} />
               ประวัติการใช้จ่าย
             </h2>
-            <p className="text-sm text-slate-500 mt-1">ยอดรวมทั้งหมด: {fundsStats.sumExpenses.toLocaleString()} ฿</p>
+            <p className="text-sm text-slate-500 mt-1">ยอดรวมทั้งหมด: {localFundsStats.sumExpenses.toLocaleString()} ฿</p>
           </div>
           {isLoggedIn && (
             <button 
@@ -327,14 +417,14 @@ export default function FundsClient({ isLoggedIn, fundsStats, currentWeekStart, 
           )}
         </div>
 
-        {expenses.length === 0 ? (
+        {localExpenses.length === 0 ? (
           <div className="text-center py-10 bg-slate-50 rounded-xl border border-dashed border-slate-200">
             <Receipt size={40} className="mx-auto text-slate-300 mb-2" />
             <p className="text-slate-500">ยังไม่มีประวัติการใช้จ่าย</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {expenses.map(exp => (
+            {localExpenses.map(exp => (
               <div key={exp.id} className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col hover:border-slate-300 transition-colors shadow-sm">
                 <div className="flex justify-between items-start mb-2">
                   <span className="font-bold text-slate-800 line-clamp-2 pr-2">{exp.description}</span>
@@ -471,21 +561,21 @@ export default function FundsClient({ isLoggedIn, fundsStats, currentWeekStart, 
               <div className="bg-slate-50 p-4 rounded-2xl space-y-2 text-sm border border-slate-100">
                 <div className="flex justify-between text-slate-600">
                   <span>เงินที่เก็บได้จริง (จากตารางติ๊ก):</span>
-                  <span className="font-semibold text-slate-800">{fundsStats.sumPaid.toLocaleString()} ฿</span>
+                  <span className="font-semibold text-slate-800">{localFundsStats.sumPaid.toLocaleString()} ฿</span>
                 </div>
                 <div className="flex justify-between text-slate-600">
                   <span>ยอดปรับฐาน (ที่ถูกหัก/เพิ่ม):</span>
-                  <span className={`font-semibold ${fundsStats.adjustment < 0 ? 'text-rose-500' : fundsStats.adjustment > 0 ? 'text-emerald-500' : 'text-slate-400'}`}>
-                    {fundsStats.adjustment > 0 ? '+' : ''}{fundsStats.adjustment.toLocaleString()} ฿
+                  <span className={`font-semibold ${localFundsStats.adjustment < 0 ? 'text-rose-500' : localFundsStats.adjustment > 0 ? 'text-emerald-500' : 'text-slate-400'}`}>
+                    {localFundsStats.adjustment > 0 ? '+' : ''}{localFundsStats.adjustment.toLocaleString()} ฿
                   </span>
                 </div>
                 <div className="flex justify-between text-rose-600">
                   <span>หักรายจ่ายทั้งหมด:</span>
-                  <span className="font-semibold">-{fundsStats.sumExpenses.toLocaleString()} ฿</span>
+                  <span className="font-semibold">-{localFundsStats.sumExpenses.toLocaleString()} ฿</span>
                 </div>
                 <div className="border-t border-slate-200 pt-2 mt-2 flex justify-between font-bold text-base text-slate-800">
                   <span>ยอดเงินสุทธิปัจจุบัน:</span>
-                  <span className="text-indigo-600">{fundsStats.totalFunds.toLocaleString()} ฿</span>
+                  <span className="text-indigo-600">{localFundsStats.totalFunds.toLocaleString()} ฿</span>
                 </div>
               </div>
 
