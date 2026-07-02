@@ -19,16 +19,16 @@ export async function getFundsForWeek(weekStartDate: string) {
   return data || []
 }
 
-export async function getTotalFunds() {
+export async function getFundsData() {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('class_funds')
     .select('amount')
     .eq('is_paid', true)
 
-  let total = 0
+  let sumPaid = 0
   if (!error && data) {
-    total = data.reduce((sum, item) => sum + Number(item.amount), 0)
+    sumPaid = data.reduce((sum, item) => sum + Number(item.amount), 0)
   }
   
   const { data: adjData } = await supabase
@@ -39,7 +39,16 @@ export async function getTotalFunds() {
     
   const adjustment = Number(adjData?.value) || 0
   
-  return total + adjustment
+  return {
+    sumPaid,
+    adjustment,
+    totalFunds: sumPaid + adjustment
+  }
+}
+
+export async function getTotalFunds() {
+  const { totalFunds } = await getFundsData()
+  return totalFunds
 }
 
 export async function setFundsBalanceAdjustment(amount: number) {
