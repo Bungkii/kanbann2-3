@@ -1,79 +1,123 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X } from 'lucide-react';
 
 export default function AnnouncementPopup() {
-  const [show, setShow] = useState(false);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [imgSrc, setImgSrc] = useState<string | null>(null);
+  const [dontShowAgain, setDontShowAgain] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user has opted out
-    const dismissed = localStorage.getItem('hideAnnouncement');
-    if (dismissed) return;
+    const checkPopup = async () => {
+      // Check if user has hidden the popup for 14 days
+      const hideUntilStr = localStorage.getItem('hide_popup_until');
+      if (hideUntilStr) {
+        const hideUntil = parseInt(hideUntilStr, 10);
+        if (Date.now() < hideUntil) {
+          setIsLoading(false);
+          return;
+        } else {
+          localStorage.removeItem('hide_popup_until'); // Expired
+        }
+      }
 
-    // Try to load .png first
-    const imgPng = new window.Image();
-    imgPng.src = '/asset/media.png';
-    imgPng.onload = () => {
-      setImageUrl('/asset/media.png');
-      setShow(true);
+      // Check if media exists via our API
+      try {
+        const res = await fetch('/api/asset/media', { method: 'HEAD' });
+        if (res.ok) {
+          // Add a random query param just to bust browser cache while testing if needed,
+          // but usually static url is fine.
+          setImgSrc('/api/asset/media');
+          setIsOpen(true);
+        }
+      } catch (err) {
+        console.error('Failed to check popup media', err);
+      }
+      setIsLoading(false);
     };
-    imgPng.onerror = () => {
-      // Fallback to .jpg
-      const imgJpg = new window.Image();
-      imgJpg.src = '/asset/media.jpg';
-      imgJpg.onload = () => {
-        setImageUrl('/asset/media.jpg');
-        setShow(true);
-      };
-      // If both fail, do nothing (popup won't show)
-    };
+
+    checkPopup();
   }, []);
 
   const handleClose = () => {
-    setShow(false);
+    if (dontShowAgain) {
+      // Set to hide for 14 days
+      const hideUntil = Date.now() + 14 * 24 * 60 * 60 * 1000;
+      localStorage.setItem('hide_popup_until', hideUntil.toString());
+    }
+    setIsOpen(false);
   };
 
-  const handleNeverShowAgain = () => {
-    localStorage.setItem('hideAnnouncement', 'true');
-    setShow(false);
-  };
-
-  if (!show || !imageUrl) return null;
+  if (isLoading || !isOpen || !imgSrc) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/70 backdrop-blur-sm p-4 animate-in fade-in duration-300">
-      <div className="bg-white rounded-3xl overflow-hidden shadow-2xl relative w-full max-w-[640px] flex flex-col items-center animate-in zoom-in-95 duration-300">
-        
-        {/* Close Button Top Right */}
-        <button 
-          onClick={handleClose}
-          className="absolute top-4 right-4 z-10 bg-black/40 hover:bg-black/70 text-white p-2.5 rounded-full backdrop-blur-md transition-all hover:scale-110"
-          title="ปิด"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-        </button>
-
-        {/* Image Container (Max 640x640) */}
-        <div className="w-full bg-slate-100 flex items-center justify-center" style={{ maxHeight: '640px' }}>
-          <img 
-            src={imageUrl} 
-            alt="ประกาศประชาสัมพันธ์" 
-            className="w-full h-auto object-contain max-h-[640px]"
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={handleClose}
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
           />
-        </div>
 
-        {/* Footer with "Don't show again" */}
-        <div className="w-full p-4 bg-white flex justify-center border-t border-slate-100">
-          <button 
-            onClick={handleNeverShowAgain}
-            className="flex items-center gap-2 text-slate-500 hover:text-slate-800 text-sm font-semibold px-6 py-2.5 rounded-full hover:bg-slate-100 transition-colors"
+          {/* Modal Content */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            className="relative bg-white w-full max-w-lg rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-            ไม่แสดงอีก
-          </button>
+            {/* Image Section */}
+            <div className="flex-1 overflow-hidden bg-slate-900 relative">
+              <img 
+                src={imgSrc} 
+                alt="Announcement" 
+                className="w-full h-auto object-contain max-h-[calc(90vh-60px)]"
+              />
+            </div>
+
+            {/* Bottom Bar */}
+            <div className="bg-white px-4 py-3 sm:px-6 sm:py-4 flex items-center justify-between border-t border-slate-100 shrink-0">
+              <label className="flex items-center gap-2 sm:gap-3 cursor-pointer group">
+                <div className="relative flex items-center justify-center">
+                  <input
+                    type="checkbox"
+                    checked={dontShowAgain}
+                    onChange={(e) => setDontShowAgain(e.target.checked)}
+                    className="peer appearance-none w-5 h-5 border-2 border-slate-300 rounded focus:ring-2 focus:ring-slate-400 focus:outline-none checked:bg-slate-800 checked:border-slate-800 transition-colors cursor-pointer"
+                  />
+                  <svg 
+                    className="absolute w-3 h-3 text-white pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" 
+                    fill="none" 
+                    viewBox="0 0 24 24" 
+                    stroke="currentColor" 
+                    strokeWidth="3"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <span className="text-sm sm:text-base text-slate-600 font-medium select-none group-hover:text-slate-800 transition-colors">
+                  ไม่ต้องแสดงข้อความนี้ 14 วัน
+                </span>
+              </label>
+
+              <button
+                onClick={handleClose}
+                className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-full transition-colors flex-shrink-0"
+                aria-label="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+          </motion.div>
         </div>
-      </div>
-    </div>
+      )}
+    </AnimatePresence>
   );
 }
