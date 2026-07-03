@@ -15,17 +15,6 @@ export default async function SystemSettingsPage() {
     redirect('/login');
   }
 
-  // Verify admin role
-  const { data: roleData } = await supabase
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', user.id)
-    .single();
-
-  if (!roleData || roleData.role !== 'admin') {
-    redirect('/');
-  }
-
   const settings = await getSystemSettings();
 
   return (

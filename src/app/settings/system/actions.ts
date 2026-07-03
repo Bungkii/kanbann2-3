@@ -25,19 +25,9 @@ export async function getSystemSettings() {
 export async function updateSystemSetting(key: string, value: any) {
   const supabase = await createClient();
   
-  // Verify admin
+  // Verify auth
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, error: 'Unauthorized' };
-
-  const { data: roleData } = await supabase
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', user.id)
-    .single();
-
-  if (!roleData || roleData.role !== 'admin') {
-    return { success: false, error: 'Unauthorized' };
-  }
 
   const { error } = await supabase
     .from('system_settings')
