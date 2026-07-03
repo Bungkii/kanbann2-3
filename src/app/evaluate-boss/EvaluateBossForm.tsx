@@ -129,10 +129,10 @@ export default function EvaluateBossForm() {
       <div className="max-w-4xl mx-auto">
         
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold text-slate-800 font-sans border-b-4 border-blue-500 pb-2 inline-block">
+          <h1 className="text-3xl font-bold text-slate-800 font-sans border-b-4 border-pink-500 pb-2 inline-block">
             ระบบประเมินหัวหน้า
           </h1>
-          <Link href="/" className="text-blue-600 hover:underline">
+          <Link href="/" className="text-pink-600 hover:underline">
             กลับหน้าหลัก
           </Link>
         </div>
@@ -143,22 +143,22 @@ export default function EvaluateBossForm() {
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
               <div className="flex flex-col items-center justify-center space-y-6">
                 <div className="relative">
-                  <div className="w-32 h-32 bg-blue-50 rounded-full flex items-center justify-center border-4 border-blue-100">
-                    <User className="w-16 h-16 text-blue-300" />
+                  <div className="w-32 h-32 bg-pink-50 rounded-full flex items-center justify-center border-4 border-pink-100 overflow-hidden">
+                    <User className="w-16 h-16 text-pink-300" />
                   </div>
                   <div className="absolute -bottom-2 -right-2 bg-white rounded-full p-1 shadow-md">
-                    <ThumbsUp className="w-6 h-6 text-blue-500" />
+                    <ThumbsUp className="w-6 h-6 text-pink-500" />
                   </div>
                 </div>
 
                 <div className="w-full space-y-4 pt-4 border-t border-slate-100">
                   <div className="flex flex-col items-center">
                     <span className="text-slate-700 font-semibold mb-2">หน้าตา</span>
-                    <StarRating value={appearanceScore} onChange={setAppearanceScore} size="w-8 h-8" activeColor="text-pink-400" />
+                    <StarRating value={appearanceScore} onChange={setAppearanceScore} size="w-8 h-8" activeColor="text-yellow-400" />
                   </div>
                   <div className="flex flex-col items-center">
                     <span className="text-slate-700 font-semibold mb-2">ความรับผิดชอบ</span>
-                    <StarRating value={responsibilityScore} onChange={setResponsibilityScore} size="w-8 h-8" activeColor="text-blue-400" />
+                    <StarRating value={responsibilityScore} onChange={setResponsibilityScore} size="w-8 h-8" activeColor="text-yellow-400" />
                   </div>
                 </div>
               </div>
@@ -182,7 +182,7 @@ export default function EvaluateBossForm() {
                         ${isSelected 
                           ? (isNegative 
                               ? "bg-red-500 text-white border-red-600 shadow-md" 
-                              : "bg-blue-500 text-white border-blue-600 shadow-md")
+                              : "bg-pink-500 text-white border-pink-600 shadow-md")
                           : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 hover:border-slate-300"
                         }
                       `}
@@ -200,8 +200,8 @@ export default function EvaluateBossForm() {
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {topicsList.map((topic) => (
-                <div key={topic.id} className="border border-slate-200 rounded-xl p-6 flex flex-col items-center text-center relative overflow-hidden group hover:border-blue-300 transition-colors">
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div key={topic.id} className="border border-slate-200 rounded-xl p-6 flex flex-col items-center text-center relative overflow-hidden group hover:border-pink-300 transition-colors">
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-pink-400 to-rose-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                   
                   <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
                     {topic.icon}
@@ -233,7 +233,7 @@ export default function EvaluateBossForm() {
                 value={suggestion}
                 onChange={(e) => setSuggestion(e.target.value)}
                 placeholder="พิมพ์ข้อเสนอแนะของคุณที่นี่..."
-                className="w-full rounded-xl border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-4 text-slate-700 bg-slate-50 resize-none"
+                className="w-full rounded-xl border-slate-300 shadow-sm focus:border-pink-500 focus:ring-pink-500 p-4 text-slate-700 bg-slate-50 resize-none"
               />
             </div>
 
@@ -246,6 +246,7 @@ export default function EvaluateBossForm() {
                 onChange={setOverallScore} 
                 size="w-12 h-12" 
                 hoverScale={1.1}
+                activeColor="text-yellow-400"
               />
             </div>
 
@@ -276,10 +277,10 @@ export default function EvaluateBossForm() {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setShouldChangeBoss(true)}
-                    className={`flex-1 py-4 rounded-xl font-bold text-xl border-2 transition-colors ${
+                    className={`flex-1 py-4 rounded-xl font-bold text-xl border-2 transition-all ${
                       shouldChangeBoss === true
-                        ? "bg-red-500 text-white border-red-600 shadow-lg"
-                        : "bg-white text-red-500 border-red-200 hover:border-red-500 hover:bg-red-50"
+                        ? "bg-[#39FF14] text-black border-[#39FF14] shadow-lg shadow-[#39FF14]/50"
+                        : "bg-white text-[#39FF14] border-[#39FF14]/40 hover:border-[#39FF14] hover:bg-[#39FF14]/10"
                     }`}
                   >
                     Yes
@@ -289,10 +290,10 @@ export default function EvaluateBossForm() {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setShouldChangeBoss(false)}
-                    className={`flex-1 py-4 rounded-xl font-bold text-xl border-2 transition-colors ${
+                    className={`flex-1 py-4 rounded-xl font-bold text-xl border-2 transition-all ${
                       shouldChangeBoss === false
-                        ? "bg-green-500 text-white border-green-600 shadow-lg"
-                        : "bg-white text-green-500 border-green-200 hover:border-green-500 hover:bg-green-50"
+                        ? "bg-[#FF0000] text-white border-[#FF0000] shadow-lg shadow-[#FF0000]/50"
+                        : "bg-white text-[#FF0000] border-[#FF0000]/40 hover:border-[#FF0000] hover:bg-[#FF0000]/10"
                     }`}
                   >
                     No
@@ -310,7 +311,7 @@ export default function EvaluateBossForm() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               className={`flex items-center gap-2 px-8 py-4 rounded-xl font-bold text-lg text-white shadow-lg transition-colors ${
-                isSubmitting ? "bg-slate-400" : "bg-blue-600 hover:bg-blue-700"
+                isSubmitting ? "bg-slate-400" : "bg-pink-600 hover:bg-pink-700"
               }`}
             >
               {isSubmitting ? (
@@ -333,7 +334,7 @@ export default function EvaluateBossForm() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="bg-white rounded-3xl p-6 md:p-8 max-w-lg w-full shadow-2xl relative border-4 border-blue-100 my-auto"
+              className="bg-white rounded-3xl p-6 md:p-8 max-w-lg w-full shadow-2xl relative border-4 border-pink-100 my-auto"
             >
               <button 
                 onClick={handleCloseModal}
@@ -343,8 +344,8 @@ export default function EvaluateBossForm() {
               </button>
 
               <div className="flex flex-col items-center text-center space-y-6">
-                <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-2">
-                  <HeartHandshake className="w-10 h-10 text-blue-500" />
+                <div className="w-20 h-20 bg-pink-50 rounded-full flex items-center justify-center mb-2">
+                  <HeartHandshake className="w-10 h-10 text-pink-500" />
                 </div>
                 
                 <div>
