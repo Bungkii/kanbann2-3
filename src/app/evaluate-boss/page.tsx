@@ -1,0 +1,407 @@
+"use client";
+
+import { useState } from "react";
+import { Star, User, MessageSquare, Send, ThumbsUp, AlertCircle, Phone, HeartHandshake, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import toast from "react-hot-toast";
+import Link from "next/link";
+import { submitBossEvaluation } from "./actions";
+
+const traitsList = [
+  "พูดมีสาระ",
+  "ทำตามคำสั่งได้ดี",
+  "ปลอบเพื่อน",
+  "ปรึกษาได้",
+  "หน้าตา",
+  "ความรับผิดชอบ",
+  "ดูแลเพื่อน",
+  "สุภาพ เรียบร้อย",
+  "สั่งงานมั่ว",
+  "มารยาท",
+  "แบ่งปัน มีน้ำใจ",
+  "ปกป้องเพื่อน",
+  "เตือนเพื่อนตอนทำอะไรผิด",
+];
+
+const topicsList = [
+  { id: "management", title: "การบริหารจัดการงาน", icon: <User className="w-8 h-8 text-blue-500" /> },
+  { id: "communication", title: "การสื่อสารและรับฟัง", icon: <MessageSquare className="w-8 h-8 text-green-500" /> },
+  { id: "problem_solving", title: "การแก้ปัญหาและตัดสินใจ", icon: <AlertCircle className="w-8 h-8 text-orange-500" /> },
+];
+
+export default function EvaluateBossPage() {
+  const [appearanceScore, setAppearanceScore] = useState(0);
+  const [responsibilityScore, setResponsibilityScore] = useState(0);
+  const [selectedTraits, setSelectedTraits] = useState<string[]>([]);
+  
+  const [topicScores, setTopicScores] = useState<Record<string, number>>({});
+  
+  const [suggestion, setSuggestion] = useState("");
+  const [overallScore, setOverallScore] = useState(0);
+  
+  const [improvements, setImprovements] = useState<string[]>(Array(6).fill(""));
+  const [shouldChangeBoss, setShouldChangeBoss] = useState<boolean | null>(null);
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+
+  const toggleTrait = (trait: string) => {
+    setSelectedTraits((prev) =>
+      prev.includes(trait) ? prev.filter((t) => t !== trait) : [...prev, trait]
+    );
+  };
+
+  const updateImprovement = (index: number, value: string) => {
+    const newImprovements = [...improvements];
+    newImprovements[index] = value;
+    setImprovements(newImprovements);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    const data = {
+      appearanceScore,
+      responsibilityScore,
+      selectedTraits,
+      topicScores,
+      suggestion,
+      overallScore,
+      improvements,
+      shouldChangeBoss
+    };
+
+    const result = await submitBossEvaluation(data);
+
+    setIsSubmitting(false);
+
+    if (result.success) {
+      setShowModal(true);
+      // Optional: reset form
+    } else {
+      toast.error("เกิดข้อผิดพลาดในการส่งข้อมูล: " + result.error);
+    }
+  };
+
+  // Reusable Star Rating Component
+  const StarRating = ({ 
+    value, 
+    onChange, 
+    size = "w-6 h-6",
+    activeColor = "text-yellow-400",
+    hoverScale = 1.2
+  }: { 
+    value: number; 
+    onChange: (val: number) => void;
+    size?: string;
+    activeColor?: string;
+    hoverScale?: number;
+  }) => {
+    return (
+      <div className="flex gap-1">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <motion.button
+            key={star}
+            type="button"
+            whileHover={{ scale: hoverScale }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => onChange(star)}
+            className={`focus:outline-none transition-colors ${
+              star <= value ? activeColor : "text-slate-300"
+            }`}
+          >
+            <Star className={`${size} ${star <= value ? "fill-current" : ""}`} />
+          </motion.button>
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <main className="min-h-screen bg-slate-100 py-10 px-4 sm:px-6 lg:px-8 relative">
+      <div className="max-w-4xl mx-auto">
+        
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold text-slate-800 font-sans border-b-4 border-blue-500 pb-2 inline-block">
+            ระบบประเมินหัวหน้า
+          </h1>
+          <Link href="/" className="text-blue-600 hover:underline">
+            กลับหน้าหลัก
+          </Link>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-8">
+          
+          {/* Top Section: Profile & Traits */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            
+            {/* Left: Avatar & Basic Scores */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+              <div className="flex flex-col items-center justify-center space-y-6">
+                <div className="relative">
+                  <div className="w-32 h-32 bg-blue-50 rounded-full flex items-center justify-center border-4 border-blue-100">
+                    <User className="w-16 h-16 text-blue-300" />
+                  </div>
+                  <div className="absolute -bottom-2 -right-2 bg-white rounded-full p-1 shadow-md">
+                    <ThumbsUp className="w-6 h-6 text-blue-500" />
+                  </div>
+                </div>
+
+                <div className="w-full space-y-4 pt-4 border-t border-slate-100">
+                  <div className="flex flex-col items-center">
+                    <span className="text-slate-700 font-semibold mb-2">หน้าตา</span>
+                    <StarRating value={appearanceScore} onChange={setAppearanceScore} size="w-8 h-8" activeColor="text-pink-400" />
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <span className="text-slate-700 font-semibold mb-2">ความรับผิดชอบ</span>
+                    <StarRating value={responsibilityScore} onChange={setResponsibilityScore} size="w-8 h-8" activeColor="text-blue-400" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Traits Selection */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+              <h3 className="text-lg font-semibold text-slate-800 mb-4">จุดเด่น / ลักษณะนิสัย</h3>
+              <div className="flex flex-wrap gap-2">
+                {traitsList.map((trait) => {
+                  const isSelected = selectedTraits.includes(trait);
+                  const isNegative = trait === "สั่งงานมั่ว";
+                  
+                  return (
+                    <motion.button
+                      key={trait}
+                      type="button"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => toggleTrait(trait)}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 border
+                        ${isSelected 
+                          ? (isNegative 
+                              ? "bg-red-500 text-white border-red-600 shadow-md" 
+                              : "bg-blue-500 text-white border-blue-600 shadow-md")
+                          : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 hover:border-slate-300"
+                        }
+                      `}
+                    >
+                      {trait}
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Middle Section: Topics */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+            <h3 className="text-xl font-bold text-slate-800 mb-6">ประเมินตามหัวข้อ</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {topicsList.map((topic) => (
+                <div key={topic.id} className="border border-slate-200 rounded-xl p-6 flex flex-col items-center text-center relative overflow-hidden group hover:border-blue-300 transition-colors">
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  
+                  <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                    {topic.icon}
+                  </div>
+                  
+                  <h4 className="font-semibold text-slate-700 mb-4">{topic.title}</h4>
+                  
+                  <div className="mt-auto flex flex-col items-center w-full">
+                    <span className="text-xs text-slate-500 mb-2">คะแนนเฉลี่ย</span>
+                    <StarRating 
+                      value={topicScores[topic.id] || 0} 
+                      onChange={(val) => setTopicScores({ ...topicScores, [topic.id]: val })} 
+                      activeColor="text-yellow-500"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Bottom Section: Feedback & Overall */}
+          <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-200 space-y-8">
+            
+            {/* Suggestion */}
+            <div>
+              <label htmlFor="suggestion" className="block text-lg font-semibold text-slate-800 mb-3">
+                ข้อเสนอแนะเพิ่มเติม
+              </label>
+              <textarea
+                id="suggestion"
+                rows={4}
+                value={suggestion}
+                onChange={(e) => setSuggestion(e.target.value)}
+                placeholder="พิมพ์ข้อเสนอแนะของคุณที่นี่..."
+                className="w-full rounded-xl border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-4 text-slate-700 bg-slate-50 resize-none"
+              />
+            </div>
+
+            <hr className="border-slate-100" />
+
+            {/* Overall Score */}
+            <div className="flex flex-col items-center justify-center p-6 bg-slate-50 rounded-xl border border-slate-100">
+              <span className="text-xl font-bold text-slate-800 mb-4">คะแนนโดยรวม</span>
+              <StarRating 
+                value={overallScore} 
+                onChange={setOverallScore} 
+                size="w-12 h-12" 
+                hoverScale={1.1}
+              />
+            </div>
+
+            <hr className="border-slate-100" />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Areas to improve */}
+              <div>
+                <h3 className="text-lg font-semibold text-slate-800 mb-4">เรื่องที่ควรปรับปรุง</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {improvements.map((imp, idx) => (
+                    <input
+                      key={idx}
+                      type="text"
+                      value={imp}
+                      onChange={(e) => updateImprovement(idx, e.target.value)}
+                      placeholder={`เรื่องที่ ${idx + 1}`}
+                      className="rounded-lg border-slate-200 shadow-sm focus:border-orange-500 focus:ring-orange-500 px-3 py-2 text-sm bg-white"
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Should change boss? */}
+              <div className="flex flex-col items-center justify-center bg-slate-50 rounded-xl p-6 border border-slate-100">
+                <h3 className="text-xl font-bold text-slate-800 mb-6">ควรเปลี่ยนหัวหน้าไหม?</h3>
+                <div className="flex gap-6 w-full max-w-xs">
+                  <motion.button
+                    type="button"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setShouldChangeBoss(true)}
+                    className={`flex-1 py-4 rounded-xl font-bold text-xl border-2 transition-colors ${
+                      shouldChangeBoss === true
+                        ? "bg-red-500 text-white border-red-600 shadow-lg"
+                        : "bg-white text-red-500 border-red-200 hover:border-red-500 hover:bg-red-50"
+                    }`}
+                  >
+                    Yes
+                  </motion.button>
+                  <motion.button
+                    type="button"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setShouldChangeBoss(false)}
+                    className={`flex-1 py-4 rounded-xl font-bold text-xl border-2 transition-colors ${
+                      shouldChangeBoss === false
+                        ? "bg-green-500 text-white border-green-600 shadow-lg"
+                        : "bg-white text-green-500 border-green-200 hover:border-green-500 hover:bg-green-50"
+                    }`}
+                  >
+                    No
+                  </motion.button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Submit Button */}
+          <div className="flex justify-end">
+            <motion.button
+              type="submit"
+              disabled={isSubmitting}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className={`flex items-center gap-2 px-8 py-4 rounded-xl font-bold text-lg text-white shadow-lg transition-colors ${
+                isSubmitting ? "bg-slate-400" : "bg-blue-600 hover:bg-blue-700"
+              }`}
+            >
+              {isSubmitting ? (
+                "กำลังส่ง..."
+              ) : (
+                <>
+                  <Send className="w-5 h-5" />
+                  ส่งผลประเมิน
+                </>
+              )}
+            </motion.button>
+          </div>
+        </form>
+      </div>
+
+      {/* Funny Help Modal */}
+      <AnimatePresence>
+        {showModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl relative border-4 border-blue-100"
+            >
+              <button 
+                onClick={() => setShowModal(false)}
+                className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              <div className="flex flex-col items-center text-center space-y-6">
+                <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-2">
+                  <HeartHandshake className="w-10 h-10 text-blue-500" />
+                </div>
+                
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-800 mb-2">ส่งผลประเมินสำเร็จ!</h2>
+                  <p className="text-slate-600 font-medium">
+                    (แต่ถ้าหัวหน้าทำงานไม่ดีแล้วรู้สึกปวดหัว...)
+                  </p>
+                </div>
+
+                <div className="w-full bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-4">
+                  <p className="text-sm text-slate-500 font-semibold uppercase tracking-wider">
+                    สามารถโทรปรึกษาได้ที่
+                  </p>
+                  
+                  <a href="tel:1323" className="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm border border-slate-100 hover:border-blue-300 hover:shadow-md transition-all group">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-green-100 p-2 rounded-full group-hover:bg-green-200 transition-colors">
+                        <Phone className="w-5 h-5 text-green-600" />
+                      </div>
+                      <span className="font-bold text-slate-700">สายด่วน 1323</span>
+                    </div>
+                    <span className="text-sm text-slate-500">กรมสุขภาพจิต</span>
+                  </a>
+
+                  <a href="tel:021136789" className="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm border border-slate-100 hover:border-blue-300 hover:shadow-md transition-all group">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-blue-100 p-2 rounded-full group-hover:bg-blue-200 transition-colors">
+                        <Phone className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <span className="font-bold text-slate-700">02-113-6789</span>
+                    </div>
+                    <span className="text-sm text-slate-500 truncate max-w-[120px]" title="สมาคมสะมาริตันส์">สมาคมสะมาริตันส์</span>
+                  </a>
+                </div>
+
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowModal(false)}
+                  className="w-full py-4 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 transition-colors"
+                >
+                  รับทราบ สู้ต่อไป!
+                </motion.button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+    </main>
+  );
+}
