@@ -144,7 +144,8 @@ export default function EvaluateBossForm() {
               <div className="flex flex-col items-center justify-center space-y-6">
                 <div className="relative">
                   <div className="w-32 h-32 bg-pink-50 rounded-full flex items-center justify-center border-4 border-pink-100 overflow-hidden">
-                    <User className="w-16 h-16 text-pink-300" />
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/asset/austin.jpg" alt="Boss Profile" className="w-full h-full object-cover" />
                   </div>
                   <div className="absolute -bottom-2 -right-2 bg-white rounded-full p-1 shadow-md">
                     <ThumbsUp className="w-6 h-6 text-pink-500" />
