@@ -1,25 +1,64 @@
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
 import Countdown from '@/components/Countdown';
+import { getSystemSettings } from '@/app/settings/system/actions';
+import { ElementType } from 'react';
+
+export const revalidate = 0;
 
 export default async function Home() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+
+  const settings = await getSystemSettings();
+  const isAddWorkEnabled = settings.add_work_enabled !== false;
+  const kanbanEnabled = settings.kanban_enabled !== false;
+  const summariesEnabled = settings.summaries_enabled !== false;
+  const electionEnabled = settings.election_enabled !== false;
+  const bossEvaluationEnabled = settings.boss_evaluation_enabled !== false;
+
+  const renderCard = (
+    isEnabled: boolean,
+    href: string,
+    children: React.ReactNode,
+    className: string = "group flex-1"
+  ) => {
+    const Wrapper = isEnabled ? Link : 'div';
+    const props = isEnabled ? { href } : {};
+    
+    return (
+      <Wrapper {...props} className={className}>
+        <div className="relative h-full">
+          {!isEnabled && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center rounded-3xl bg-white/40 backdrop-blur-[2px] cursor-not-allowed">
+              <div className="bg-slate-800 text-white text-sm font-bold px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                ปิดระบบชั่วคราว
+              </div>
+            </div>
+          )}
+          {children}
+        </div>
+      </Wrapper>
+    );
+  };
 
   return (
     <main className="flex-1 flex items-center justify-center min-h-screen p-8 bg-slate-50">
       <div className="max-w-6xl w-full grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch justify-center">
         {/* Left Section */}
         <div className="flex flex-col gap-6 w-full h-full">
-          <Link href={user ? "/add" : "/login"} className="group flex-1">
-            <div className="bg-white rounded-3xl p-10 h-full min-h-[300px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 flex flex-col items-center justify-center transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1">
+          {renderCard(
+            isAddWorkEnabled,
+            user ? "/add" : "/login",
+            <div className={`bg-white rounded-3xl p-10 h-full min-h-[300px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 flex flex-col items-center justify-center transition-all duration-300 ${isAddWorkEnabled ? 'hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1' : ''}`}>
               <div className="bg-indigo-50 text-indigo-600 p-4 rounded-full mb-6 group-hover:scale-110 transition-transform duration-300">
                 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
               </div>
               <h2 className="text-2xl font-bold text-slate-800 mb-2 text-center">หน้าสำหรับคนจดงาน</h2>
               <p className="text-slate-500 text-center">{user ? 'กดเพื่อจดงานใหม่ได้เลยจ้า' : 'ล็อกอินก่อนเข้าใช้งานนะจ้ะ'}</p>
             </div>
-          </Link>
+          )}
 
           <div className="flex flex-col gap-4 items-center mt-auto h-[104px] justify-end">
             {!user ? (
@@ -53,8 +92,10 @@ export default async function Home() {
 
         {/* Middle Section */}
         <div className="w-full h-full flex flex-col gap-6">
-          <Link href="/kanban" className="group flex-1">
-            <div className="bg-white rounded-3xl p-10 h-full min-h-[300px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 flex flex-col items-center justify-center transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1">
+          {renderCard(
+            kanbanEnabled,
+            "/kanban",
+            <div className={`bg-white rounded-3xl p-10 h-full min-h-[300px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 flex flex-col items-center justify-center transition-all duration-300 ${kanbanEnabled ? 'hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1' : ''}`}>
               <div className="bg-blue-50 text-blue-600 p-4 rounded-full mb-6 group-hover:scale-110 transition-transform duration-300">
                 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" /><path d="M8 7v7" /><path d="M12 7v4" /><path d="M16 7v9" /></svg>
               </div>
@@ -66,12 +107,13 @@ export default async function Home() {
               </div>
               <p className="text-slate-500 text-center">พริมง่วงทวงความยุติธรรม</p>
             </div>
-          </Link>
+          )}
 
           {/* Exam Summaries */}
-          <Link href="/summaries" className="group">
-            <div className="bg-gradient-to-br from-rose-500 to-pink-600 rounded-3xl p-8 border border-rose-100 flex flex-col items-center justify-center transition-all duration-300 hover:shadow-[0_8px_30px_rgb(225,29,72,0.2)] hover:-translate-y-1 relative overflow-hidden h-full">
-              {/* Decorative elements */}
+          {renderCard(
+            summariesEnabled,
+            "/summaries",
+            <div className={`bg-gradient-to-br from-rose-500 to-pink-600 rounded-3xl p-8 border border-rose-100 flex flex-col items-center justify-center transition-all duration-300 ${summariesEnabled ? 'hover:shadow-[0_8px_30px_rgb(225,29,72,0.2)] hover:-translate-y-1' : ''} relative overflow-hidden h-full`}>
               <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white opacity-10 rounded-full blur-2xl"></div>
               <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-24 h-24 bg-white opacity-10 rounded-full blur-2xl"></div>
               
@@ -84,32 +126,38 @@ export default async function Home() {
                   <Countdown date="2026-07-13T00:00:00+07:00" />
                 </p>
               </div>
-            </div>
-          </Link>
+            </div>,
+            "group h-[160px]" // Pass explicit height to summaries card
+          )}
         </div>
 
         {/* Right Section (Election) */}
         <div className="w-full h-full flex flex-col gap-6">
-          <Link href="/election" className="group flex-1">
-            <div className="bg-white rounded-3xl p-10 h-full min-h-[300px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 flex flex-col items-center justify-center transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1">
+          {renderCard(
+            electionEnabled,
+            "/election",
+            <div className={`bg-white rounded-3xl p-10 h-full min-h-[300px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 flex flex-col items-center justify-center transition-all duration-300 ${electionEnabled ? 'hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1' : ''}`}>
               <div className="bg-amber-50 text-amber-500 p-4 rounded-full mb-6 group-hover:scale-110 transition-transform duration-300">
                 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
               </div>
               <h2 className="text-2xl font-bold text-slate-800 mb-2 text-center">ผลการเลือกตั้งปี 2569</h2>
               <p className="text-slate-500 text-center">อัปเดตผลโหวตหัวหน้าห้องล่าสุด!</p>
             </div>
-          </Link>
+          )}
 
           {/* Leader Assessment */}
-          <Link href="/evaluate-boss" className="group">
-            <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col items-center justify-center transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1 relative overflow-hidden h-full">
+          {renderCard(
+            bossEvaluationEnabled,
+            "/evaluate-boss",
+            <div className={`bg-white rounded-3xl p-8 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col items-center justify-center transition-all duration-300 ${bossEvaluationEnabled ? 'hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1' : ''} relative overflow-hidden h-[160px]`}>
               <div className="bg-emerald-50 text-emerald-500 p-4 rounded-full mb-4 group-hover:scale-110 transition-transform duration-300">
                 <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10.4 12.6a2 2 0 1 1 3 3L8 21l-4 1 1-4Z"/><path d="M18 21v-8a2 2 0 0 0-2-2h-3"/><path d="M4 14.5V7a2 2 0 0 1 2-2h6l4 4"/></svg>
               </div>
               <h2 className="text-xl font-bold text-slate-800 mb-1 text-center">ระบบประเมินหัวหน้า</h2>
               <p className="text-slate-500 text-center text-sm">คลิกเพื่อประเมินได้เลย</p>
-            </div>
-          </Link>
+            </div>,
+            "group h-[160px]"
+          )}
 
           <div className="flex flex-col gap-4 items-center mt-auto h-[104px] justify-start pt-4">
             {user ? (

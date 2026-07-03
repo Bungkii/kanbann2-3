@@ -27,8 +27,6 @@ export default async function SystemSettingsPage() {
   }
 
   const settings = await getSystemSettings();
-  // Default to true if not set
-  const isBossEvaluationEnabled = settings.boss_evaluation_enabled !== false;
 
   return (
     <main className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 flex flex-col items-center">
@@ -51,7 +49,7 @@ export default async function SystemSettingsPage() {
             </div>
           </div>
 
-          <SystemSettingsForm initialBossEvalEnabled={isBossEvaluationEnabled} />
+          <SystemSettingsForm initialSettings={settings} />
         </div>
       </div>
     </main>
