@@ -23,23 +23,32 @@ export default async function Home() {
     children: React.ReactNode,
     className: string = "group flex-1"
   ) => {
-    const Wrapper = isEnabled ? Link : 'div';
-    const props = isEnabled ? { href } : {};
-    
-    return (
-      <Wrapper {...props} className={className}>
-        <div className="relative h-full">
-          {!isEnabled && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center rounded-3xl bg-white/40 backdrop-blur-[2px] cursor-not-allowed">
-              <div className="bg-slate-800 text-white text-sm font-bold px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                ปิดระบบชั่วคราว
-              </div>
+    const innerContent = (
+      <div className="relative h-full">
+        {!isEnabled && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-3xl bg-white/40 backdrop-blur-[2px] cursor-not-allowed">
+            <div className="bg-slate-800 text-white text-sm font-bold px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+              ปิดระบบชั่วคราว
             </div>
-          )}
-          {children}
-        </div>
-      </Wrapper>
+          </div>
+        )}
+        {children}
+      </div>
+    );
+
+    if (isEnabled) {
+      return (
+        <Link href={href} className={className}>
+          {innerContent}
+        </Link>
+      );
+    }
+
+    return (
+      <div className={className}>
+        {innerContent}
+      </div>
     );
   };
 
