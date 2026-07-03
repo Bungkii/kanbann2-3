@@ -96,7 +96,7 @@ export async function GET() {
     
     const buffer = await promise;
 
-    return new NextResponse(buffer, {
+    return new NextResponse(buffer as any, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': 'attachment; filename="boss_evaluations.pdf"'
