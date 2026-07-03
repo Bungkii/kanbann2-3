@@ -2,115 +2,68 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Home, ClipboardList, LayoutDashboard, BookOpen, Vote, UserCheck, Settings as SettingsIcon } from 'lucide-react';
+import { Home, ClipboardList, LayoutDashboard, BookOpen, Vote, UserCheck, Settings as SettingsIcon, AlertCircle } from 'lucide-react';
 
 export default function NotFound() {
   const menuItems = [
-    { href: "/", icon: <Home className="w-4 h-4" />, label: "หน้าแรก", color: "text-blue-500" },
-    { href: "/add", icon: <ClipboardList className="w-4 h-4" />, label: "จดงาน", color: "text-indigo-500" },
-    { href: "/kanban", icon: <LayoutDashboard className="w-4 h-4" />, label: "กระดานงาน", color: "text-blue-500" },
-    { href: "/summaries", icon: <BookOpen className="w-4 h-4" />, label: "สรุปสอบ", color: "text-pink-500" },
-    { href: "/election", icon: <Vote className="w-4 h-4" />, label: "เลือกตั้ง", color: "text-amber-500" },
-    { href: "/evaluate-boss", icon: <UserCheck className="w-4 h-4" />, label: "ประเมินหัวหน้า", color: "text-emerald-500" },
-    { href: "/settings", icon: <SettingsIcon className="w-4 h-4" />, label: "ตั้งค่าระบบ", color: "text-slate-600" },
+    { href: "/add", icon: <ClipboardList className="w-5 h-5" />, label: "จดงาน", bgColor: "bg-indigo-50", textColor: "text-indigo-600", hoverBorder: "hover:border-indigo-200" },
+    { href: "/kanban", icon: <LayoutDashboard className="w-5 h-5" />, label: "กระดานงาน", bgColor: "bg-blue-50", textColor: "text-blue-600", hoverBorder: "hover:border-blue-200" },
+    { href: "/summaries", icon: <BookOpen className="w-5 h-5" />, label: "สรุปสอบ", bgColor: "bg-pink-50", textColor: "text-pink-600", hoverBorder: "hover:border-pink-200" },
+    { href: "/election", icon: <Vote className="w-5 h-5" />, label: "เลือกตั้ง", bgColor: "bg-amber-50", textColor: "text-amber-500", hoverBorder: "hover:border-amber-200" },
+    { href: "/evaluate-boss", icon: <UserCheck className="w-5 h-5" />, label: "ประเมินหัวหน้า", bgColor: "bg-emerald-50", textColor: "text-emerald-500", hoverBorder: "hover:border-emerald-200" },
+    { href: "/settings", icon: <SettingsIcon className="w-5 h-5" />, label: "ตั้งค่าระบบ", bgColor: "bg-rose-50", textColor: "text-rose-600", hoverBorder: "hover:border-rose-200" },
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center relative overflow-hidden">
-      {/* Animated Background Elements */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <motion.div 
-          animate={{ 
-            scale: [1, 1.2, 1],
-            opacity: [0.3, 0.5, 0.3],
-            x: [0, 50, 0]
-          }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-pink-400 blur-[120px] mix-blend-multiply opacity-30"
-        />
-        <motion.div 
-          animate={{ 
-            scale: [1, 1.5, 1],
-            opacity: [0.3, 0.6, 0.3],
-            x: [0, -50, 0]
-          }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-          className="absolute top-[20%] -right-[10%] w-[60%] h-[60%] rounded-full bg-blue-400 blur-[120px] mix-blend-multiply opacity-30"
-        />
-        <motion.div 
-          animate={{ 
-            scale: [1, 1.3, 1],
-            opacity: [0.2, 0.4, 0.2],
-            y: [0, 50, 0]
-          }}
-          transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-          className="absolute -bottom-[20%] left-[20%] w-[50%] h-[50%] rounded-full bg-purple-400 blur-[120px] mix-blend-multiply opacity-30"
-        />
-      </div>
+    <main className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 sm:p-8">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="max-w-3xl w-full bg-white rounded-[2rem] p-8 md:p-12 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 flex flex-col items-center"
+      >
+        <div className="bg-red-50 text-red-500 p-6 rounded-full mb-6 relative">
+          <AlertCircle className="w-16 h-16" strokeWidth={1.5} />
+          <motion.div 
+            animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="absolute inset-0 bg-red-400 rounded-full opacity-20 blur-xl"
+          />
+        </div>
+        
+        <h1 className="text-6xl font-black text-slate-800 mb-2 tracking-tight">404</h1>
+        <h2 className="text-2xl font-bold text-slate-700 mb-4 text-center">ไม่พบหน้าที่คุณต้องการ</h2>
+        <p className="text-slate-500 text-center max-w-lg mb-10 text-lg">
+          ขออภัยค่ะ พริมจ๋าหาหน้านี้ไม่เจอ หรือคุณอาจจะพิมพ์ URL ผิด ลองเลือกเมนูด้านล่างนี้เพื่อไปหน้าอื่นแทนนะคะ
+        </p>
 
-      {/* Glassmorphism Header with Navigation */}
-      <header className="w-full sticky top-0 z-50 px-4 py-6">
-        <motion.div 
-          initial={{ y: -100, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ type: "spring", stiffness: 100, damping: 20 }}
-          className="max-w-7xl mx-auto bg-white/70 backdrop-blur-xl border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl px-4 py-3 sm:px-6 flex flex-wrap items-center justify-center gap-2 md:gap-4"
-        >
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 w-full mb-10">
           {menuItems.map((item, index) => (
             <Link key={index} href={item.href}>
               <motion.div 
-                whileHover={{ scale: 1.05, y: -2 }}
-                whileTap={{ scale: 0.95 }}
-                className="flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-sm border border-slate-100 hover:border-blue-200 hover:shadow-md transition-all text-sm font-semibold text-slate-700"
+                whileHover={{ scale: 1.03, y: -2 }}
+                whileTap={{ scale: 0.97 }}
+                className={`flex flex-col items-center justify-center p-4 rounded-2xl bg-white border border-slate-100 shadow-sm transition-colors ${item.hoverBorder} h-full gap-3 group`}
               >
-                <span className={item.color}>{item.icon}</span>
-                {item.label}
+                <div className={`${item.bgColor} ${item.textColor} p-3 rounded-full group-hover:scale-110 transition-transform`}>
+                  {item.icon}
+                </div>
+                <span className="font-semibold text-slate-700 text-sm">{item.label}</span>
               </motion.div>
             </Link>
           ))}
-        </motion.div>
-      </header>
+        </div>
 
-      {/* 404 Content */}
-      <main className="flex-1 flex flex-col items-center justify-center w-full px-4 py-16 z-10 relative">
-        <motion.div 
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.5, type: "spring" }}
-          className="text-center max-w-2xl bg-white/80 backdrop-blur-2xl p-10 md:p-16 rounded-[3rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] border border-white/60"
-        >
-          <motion.div 
-            animate={{ y: [0, -10, 0] }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-            className="relative"
+        <Link href="/" className="w-full sm:w-auto">
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-900 text-white font-semibold py-4 px-10 rounded-full shadow-lg transition-all"
           >
-            <h1 className="text-[8rem] md:text-[12rem] font-black leading-none text-transparent bg-clip-text bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 drop-shadow-sm select-none">
-              404
-            </h1>
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-gradient-to-t from-white/40 to-transparent pointer-events-none rounded-3xl"></div>
-          </motion.div>
-          
-          <div className="w-24 h-2 bg-gradient-to-r from-indigo-500 to-pink-500 rounded-full mx-auto mb-8 mt-4"></div>
-          
-          <h2 className="text-3xl md:text-4xl font-extrabold text-slate-800 mb-6 tracking-tight">
-            โอ๊ะโอ... ไม่พบหน้าที่คุณต้องการ 😅
-          </h2>
-          <p className="text-slate-500 text-lg md:text-xl mb-10 leading-relaxed font-medium px-4">
-            ดูเหมือนว่าพริมจ๋าจะหาหน้านี้ไม่เจอ อาจจะโดนลบไปแล้ว หรือคุณพิมพ์ URL ผิด ลองเลือกเมนูด้านบน หรือกลับไปเริ่มต้นที่หน้าแรกดูนะคะ
-          </p>
-          
-          <Link href="/">
-            <motion.div
-              whileHover={{ scale: 1.05, boxShadow: "0 20px 25px -5px rgba(99, 102, 241, 0.4)" }}
-              whileTap={{ scale: 0.95 }}
-              className="inline-flex items-center gap-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-bold text-lg py-4 px-10 rounded-full shadow-lg shadow-indigo-500/30 transition-all cursor-pointer"
-            >
-              <Home className="w-5 h-5" />
-              กลับสู่หน้าหลัก
-            </motion.div>
-          </Link>
-        </motion.div>
-      </main>
-    </div>
+            <Home className="w-5 h-5" />
+            กลับสู่หน้าหลัก
+          </motion.button>
+        </Link>
+      </motion.div>
+    </main>
   );
 }
