@@ -18,9 +18,11 @@ CREATE TABLE IF NOT EXISTS public.boss_evaluations (
 ALTER TABLE public.boss_evaluations ENABLE ROW LEVEL SECURITY;
 
 -- Allow anonymous inserts (since it's a public evaluation form)
+DROP POLICY IF EXISTS "Allow anonymous inserts to boss_evaluations" ON public.boss_evaluations;
 CREATE POLICY "Allow anonymous inserts to boss_evaluations" ON public.boss_evaluations
     FOR INSERT WITH CHECK (true);
 
 -- Only allow authenticated users (like admin) to read
+DROP POLICY IF EXISTS "Allow authenticated reads on boss_evaluations" ON public.boss_evaluations;
 CREATE POLICY "Allow authenticated reads on boss_evaluations" ON public.boss_evaluations
     FOR SELECT TO authenticated USING (true);
