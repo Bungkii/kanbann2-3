@@ -102,16 +102,12 @@ export default async function Home() {
 
           {/* Leader Assessment */}
           <Link href="/evaluate-boss" className="group">
-            <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col items-center justify-center transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1 relative overflow-hidden">
-              <div className="absolute top-4 right-4 bg-emerald-100 text-emerald-700 text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm">
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                เปิดใช้งานแล้ว!
-              </div>
+            <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col items-center justify-center transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1 relative overflow-hidden h-full">
               <div className="bg-emerald-50 text-emerald-500 p-4 rounded-full mb-4 group-hover:scale-110 transition-transform duration-300">
                 <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10.4 12.6a2 2 0 1 1 3 3L8 21l-4 1 1-4Z"/><path d="M18 21v-8a2 2 0 0 0-2-2h-3"/><path d="M4 14.5V7a2 2 0 0 1 2-2h6l4 4"/></svg>
               </div>
-              <h2 className="text-xl font-bold text-slate-800 mb-1">ระบบประเมินหัวหน้า</h2>
-              <p className="text-slate-500 text-center text-sm">เข้าสู่ระบบเพื่อประเมิน</p>
+              <h2 className="text-xl font-bold text-slate-800 mb-1 text-center">ระบบประเมินหัวหน้า</h2>
+              <p className="text-slate-500 text-center text-sm">คลิกเพื่อประเมินได้เลย</p>
             </div>
           </Link>
 

@@ -35,7 +35,7 @@ export default async function SettingsDashboard() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <Link href="/settings/schedule" className="group">
               <div className="bg-slate-50 border border-slate-100 rounded-2xl p-8 flex flex-col items-center text-center h-full transition-all hover:bg-indigo-50 hover:border-indigo-100 hover:shadow-sm">
                 <div className="bg-indigo-100 text-indigo-600 p-4 rounded-full mb-4 group-hover:scale-110 transition-transform">
@@ -63,6 +63,16 @@ export default async function SettingsDashboard() {
                 </div>
                 <h2 className="text-xl font-bold text-slate-800 mb-2 group-hover:text-amber-700">ชุดเครื่องแบบ</h2>
                 <p className="text-sm text-slate-500">กำหนดชุดนักเรียนที่ต้องใส่ในแต่ละวัน</p>
+              </div>
+            </Link>
+
+            <Link href="/settings/system" className="group">
+              <div className="bg-slate-50 border border-slate-100 rounded-2xl p-8 flex flex-col items-center text-center h-full transition-all hover:bg-rose-50 hover:border-rose-100 hover:shadow-sm">
+                <div className="bg-rose-100 text-rose-600 p-4 rounded-full mb-4 group-hover:scale-110 transition-transform">
+                  <SettingsIcon size={32} />
+                </div>
+                <h2 className="text-xl font-bold text-slate-800 mb-2 group-hover:text-rose-700">ระบบทั่วไป</h2>
+                <p className="text-sm text-slate-500">เปิด-ปิดแบบประเมินหัวหน้า ฯลฯ</p>
               </div>
             </Link>
           </div>
