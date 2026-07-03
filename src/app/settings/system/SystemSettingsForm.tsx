@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { updateSystemSetting } from "./actions";
 import toast from "react-hot-toast";
+import { Download } from "lucide-react";
 
 const systemFeatures = [
   { key: "add_work_enabled", label: "ระบบจดงาน (Add Work)", description: "เปิด-ปิดหน้าสำหรับเพิ่มงานใหม่" },
@@ -26,6 +27,7 @@ export default function SystemSettingsForm({
   });
 
   const [savingKeys, setSavingKeys] = useState<Record<string, boolean>>({});
+  const [isExporting, setIsExporting] = useState(false);
 
   const handleToggle = async (key: string) => {
     const newValue = !settings[key];
@@ -44,8 +46,50 @@ export default function SystemSettingsForm({
     }
   };
 
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      const response = await fetch('/api/export-boss');
+      if (!response.ok) throw new Error('Export failed');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'boss_evaluations.pdf';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success('ส่งออกข้อมูลสำเร็จ!');
+    } catch (error) {
+      toast.error('เกิดข้อผิดพลาดในการส่งออกข้อมูล');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      
+      <div className="bg-pink-50 p-6 rounded-2xl border border-pink-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div>
+          <h3 className="font-bold text-pink-900 text-lg">รายงานผลประเมินหัวหน้า</h3>
+          <p className="text-sm text-pink-700">ส่งออกข้อมูลการประเมินทั้งหมดเป็นไฟล์เอกสาร PDF</p>
+        </div>
+        <button
+          onClick={handleExport}
+          disabled={isExporting}
+          className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-white shadow-md transition-all ${
+            isExporting ? 'bg-pink-400 cursor-not-allowed' : 'bg-pink-600 hover:bg-pink-700 hover:-translate-y-1 hover:shadow-lg'
+          }`}
+        >
+          <Download className="w-5 h-5" />
+          {isExporting ? 'กำลังสร้างไฟล์...' : 'Export PDF'}
+        </button>
+      </div>
+
+      <div className="space-y-4">
       {systemFeatures.map((feature) => {
         const isEnabled = settings[feature.key];
         const isSaving = savingKeys[feature.key];
