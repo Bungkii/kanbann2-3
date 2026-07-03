@@ -1,10 +1,10 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import PDFDocument from 'pdfkit-table';
 import path from 'path';
 import fs from 'fs';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -34,10 +34,14 @@ export async function GET() {
     });
 
     // Register Font
-    const fontPath = path.join(process.cwd(), 'public', 'fonts', 'THSarabunNew.ttf');
-    if (fs.existsSync(fontPath)) {
-      doc.registerFont('THSarabun', fontPath);
+    const origin = req.nextUrl.origin;
+    const fontRes = await fetch(`${origin}/fonts/THSarabunNew.ttf`);
+    if (fontRes.ok) {
+      const fontBuffer = Buffer.from(await fontRes.arrayBuffer());
+      doc.registerFont('THSarabun', fontBuffer);
       doc.font('THSarabun');
+    } else {
+      console.warn('Could not load THSarabun font');
     }
 
     const dateStr = new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
