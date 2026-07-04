@@ -20,7 +20,7 @@ const SUBJECT_LIST = [
   { label: 'สังคมศึกษา', value: 'สังคมศึกษา' },
   { label: 'ประวัติศาสตร์', value: 'ประวัติศาสตร์' },
   { label: 'ศิลปะ', value: 'ศิลปะ' },
-  { label: 'สุขศึกษา / พลศึกษา', value: 'สุขศึกษา' },
+  { label: 'สุขศึกษา', value: 'สุขศึกษา' },
   { label: 'การงานอาชีพ', value: 'การงานอาชีพ' },
   { label: 'เทคโนโลยี', value: 'เทคโนโลยี' },
 ];
@@ -277,7 +277,7 @@ export default function UploadSummaryPage() {
                   {SUBJECT_LIST.map(s => (
                     <option key={s.value} value={s.value}>{s.label}</option>
                   ))}
-                  <option value="อื่นๆ">อื่นๆ (พิมพ์เอง)</option>
+                  <option value="อื่นๆ">อื่นๆ</option>
                 </select>
                 <ChevronDown size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               </div>
@@ -305,7 +305,7 @@ export default function UploadSummaryPage() {
                 value={uploaderName}
                 onChange={(e) => setUploaderName(e.target.value)}
                 className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all"
-                placeholder="เช่น พริม, บัส, ..."
+                placeholder="เช่น พริม, บุ้งกี๋, ..."
               />
             </div>
 
