@@ -125,7 +125,12 @@ export default function EvaluateBossForm() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-100 py-10 px-4 sm:px-6 lg:px-8 relative">
+    <motion.main 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="min-h-screen bg-slate-100 py-10 px-4 sm:px-6 lg:px-8 relative"
+    >
       <div className="max-w-4xl mx-auto">
         
         <div className="flex items-center justify-between mb-8">
@@ -426,6 +431,6 @@ export default function EvaluateBossForm() {
         )}
       </AnimatePresence>
 
-    </main>
+    </motion.main>
   );
 }

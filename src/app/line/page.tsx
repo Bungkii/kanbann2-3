@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { ArrowLeft, MessageSquare, Send, Bell, PlusCircle, Trash2, HelpCircle } from 'lucide-react';
+import PageTransition from '@/components/PageTransition';
 import toast from 'react-hot-toast';
 import { sendCustomLineMessage, createCustomPoll } from './actions';
 import LineBroadcastButtons from '@/components/LineBroadcastButtons';
@@ -175,7 +177,7 @@ export default function LinePage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-50 p-4 md:p-8">
+    <PageTransition className="min-h-screen bg-slate-50 p-4 md:p-8">
       <div className="max-w-3xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -436,6 +438,6 @@ export default function LinePage() {
           </form>
         </div>
       </div>
-    </main>
+    </PageTransition>
   );
 }

@@ -2,6 +2,7 @@ import { createClient } from '@/utils/supabase/server';
 import ElectionResults from './ElectionResults';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
+import PageTransition from '@/components/PageTransition';
 
 export const revalidate = 0; // Disable caching to show real-time results
 
@@ -61,7 +62,7 @@ export default async function ElectionPage() {
     .sort((a, b) => b.count - a.count);
 
   return (
-    <main className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 flex flex-col items-center overflow-hidden">
+    <PageTransition className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 flex flex-col items-center overflow-hidden">
       <div className="w-full max-w-3xl relative">
         <Link 
           href="/"
@@ -78,6 +79,6 @@ export default async function ElectionPage() {
           turnoutPercentage={turnoutPercentage} 
         />
       </div>
-    </main>
+    </PageTransition>
   );
 }

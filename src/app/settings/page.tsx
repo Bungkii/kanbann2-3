@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import PageTransition from "@/components/PageTransition";
 import { ArrowLeft, Settings as SettingsIcon, Shirt, Calendar, Trash2 } from 'lucide-react';
 
 export const revalidate = 0;
@@ -14,7 +15,7 @@ export default async function SettingsDashboard() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 flex flex-col items-center">
+    <PageTransition className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 flex flex-col items-center">
       <div className="w-full max-w-4xl relative">
         <Link 
           href="/"
@@ -78,6 +79,6 @@ export default async function SettingsDashboard() {
           </div>
         </div>
       </div>
-    </main>
+    </PageTransition>
   );
 }

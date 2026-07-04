@@ -2,6 +2,7 @@ import { createClient } from '@/utils/supabase/server';
 import KanbanBoard from '@/components/KanbanBoard';
 import LineBroadcastButtons from '@/components/LineBroadcastButtons';
 import Link from 'next/link';
+import PageTransition from '@/components/PageTransition';
 
 export const dynamic = 'force-dynamic';
 
@@ -75,9 +76,9 @@ export default async function KanbanPage() {
         {isAuthenticated && <LineBroadcastButtons />}
       </header>
 
-      <main className="flex-1 p-8 overflow-x-auto">
+      <PageTransition className="flex-1 p-8 overflow-x-auto">
         <KanbanBoard initialTasks={tasks || []} isAuthenticated={isAuthenticated} />
-      </main>
+      </PageTransition>
     </div>
   );
 }

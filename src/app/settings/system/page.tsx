@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Settings as SettingsIcon } from 'lucide-react';
 import SystemSettingsForm from './SystemSettingsForm';
+import PageTransition from '@/components/PageTransition';
 import { getSystemSettings } from './actions';
 
 export const revalidate = 0;
@@ -18,7 +19,7 @@ export default async function SystemSettingsPage() {
   const settings = await getSystemSettings();
 
   return (
-    <main className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 flex flex-col items-center">
+    <PageTransition className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 flex flex-col items-center">
       <div className="w-full max-w-2xl relative">
         <Link 
           href="/settings"
@@ -41,6 +42,6 @@ export default async function SystemSettingsPage() {
           <SystemSettingsForm initialSettings={settings} />
         </div>
       </div>
-    </main>
+    </PageTransition>
   );
 }

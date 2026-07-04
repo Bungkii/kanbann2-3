@@ -3,6 +3,7 @@ import { createClient } from '@/utils/supabase/server';
 import Countdown from '@/components/Countdown';
 import { getSystemSettings } from '@/app/settings/system/actions';
 import { ElementType } from 'react';
+import PageTransition from '@/components/PageTransition';
 
 export const revalidate = 0;
 
@@ -53,7 +54,7 @@ export default async function Home() {
   };
 
   return (
-    <main className="flex-1 flex items-center justify-center min-h-screen p-8 bg-slate-50">
+    <PageTransition className="flex-1 flex items-center justify-center min-h-screen p-8 bg-slate-50">
       <div className="max-w-6xl w-full grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch justify-center">
         {/* Left Section */}
         <div className="flex flex-col gap-6 w-full h-full">
@@ -205,6 +206,6 @@ export default async function Home() {
           </div>
         </div>
       </div>
-    </main>
+    </PageTransition>
   );
 }

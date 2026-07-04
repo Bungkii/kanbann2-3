@@ -7,8 +7,10 @@ import Countdown from '@/components/Countdown';
 import {
   BookOpen, Download, FileText, ArrowLeft, Upload, Clock,
   Image as ImageIcon, Search, ExternalLink, ChevronDown,
-  ChevronLeft, ChevronRight, X, Link as LinkIcon, User
+  ChevronLeft, ChevronRight, X, Link as LinkIcon, User, Edit, Trash2
 } from 'lucide-react';
+import { createClient } from '@/utils/supabase/client';
+import { motion } from 'framer-motion';
 
 type SummaryData = {
   id: string;
@@ -17,6 +19,7 @@ type SummaryData = {
   description: string;
   file_url: string;
   file_urls?: string[];
+  uploader_id?: string;
   uploader_name?: string;
   attachment_type?: string;
   link_url?: string;
@@ -66,10 +69,18 @@ export default function SummariesPage() {
   const [selectedSubject, setSelectedSubject] = useState('');
   const [lightboxImgs, setLightboxImgs] = useState<string[]>([]);
   const [lightboxIdx, setLightboxIdx] = useState(0);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  const supabase = createClient();
 
   useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) setCurrentUserId(user.id);
+    };
+    fetchUser();
     fetchSummaries();
-  }, []);
+  }, [supabase.auth]);
 
   const fetchSummaries = async () => {
     setIsLoading(true);
@@ -151,7 +162,12 @@ export default function SummariesPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-50 p-4 md:p-8">
+    <motion.main 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="min-h-screen bg-slate-50 p-4 md:p-8"
+    >
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header & Navigation */}
         <div className="flex items-center justify-between mb-2">
@@ -265,16 +281,37 @@ export default function SummariesPage() {
 
                 return (
                   <div key={summary.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all flex flex-col h-full group relative">
+                    
+                    {/* Action buttons (Edit/Delete) */}
+                    {(currentUserId === summary.uploader_id) && (
+                      <div className="absolute top-4 left-4 z-10 flex gap-2">
+                        <Link 
+                          href={`/summaries/edit/${summary.id}`}
+                          className="bg-white/80 hover:bg-white text-slate-500 hover:text-amber-500 p-2 rounded-full backdrop-blur-sm transition-all shadow-sm"
+                          title="แก้ไขสรุปสอบ"
+                        >
+                          <Edit size={16} />
+                        </Link>
+                        <button 
+                          disabled
+                          className="bg-white/80 text-slate-300 p-2 rounded-full backdrop-blur-sm cursor-not-allowed shadow-sm"
+                          title="ติดต่อผู้ดูแลระบบ (Admin) เพื่อลบสรุปสอบนี้"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    )}
+
                     {/* Open link icon */}
                     {firstUrl && (
                       <a
                         href={firstUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="absolute top-4 right-4 text-slate-300 hover:text-rose-500 transition-colors z-10"
+                        className="absolute top-4 right-4 text-slate-300 hover:text-rose-500 bg-white/80 hover:bg-white p-2 rounded-full backdrop-blur-sm transition-all z-10 shadow-sm"
                         title="เปิดไฟล์"
                       >
-                        <ExternalLink size={18} />
+                        <ExternalLink size={16} />
                       </a>
                     )}
 
@@ -472,6 +509,6 @@ export default function SummariesPage() {
           </div>
         </div>
       )}
-    </main>
+    </motion.main>
   );
 }

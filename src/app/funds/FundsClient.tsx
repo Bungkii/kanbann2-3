@@ -369,7 +369,12 @@ export default function FundsClient({ isLoggedIn, fundsStats: initialFundsStats,
   }
 
   return (
-    <main className="max-w-5xl mx-auto p-4 sm:p-8 pt-20">
+    <motion.main 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="max-w-5xl mx-auto p-4 sm:p-8 pt-20"
+    >
       <div className="bg-white rounded-3xl p-6 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 mb-8 relative overflow-hidden">
         {/* Background decorations */}
         <div className="absolute top-0 right-0 -mt-8 -mr-8 w-48 h-48 bg-emerald-50 opacity-50 rounded-full blur-3xl"></div>
@@ -779,7 +784,6 @@ export default function FundsClient({ isLoggedIn, fundsStats: initialFundsStats,
           />
         </div>
       )}
-
-    </main>
+    </motion.main>
   )
 }
