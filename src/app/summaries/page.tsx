@@ -1,10 +1,14 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { getExamSummaries } from './actions';
 import Countdown from '@/components/Countdown';
-import { BookOpen, Download, FileText, ArrowLeft, Upload, Clock, Image as ImageIcon, Search, ExternalLink, ChevronDown } from 'lucide-react';
+import {
+  BookOpen, Download, FileText, ArrowLeft, Upload, Clock,
+  Image as ImageIcon, Search, ExternalLink, ChevronDown,
+  ChevronLeft, ChevronRight, X, Link as LinkIcon, User
+} from 'lucide-react';
 
 type SummaryData = {
   id: string;
@@ -13,8 +17,24 @@ type SummaryData = {
   description: string;
   file_url: string;
   file_urls?: string[];
+  uploader_name?: string;
+  attachment_type?: string;
+  link_url?: string;
   created_at: string;
 };
+
+// Subject normalization map
+const SUBJECT_ALIASES: Record<string, string> = {
+  'วิทย์': 'วิทยาศาสตร์',
+  'คณิต': 'คณิตศาสตร์',
+  'อังกฤษ': 'ภาษาอังกฤษ',
+  'สังคม': 'สังคมศึกษา',
+  'ไทย': 'ภาษาไทย',
+};
+
+function normalizeSubject(subject: string): string {
+  return SUBJECT_ALIASES[subject] || subject;
+}
 
 function getFileType(url: string): 'pdf' | 'image' {
   const lower = url.toLowerCase();
@@ -44,7 +64,8 @@ export default function SummariesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
-  const [lightboxImg, setLightboxImg] = useState<string | null>(null);
+  const [lightboxImgs, setLightboxImgs] = useState<string[]>([]);
+  const [lightboxIdx, setLightboxIdx] = useState(0);
 
   useEffect(() => {
     fetchSummaries();
@@ -60,7 +81,7 @@ export default function SummariesPage() {
   };
 
   const subjects = useMemo(() => {
-    const set = new Set(summaries.map(s => s.subject));
+    const set = new Set(summaries.map(s => normalizeSubject(s.subject)));
     return Array.from(set).sort();
   }, [summaries]);
 
@@ -69,8 +90,9 @@ export default function SummariesPage() {
       const matchSearch = !searchQuery ||
         s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         s.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (s.description || '').toLowerCase().includes(searchQuery.toLowerCase());
-      const matchSubject = !selectedSubject || s.subject === selectedSubject;
+        (s.description || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (s.uploader_name || '').toLowerCase().includes(searchQuery.toLowerCase());
+      const matchSubject = !selectedSubject || normalizeSubject(s.subject) === selectedSubject;
       return matchSearch && matchSubject;
     });
   }, [summaries, searchQuery, selectedSubject]);
@@ -79,6 +101,53 @@ export default function SummariesPage() {
     if (summary.file_urls && summary.file_urls.length > 0) return summary.file_urls;
     if (summary.file_url) return [summary.file_url];
     return [];
+  };
+
+  const openLightbox = (images: string[], startIdx: number) => {
+    setLightboxImgs(images);
+    setLightboxIdx(startIdx);
+  };
+
+  const closeLightbox = () => {
+    setLightboxImgs([]);
+    setLightboxIdx(0);
+  };
+
+  const goLightboxPrev = useCallback(() => {
+    setLightboxIdx(prev => (prev > 0 ? prev - 1 : lightboxImgs.length - 1));
+  }, [lightboxImgs.length]);
+
+  const goLightboxNext = useCallback(() => {
+    setLightboxIdx(prev => (prev < lightboxImgs.length - 1 ? prev + 1 : 0));
+  }, [lightboxImgs.length]);
+
+  // Keyboard navigation for lightbox
+  useEffect(() => {
+    if (lightboxImgs.length === 0) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') goLightboxPrev();
+      if (e.key === 'ArrowRight') goLightboxNext();
+      if (e.key === 'Escape') closeLightbox();
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [lightboxImgs.length, goLightboxPrev, goLightboxNext]);
+
+  const handleSaveImage = async (url: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = `summary_${Date.now()}.${url.split('.').pop()?.split('?')[0] || 'jpg'}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(blobUrl);
+      document.body.removeChild(a);
+    } catch {
+      window.open(url, '_blank');
+    }
   };
 
   return (
@@ -136,7 +205,7 @@ export default function SummariesPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="ค้นหาชื่อชีท, วิชา..."
+              placeholder="ค้นหาชื่อชีท, วิชา, ผู้สรุป..."
               className="w-full pl-12 pr-4 py-3.5 bg-white rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent shadow-sm text-slate-700 placeholder:text-slate-400 transition-all"
             />
           </div>
@@ -188,10 +257,11 @@ export default function SummariesPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {filtered.map((summary) => {
+                const isLink = summary.attachment_type === 'link';
                 const urls = getUrls(summary);
                 const pdfUrls = urls.filter(u => getFileType(u) === 'pdf');
-                const imageUrls = urls.filter(u => getFileType(u) === 'image');
-                const firstUrl = urls[0];
+                const imageUrls = isLink ? [] : urls.filter(u => getFileType(u) === 'image');
+                const firstUrl = isLink ? (summary.link_url || summary.file_url) : urls[0];
 
                 return (
                   <div key={summary.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all flex flex-col h-full group relative">
@@ -212,7 +282,8 @@ export default function SummariesPage() {
                     {imageUrls.length > 0 && (
                       <div className={`grid ${imageUrls.length === 1 ? 'grid-cols-1' : imageUrls.length === 2 ? 'grid-cols-2' : 'grid-cols-3'} gap-0.5 rounded-t-2xl overflow-hidden`}>
                         {imageUrls.slice(0, 3).map((url, i) => (
-                          <div key={i} className="relative aspect-[4/3] cursor-pointer overflow-hidden" onClick={() => setLightboxImg(url)}>
+                          <div key={i} className="relative aspect-[4/3] cursor-pointer overflow-hidden" onClick={() => openLightbox(imageUrls, i)}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={url} alt={`Preview ${i + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
                             {i === 2 && imageUrls.length > 3 && (
                               <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
@@ -221,6 +292,13 @@ export default function SummariesPage() {
                             )}
                           </div>
                         ))}
+                      </div>
+                    )}
+
+                    {/* Link type indicator */}
+                    {isLink && (
+                      <div className="bg-blue-50 rounded-t-2xl p-6 flex items-center justify-center">
+                        <LinkIcon className="w-12 h-12 text-blue-400" strokeWidth={1.5} />
                       </div>
                     )}
 
@@ -233,14 +311,21 @@ export default function SummariesPage() {
                       {/* Tags */}
                       <div className="flex flex-wrap gap-2 mb-3">
                         <span className="bg-rose-50 text-rose-600 text-xs font-semibold px-2.5 py-1 rounded-full">
-                          {summary.subject}
+                          {normalizeSubject(summary.subject)}
                         </span>
                         <span className="bg-sky-50 text-sky-600 text-xs font-semibold px-2.5 py-1 rounded-full">
                           กลางภาค เทอม 1
                         </span>
-                        <span className="bg-emerald-50 text-emerald-600 text-xs font-semibold px-2.5 py-1 rounded-full">
-                          พริมจ๋าลาออก
-                        </span>
+                        {summary.uploader_name && (
+                          <span className="bg-indigo-50 text-indigo-600 text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1">
+                            <User size={10} /> By {summary.uploader_name}
+                          </span>
+                        )}
+                        {isLink && (
+                          <span className="bg-blue-50 text-blue-600 text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1">
+                            <LinkIcon size={10} /> ลิงก์
+                          </span>
+                        )}
                         {pdfUrls.length > 0 && (
                           <span className="bg-amber-50 text-amber-600 text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1">
                             <FileText size={12} /> PDF
@@ -268,25 +353,39 @@ export default function SummariesPage() {
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
-                          {pdfUrls.length > 0 && (
+                          {isLink ? (
                             <a
-                              href={pdfUrls[0]}
+                              href={summary.link_url || summary.file_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="bg-rose-500 hover:bg-rose-600 text-white text-xs font-medium px-3 py-1.5 rounded-full transition-colors flex items-center gap-1"
+                              className="bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium px-3 py-1.5 rounded-full transition-colors flex items-center gap-1"
                             >
-                              <FileText size={12} />
-                              เปิด PDF
+                              <ExternalLink size={12} />
+                              เปิดลิงก์
                             </a>
-                          )}
-                          {imageUrls.length > 0 && !pdfUrls.length && (
-                            <button
-                              onClick={() => setLightboxImg(imageUrls[0])}
-                              className="bg-rose-500 hover:bg-rose-600 text-white text-xs font-medium px-3 py-1.5 rounded-full transition-colors flex items-center gap-1"
-                            >
-                              <ImageIcon size={12} />
-                              ดูรูป
-                            </button>
+                          ) : (
+                            <>
+                              {pdfUrls.length > 0 && (
+                                <a
+                                  href={pdfUrls[0]}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="bg-rose-500 hover:bg-rose-600 text-white text-xs font-medium px-3 py-1.5 rounded-full transition-colors flex items-center gap-1"
+                                >
+                                  <FileText size={12} />
+                                  เปิด PDF
+                                </a>
+                              )}
+                              {imageUrls.length > 0 && !pdfUrls.length && (
+                                <button
+                                  onClick={() => openLightbox(imageUrls, 0)}
+                                  className="bg-rose-500 hover:bg-rose-600 text-white text-xs font-medium px-3 py-1.5 rounded-full transition-colors flex items-center gap-1"
+                                >
+                                  <ImageIcon size={12} />
+                                  ดูรูป
+                                </button>
+                              )}
+                            </>
                           )}
                         </div>
                       </div>
@@ -299,46 +398,78 @@ export default function SummariesPage() {
         </div>
       </div>
 
-      {/* Lightbox */}
-      {lightboxImg && (
+      {/* Enhanced Lightbox with Arrow Navigation & Save */}
+      {lightboxImgs.length > 0 && (
         <div
-          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 cursor-pointer backdrop-blur-sm"
-          onClick={() => setLightboxImg(null)}
+          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 backdrop-blur-md"
+          onClick={closeLightbox}
         >
+          {/* Close button */}
           <button
-            className="absolute top-6 right-6 text-white/80 hover:text-white bg-white/10 p-2.5 rounded-full backdrop-blur-sm text-lg font-bold"
-            onClick={() => setLightboxImg(null)}
+            className="absolute top-6 right-6 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-3 rounded-full backdrop-blur-sm transition-all z-20"
+            onClick={closeLightbox}
           >
-            ✕
+            <X size={24} />
           </button>
+
+          {/* Counter */}
+          <div className="absolute top-6 left-1/2 -translate-x-1/2 text-white/80 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-medium z-20">
+            {lightboxIdx + 1} / {lightboxImgs.length}
+          </div>
+
+          {/* Prev Arrow */}
+          {lightboxImgs.length > 1 && (
+            <button
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-3 rounded-full backdrop-blur-sm transition-all z-20"
+              onClick={(e) => { e.stopPropagation(); goLightboxPrev(); }}
+            >
+              <ChevronLeft size={28} />
+            </button>
+          )}
+
+          {/* Next Arrow */}
+          {lightboxImgs.length > 1 && (
+            <button
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-3 rounded-full backdrop-blur-sm transition-all z-20"
+              onClick={(e) => { e.stopPropagation(); goLightboxNext(); }}
+            >
+              <ChevronRight size={28} />
+            </button>
+          )}
+
+          {/* Image */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={lightboxImg}
-            alt="Full view"
-            className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+            src={lightboxImgs[lightboxIdx]}
+            alt={`Image ${lightboxIdx + 1}`}
+            className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           />
-          {/* Navigation for images in same summary */}
-          {(() => {
-            const currentSummary = summaries.find(s => {
-              const urls = getUrls(s);
-              return urls.filter(u => getFileType(u) === 'image').includes(lightboxImg);
-            });
-            if (!currentSummary) return null;
-            const imgs = getUrls(currentSummary).filter(u => getFileType(u) === 'image');
-            if (imgs.length <= 1) return null;
-            const currentIdx = imgs.indexOf(lightboxImg);
-            return (
-              <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-3" onClick={(e) => e.stopPropagation()}>
-                {imgs.map((img, i) => (
+
+          {/* Bottom Controls */}
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 z-20" onClick={(e) => e.stopPropagation()}>
+            {/* Save Button */}
+            <button
+              onClick={() => handleSaveImage(lightboxImgs[lightboxIdx])}
+              className="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white font-medium px-5 py-2.5 rounded-full backdrop-blur-sm transition-all"
+            >
+              <Download size={18} />
+              บันทึกรูป
+            </button>
+
+            {/* Dots */}
+            {lightboxImgs.length > 1 && (
+              <div className="flex gap-2">
+                {lightboxImgs.map((_, i) => (
                   <button
                     key={i}
-                    onClick={() => setLightboxImg(img)}
-                    className={`w-3 h-3 rounded-full transition-all ${i === currentIdx ? 'bg-white scale-125' : 'bg-white/40 hover:bg-white/70'}`}
+                    onClick={() => setLightboxIdx(i)}
+                    className={`w-2.5 h-2.5 rounded-full transition-all ${i === lightboxIdx ? 'bg-white scale-125' : 'bg-white/40 hover:bg-white/70'}`}
                   />
                 ))}
               </div>
-            );
-          })()}
+            )}
+          </div>
         </div>
       )}
     </main>

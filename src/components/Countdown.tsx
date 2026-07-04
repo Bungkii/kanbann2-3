@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 
 export default function Countdown({ date }: { date: string }) {
+  const [mounted, setMounted] = useState(false);
   const [timeLeft, setTimeLeft] = useState<{
     days: number;
     hours: number;
@@ -11,6 +12,7 @@ export default function Countdown({ date }: { date: string }) {
   }>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
   useEffect(() => {
+    setMounted(true);
     const targetDate = new Date(date).getTime();
 
     const updateTimer = () => {
@@ -36,9 +38,20 @@ export default function Countdown({ date }: { date: string }) {
     return () => clearInterval(intervalId);
   }, [date]);
 
+  if (!mounted) {
+    return <span>กำลังโหลด...</span>;
+  }
+
+  const targetDate = new Date(date).getTime();
+  const now = new Date().getTime();
+  
+  if (targetDate - now <= 0) {
+    return <span>ถึงวันสอบแล้ว! 📝</span>;
+  }
+
   return (
-    <span>
-      เหลือเวลาอีก {timeLeft.days} วัน {timeLeft.hours} ชม. {timeLeft.minutes} นาที
+    <span suppressHydrationWarning>
+      เหลือเวลาอีก {timeLeft.days} วัน {timeLeft.hours} ชม. {timeLeft.minutes} นาที {timeLeft.seconds} วินาที
     </span>
   );
 }
