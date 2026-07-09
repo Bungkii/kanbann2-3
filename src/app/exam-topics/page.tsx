@@ -1,57 +1,16 @@
 import Link from 'next/link';
-import { ArrowLeft, BookOpen, AlertCircle, Calendar } from 'lucide-react';
+import { ArrowLeft, BookOpen, AlertCircle, Calendar, Edit } from 'lucide-react';
 import Countdown from '@/components/Countdown';
+import { getExamTopics } from './actions';
+import { createClient } from '@/utils/supabase/server';
 
-const examTopics = [
-  {
-    subject: "คณิตศาสตร์ 3",
-    teacher: "มิสเสาวลักษณ์",
-    topics: [
-      "ระบบสมการเชิงเส้นสองตัวแปร",
-      "การแยกตัวประกอบของพหุนามดีกรีสอง",
-      "ทฤษฎีบทพีทาโกรัสและบทกลับ",
-    ]
-  },
-  {
-    subject: "วิทยาศาสตร์ 3",
-    teacher: "ม.ธนากร",
-    topics: [
-      "ระบบร่างกายมนุษย์ (ระบบหายใจ, ระบบขับถ่าย)",
-      "การแยกสารผสม",
-      "งานและพลังงาน"
-    ]
-  },
-  {
-    subject: "ภาษาอังกฤษ 3",
-    teacher: "ม.อัคเดช",
-    topics: [
-      "Present Simple & Continuous",
-      "Past Simple Tense",
-      "Vocabulary: Daily Life & Hobbies",
-      "Reading Comprehension"
-    ]
-  },
-  {
-    subject: "ภาษาไทย 3",
-    teacher: "ม.คมสันต์",
-    topics: [
-      "การแต่งกลอนสุภาพ",
-      "วรรณคดี: โคลงภาพพระราชพงศาวดาร",
-      "หลักการอ่านจับใจความสำคัญ"
-    ]
-  },
-  {
-    subject: "สังคมศึกษา 3",
-    teacher: "มิสธนวรรณ",
-    topics: [
-      "ภูมิศาสตร์ทวีปเอเชีย",
-      "การพัฒนาที่ยั่งยืน",
-      "หน้าที่พลเมืองดีตามวิถีประชาธิปไตย"
-    ]
-  }
-];
+export const revalidate = 0; // Disable cache for dynamic data
 
-export default function ExamTopicsPage() {
+export default async function ExamTopicsPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const examTopics = await getExamTopics();
+
   return (
     <main className="min-h-screen bg-slate-50 p-4 md:p-8">
       <div className="max-w-4xl mx-auto space-y-6">
@@ -64,6 +23,15 @@ export default function ExamTopicsPage() {
             <ArrowLeft size={16} />
             กลับหน้าหลัก
           </Link>
+          {user && (
+            <Link
+              href="/exam-topics/manage"
+              className="bg-indigo-500 hover:bg-indigo-600 text-white font-medium px-5 py-2.5 rounded-full shadow-sm transition-all flex items-center gap-2 hover:shadow-md"
+            >
+              <Edit size={16} />
+              จัดการเนื้อหาสอบ
+            </Link>
+          )}
         </div>
 
         {/* Hero Section */}
@@ -102,35 +70,47 @@ export default function ExamTopicsPage() {
         </div>
 
         {/* Topics List */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {examTopics.map((item, index) => (
-            <div key={index} className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all p-6 group">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-xl font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">
-                    {item.subject}
-                  </h3>
-                  <p className="text-sm text-slate-500 mt-1">ครูผู้สอน: {item.teacher}</p>
-                </div>
-                <div className="bg-indigo-50 text-indigo-600 p-2 rounded-xl group-hover:scale-110 transition-transform">
-                  <BookOpen size={20} />
-                </div>
-              </div>
-              
-              <div className="space-y-3 mt-4">
-                <h4 className="text-sm font-semibold text-slate-700 border-b border-slate-100 pb-2">หัวข้อที่ออกสอบ:</h4>
-                <ul className="space-y-2">
-                  {item.topics.map((topic, idx) => (
-                    <li key={idx} className="flex items-start gap-2 text-slate-600 text-sm">
-                      <span className="text-indigo-500 font-bold mt-0.5">•</span>
-                      <span>{topic}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+        {examTopics.length === 0 ? (
+          <div className="bg-white rounded-3xl p-12 text-center border border-slate-100 shadow-sm">
+            <div className="bg-slate-50 text-slate-400 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <BookOpen size={32} />
             </div>
-          ))}
-        </div>
+            <h3 className="text-xl font-bold text-slate-700 mb-2">ยังไม่มีข้อมูลเนื้อหาสอบ</h3>
+            <p className="text-slate-500">
+              รอคนมาเพิ่มข้อมูลเนื้อหาออกสอบกันก่อนนะ
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {examTopics.map((item) => (
+              <div key={item.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all p-6 group">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">
+                      {item.subject}
+                    </h3>
+                    <p className="text-sm text-slate-500 mt-1">ครูผู้สอน: {item.teacher}</p>
+                  </div>
+                  <div className="bg-indigo-50 text-indigo-600 p-2 rounded-xl group-hover:scale-110 transition-transform">
+                    <BookOpen size={20} />
+                  </div>
+                </div>
+                
+                <div className="space-y-3 mt-4">
+                  <h4 className="text-sm font-semibold text-slate-700 border-b border-slate-100 pb-2">หัวข้อที่ออกสอบ:</h4>
+                  <ul className="space-y-2">
+                    {item.topics.map((topic, idx) => (
+                      <li key={idx} className="flex items-start gap-2 text-slate-600 text-sm">
+                        <span className="text-indigo-500 font-bold mt-0.5">•</span>
+                        <span>{topic}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </main>
   );

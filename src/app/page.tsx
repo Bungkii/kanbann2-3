@@ -119,46 +119,47 @@ export default async function Home() {
             </div>
           )}
 
-          {/* Exam Content & Summaries */}
-          <div className="flex flex-col sm:flex-row gap-4 w-full h-auto sm:h-[160px]">
-            {renderCard(
-              true,
-              "/exam-topics",
-              <div className="bg-gradient-to-br from-indigo-500 to-violet-600 rounded-3xl p-6 border border-indigo-100 flex flex-col items-center justify-center transition-all duration-300 hover:shadow-[0_8px_30px_rgb(99,102,241,0.2)] hover:-translate-y-1 relative overflow-hidden h-full w-full">
-                <div className="absolute top-0 right-0 -mt-4 -mr-4 w-20 h-20 bg-white opacity-10 rounded-full blur-xl"></div>
-                
-                <div className="bg-white/20 text-white p-3 rounded-full mb-3 group-hover:scale-110 transition-transform backdrop-blur-md">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M8 7h6"/><path d="M8 11h8"/></svg>
-                </div>
-                <h2 className="text-lg font-bold text-white mb-2 text-center">เนื้อหาออกสอบ</h2>
-                <div className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full mt-auto border border-white/30 text-center">
-                  <p className="text-white text-[10px] sm:text-xs font-medium tracking-wide">
-                    ดูหัวข้อสอบทั้งหมด
-                  </p>
-                </div>
-              </div>,
-              "group flex-1 flex flex-col w-full h-full"
-            )}
+          {/* Exam Summaries */}
+          {renderCard(
+            summariesEnabled,
+            "/summaries",
+            <div className={`bg-gradient-to-br from-rose-500 to-pink-600 rounded-3xl p-8 border border-rose-100 flex flex-col items-center justify-center transition-all duration-300 ${summariesEnabled ? 'hover:shadow-[0_8px_30px_rgb(225,29,72,0.2)] hover:-translate-y-1' : ''} relative overflow-hidden h-full`}>
+              <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white opacity-10 rounded-full blur-2xl"></div>
+              <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-24 h-24 bg-white opacity-10 rounded-full blur-2xl"></div>
+              
+              <div className="bg-white/20 text-white p-4 rounded-full mb-4 group-hover:scale-110 transition-transform backdrop-blur-md">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+              </div>
+              <h2 className="text-xl font-bold text-white mb-2 text-center">แจกสรุปสอบกลางภาค 1/69</h2>
+              <div className="bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full mt-2 border border-white/30">
+                <p className="text-white text-xs font-medium tracking-wide">
+                  <Countdown date="2026-07-13T00:00:00+07:00" />
+                </p>
+              </div>
+            </div>,
+            "group h-[160px] flex flex-col w-full"
+          )}
 
-            {renderCard(
-              summariesEnabled,
-              "/summaries",
-              <div className={`bg-gradient-to-br from-rose-500 to-pink-600 rounded-3xl p-6 border border-rose-100 flex flex-col items-center justify-center transition-all duration-300 ${summariesEnabled ? 'hover:shadow-[0_8px_30px_rgb(225,29,72,0.2)] hover:-translate-y-1' : ''} relative overflow-hidden h-full w-full`}>
-                <div className="absolute top-0 right-0 -mt-4 -mr-4 w-20 h-20 bg-white opacity-10 rounded-full blur-xl"></div>
-                
-                <div className="bg-white/20 text-white p-3 rounded-full mb-3 group-hover:scale-110 transition-transform backdrop-blur-md">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-                </div>
-                <h2 className="text-lg font-bold text-white mb-2 text-center">แจกสรุปสอบ</h2>
-                <div className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full mt-auto border border-white/30 text-center">
-                  <p className="text-white text-[10px] sm:text-xs font-medium tracking-wide whitespace-nowrap">
-                    <Countdown date="2026-07-13T00:00:00+07:00" />
-                  </p>
-                </div>
-              </div>,
-              "group flex-1 flex flex-col w-full h-full"
-            )}
-          </div>
+          {/* Exam Topics */}
+          {renderCard(
+            true, // Assuming we want this enabled
+            "/exam-topics",
+            <div className={`bg-gradient-to-br from-indigo-500 to-violet-600 rounded-3xl p-8 border border-indigo-100 flex flex-col items-center justify-center transition-all duration-300 hover:shadow-[0_8px_30px_rgb(99,102,241,0.2)] hover:-translate-y-1 relative overflow-hidden h-full`}>
+              <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white opacity-10 rounded-full blur-2xl"></div>
+              <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-24 h-24 bg-white opacity-10 rounded-full blur-2xl"></div>
+              
+              <div className="bg-white/20 text-white p-4 rounded-full mb-4 group-hover:scale-110 transition-transform backdrop-blur-md">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M8 7h6"/><path d="M8 11h8"/></svg>
+              </div>
+              <h2 className="text-xl font-bold text-white mb-2 text-center">เนื้อหาออกสอบกลางภาค 1/69</h2>
+              <div className="bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full mt-2 border border-white/30">
+                <p className="text-white text-xs font-medium tracking-wide">
+                  ดูหัวข้อสอบทั้งหมด
+                </p>
+              </div>
+            </div>,
+            "group h-[160px] flex flex-col w-full"
+          )}
         </div>
 
         {/* Right Section (Election) */}
