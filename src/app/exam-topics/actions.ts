@@ -47,7 +47,8 @@ export async function addExamTopic(formData: FormData) {
     return { success: false, error: 'กรุณากรอกข้อมูลให้ครบถ้วน' };
   }
 
-  const topics = topicsString.split('\n').map(t => t.trim()).filter(t => t.length > 0);
+  // Store HTML directly as the first element of the array
+  const topics = [topicsString.trim()];
   const mcq_count = parseInt(mcqCountStr) || 0;
   const essay_count = parseInt(essayCountStr) || 0;
 
@@ -89,7 +90,8 @@ export async function updateExamTopic(id: string, formData: FormData) {
     return { success: false, error: 'กรุณากรอกข้อมูลให้ครบถ้วน' };
   }
 
-  const topics = topicsString.split('\n').map(t => t.trim()).filter(t => t.length > 0);
+  // Store HTML directly as the first element of the array
+  const topics = [topicsString.trim()];
   const mcq_count = parseInt(mcqCountStr) || 0;
   const essay_count = parseInt(essayCountStr) || 0;
 

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { addExamTopic, updateExamTopic, deleteExamTopic, ExamTopic } from '../actions';
 import { Edit, Trash2, Plus, X, Save, BookOpen, Layers, CheckCircle2, FileEdit, ChevronDown } from 'lucide-react';
+import RichTextEditor from '@/components/RichTextEditor';
 
 const SUBJECT_LIST = [
   { label: 'คณิตศาสตร์', value: 'คณิตศาสตร์' },
@@ -31,10 +32,19 @@ export default function ManageClient({ initialTopics }: { initialTopics: ExamTop
   });
 
   const handleEdit = (topic: ExamTopic) => {
+    let topicsStr = '';
+    if (topic.topics && topic.topics.length > 0) {
+      if (topic.topics.length === 1 && topic.topics[0].includes('<')) {
+        topicsStr = topic.topics[0];
+      } else {
+        topicsStr = `<ul>${topic.topics.map(t => `<li>${t}</li>`).join('')}</ul>`;
+      }
+    }
+
     setFormData({
       subject: topic.subject,
       teacher: topic.teacher,
-      topicsStr: topic.topics.join('\n'),
+      topicsStr,
       mcqCount: topic.mcq_count || 0,
       essayCount: topic.essay_count || 0
     });
@@ -200,15 +210,12 @@ export default function ManageClient({ initialTopics }: { initialTopics: ExamTop
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
                 <Layers size={16} className="text-indigo-500" />
-                หัวข้อที่ออกสอบ (ขึ้นบรรทัดใหม่สำหรับแต่ละหัวข้อ)
+                หัวข้อที่ออกสอบ (จัดรูปแบบได้ตามต้องการ)
               </label>
-              <textarea 
-                required 
-                rows={6}
+              <RichTextEditor 
                 value={formData.topicsStr}
-                onChange={(e) => setFormData({...formData, topicsStr: e.target.value})}
-                className="w-full bg-slate-50/50 border border-slate-200 rounded-2xl px-5 py-4 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-medium resize-none leading-relaxed"
-                placeholder="บทที่ 1 การแยกตัวประกอบ...&#10;บทที่ 2 ทฤษฎีบทพีทาโกรัส..."
+                onChange={(value) => setFormData({...formData, topicsStr: value})}
+                placeholder="เช่น การแยกตัวประกอบ, ทฤษฎีบทพีทาโกรัส..."
               />
             </div>
 
@@ -282,14 +289,20 @@ export default function ManageClient({ initialTopics }: { initialTopics: ExamTop
                     <h4 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
                       <Layers size={16} className="text-indigo-500" /> หัวข้อที่ออกสอบ
                     </h4>
-                    <ul className="space-y-2">
-                      {topic.topics.map((t, idx) => (
-                        <li key={idx} className="flex items-start gap-3 text-sm text-slate-600 font-medium">
-                          <span className="text-indigo-400 mt-0.5">•</span>
-                          <span>{t}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    <div className="prose prose-sm prose-slate max-w-none text-slate-600 font-medium prose-p:my-1 prose-ul:my-1 prose-li:my-0.5">
+                      {topic.topics.length > 1 || (topic.topics[0] && !topic.topics[0].includes('<')) ? (
+                        <ul className="space-y-2 list-none pl-0">
+                          {topic.topics.map((t, idx) => (
+                            <li key={idx} className="flex items-start gap-3">
+                              <span className="text-indigo-400 mt-0.5">•</span>
+                              <span>{t}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <div dangerouslySetInnerHTML={{ __html: topic.topics[0] || '' }} />
+                      )}
+                    </div>
                   </div>
                 </div>
                 
