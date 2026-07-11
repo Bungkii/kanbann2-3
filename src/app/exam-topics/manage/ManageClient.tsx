@@ -290,9 +290,9 @@ export default function ManageClient({ initialTopics }: { initialTopics: ExamTop
                       <Layers size={16} className="text-indigo-500" /> หัวข้อที่ออกสอบ
                     </h4>
                     <div className="prose prose-sm prose-slate max-w-none text-slate-600 font-medium prose-p:my-1 prose-ul:my-1 prose-li:my-0.5">
-                      {topic.topics.length > 1 || (topic.topics[0] && !topic.topics[0].includes('<')) ? (
+                      {(topic.topics || []).length > 1 || ((topic.topics || [])[0] && !(topic.topics || [])[0].includes('<')) ? (
                         <ul className="space-y-2 list-none pl-0">
-                          {topic.topics.map((t, idx) => (
+                          {(topic.topics || []).map((t, idx) => (
                             <li key={idx} className="flex items-start gap-3">
                               <span className="text-indigo-400 mt-0.5">•</span>
                               <span>{t}</span>
@@ -300,7 +300,7 @@ export default function ManageClient({ initialTopics }: { initialTopics: ExamTop
                           ))}
                         </ul>
                       ) : (
-                        <div dangerouslySetInnerHTML={{ __html: topic.topics[0] || '' }} />
+                        <div dangerouslySetInnerHTML={{ __html: (topic.topics || [])[0] || '' }} />
                       )}
                     </div>
                   </div>

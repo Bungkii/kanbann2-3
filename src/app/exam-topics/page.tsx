@@ -129,9 +129,9 @@ export default async function ExamTopicsPage() {
                     หัวข้อที่ออกสอบ:
                   </h4>
                   <div className="prose prose-sm prose-slate max-w-none text-slate-700 font-medium prose-p:my-1 prose-ul:my-1 prose-li:my-0.5">
-                    {item.topics.length > 1 || (item.topics[0] && !item.topics[0].includes('<')) ? (
+                    {(item.topics || []).length > 1 || ((item.topics || [])[0] && !(item.topics || [])[0].includes('<')) ? (
                       <ul className="space-y-3 list-none pl-0">
-                        {item.topics.map((topic, idx) => (
+                        {(item.topics || []).map((topic, idx) => (
                           <li key={idx} className="flex items-start gap-3 text-slate-700 text-sm font-medium leading-relaxed">
                             <span className="text-indigo-400 font-bold mt-0.5 select-none">→</span>
                             <span>{topic}</span>
@@ -140,7 +140,7 @@ export default async function ExamTopicsPage() {
                       </ul>
                     ) : (
                       <div dangerouslySetInnerHTML={{ 
-                        __html: sanitizeHtml(item.topics[0] || '', {
+                        __html: sanitizeHtml((item.topics || [])[0] || '', {
                           allowedTags: sanitizeHtml.defaults.allowedTags.concat(['u']),
                           allowedAttributes: {
                             ...sanitizeHtml.defaults.allowedAttributes,
