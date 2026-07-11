@@ -23,7 +23,7 @@ export default async function ExamTopicsPage() {
   }
 
   // Safely prepare topics for client - no sanitize-html needed
-  const safeTops = examTopics.map(topic => {
+  const safeTops = (examTopics || []).map(topic => {
     const topics = Array.isArray(topic.topics) ? topic.topics : [];
     const isHtml = topics.length === 1 && typeof topics[0] === 'string' && topics[0].includes('<');
     return {
