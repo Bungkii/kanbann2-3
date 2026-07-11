@@ -180,33 +180,37 @@ export default function SummariesPage() {
           </Link>
           <Link
             href="/summaries/upload"
-            className="bg-rose-500 hover:bg-rose-600 text-white font-medium px-5 py-2.5 rounded-full shadow-sm transition-all flex items-center gap-2 hover:shadow-md"
+            className="bg-rose-500 hover:bg-rose-600 text-white font-semibold px-6 py-2.5 rounded-full shadow-md shadow-rose-500/20 transition-all flex items-center gap-2 hover:shadow-rose-500/40 hover:-translate-y-0.5"
           >
-            <Upload size={16} />
+            <Upload size={18} />
             แชร์สรุปสอบ
           </Link>
         </div>
 
         {/* Hero Section */}
-        <div className="bg-gradient-to-br from-rose-500 to-pink-600 rounded-3xl p-8 md:p-12 shadow-lg relative overflow-hidden">
-          <div className="absolute top-0 right-0 -mt-8 -mr-8 w-48 h-48 bg-white opacity-10 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-0 left-0 -mb-8 -ml-8 w-48 h-48 bg-white opacity-10 rounded-full blur-3xl"></div>
+        <div className="bg-gradient-to-br from-rose-600 via-pink-600 to-orange-500 rounded-[2.5rem] p-8 md:p-14 shadow-2xl relative overflow-hidden ring-1 ring-white/20">
+          <div className="absolute top-0 right-0 -mt-20 -mr-20 w-80 h-80 bg-white opacity-10 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-80 h-80 bg-orange-400 opacity-20 rounded-full blur-3xl pointer-events-none"></div>
 
-          <div className="relative z-10 flex flex-col items-center text-center">
-            <div className="bg-white/20 text-white p-5 rounded-full mb-6 backdrop-blur-md">
-              <BookOpen size={48} />
-            </div>
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">คลังสรุปสอบกลางภาค 1/69</h1>
-            <p className="text-white/80 text-lg max-w-2xl mx-auto mb-8">
-              จุดรวมสรุปเนื้อหาสอบกลางภาค อ่านฟรี โหลดฟรี เพื่อห้อง 3 ทุกท่าน
-            </p>
-
-            <div className="bg-white/10 backdrop-blur-md px-6 py-4 rounded-2xl border border-white/20 flex flex-col items-center">
-              <div className="flex items-center gap-2 text-white/90 mb-2">
-                <Clock size={20} />
-                <span className="font-medium text-lg">นับถอยหลังวันสอบกลางภาค</span>
+          <div className="relative z-10 flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
+            <div className="flex-1 text-center lg:text-left">
+              <div className="inline-flex bg-white/20 text-white p-4 rounded-2xl mb-6 backdrop-blur-md shadow-inner shadow-white/20 ring-1 ring-white/30">
+                <BookOpen size={48} strokeWidth={1.5} />
               </div>
-              <div className="text-3xl md:text-4xl font-bold text-white tracking-wider">
+              <h1 className="text-4xl md:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-rose-100 mb-6 drop-shadow-sm leading-tight">
+                คลังสรุปสอบ<br className="hidden md:block" />กลางภาค 1/69
+              </h1>
+              <p className="text-rose-100 text-lg md:text-xl max-w-2xl mx-auto lg:mx-0 mb-8 font-medium leading-relaxed">
+                จุดรวมสรุปเนื้อหาสอบกลางภาค อ่านฟรี โหลดฟรี เพื่อห้อง 3 ทุกท่าน แชร์สรุปของคุณเพื่อช่วยเพื่อนๆ ได้เลย!
+              </p>
+            </div>
+
+            <div className="bg-white/10 backdrop-blur-xl p-8 rounded-3xl border border-white/20 flex flex-col items-center w-full max-w-sm shrink-0 shadow-[0_8px_32px_0_rgba(31,38,135,0.2)]">
+              <div className="bg-rose-500/50 p-3 rounded-full mb-4">
+                <Clock size={28} className="text-white" />
+              </div>
+              <h2 className="font-semibold text-xl text-rose-100 mb-3 text-center">นับถอยหลังวันสอบ</h2>
+              <div className="text-3xl md:text-4xl font-bold text-white tracking-widest drop-shadow-md">
                 <Countdown date="2026-07-13T00:00:00+07:00" />
               </div>
             </div>
@@ -280,8 +284,8 @@ export default function SummariesPage() {
                 const firstUrl = isLink ? (summary.link_url || summary.file_url) : urls[0];
 
                 return (
-                  <div key={summary.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all flex flex-col h-full group relative">
-                    
+                  <div key={summary.id} className="bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-rose-100/50 hover:-translate-y-1 transition-all duration-300 flex flex-col h-full group relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-rose-50 rounded-bl-full -z-0 opacity-50 group-hover:scale-110 transition-transform duration-500 pointer-events-none"></div>
                     {/* Action buttons (Edit/Delete) */}
                     {(currentUserId === summary.uploader_id) && (
                       <div className="absolute top-4 left-4 z-10 flex gap-2">

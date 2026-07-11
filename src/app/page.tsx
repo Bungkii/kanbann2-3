@@ -137,7 +137,7 @@ export default async function Home() {
                 </p>
               </div>
             </div>,
-            "group h-[160px] flex flex-col w-full"
+            "group flex-1 min-h-[160px] flex flex-col w-full"
           )}
 
           {/* Exam Topics */}
@@ -158,7 +158,7 @@ export default async function Home() {
                 </p>
               </div>
             </div>,
-            "group h-[160px] flex flex-col w-full"
+            "group flex-1 min-h-[160px] flex flex-col w-full"
           )}
         </div>
 
@@ -187,7 +187,7 @@ export default async function Home() {
               <h2 className="text-xl font-bold text-slate-800 mb-1 text-center">ระบบประเมินหัวหน้า</h2>
               <p className="text-slate-500 text-center text-sm">คลิกเพื่อประเมินได้เลย</p>
             </div>,
-            "group h-[160px] flex flex-col w-full"
+            "group flex-1 min-h-[160px] flex flex-col w-full"
           )}
 
           <div className="flex flex-col gap-4 items-center mt-auto h-[104px] justify-start pt-4">

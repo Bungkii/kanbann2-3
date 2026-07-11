@@ -19,10 +19,9 @@ const SUBJECT_LIST = [
   { label: 'ภาษาอังกฤษ', value: 'ภาษาอังกฤษ' },
   { label: 'สังคมศึกษา', value: 'สังคมศึกษา' },
   { label: 'ประวัติศาสตร์', value: 'ประวัติศาสตร์' },
-  { label: 'ศิลปะ', value: 'ศิลปะ' },
-  { label: 'สุขศึกษา', value: 'สุขศึกษา' },
-  { label: 'การงานอาชีพ', value: 'การงานอาชีพ' },
-  { label: 'เทคโนโลยี', value: 'เทคโนโลยี' },
+  { label: 'STEM ACTIVITY', value: 'STEM ACTIVITY' },
+  { label: 'General Science', value: 'General Science' },
+  { label: 'General Math', value: 'General Math' },
 ];
 
 export default function UploadSummaryPage() {
@@ -277,7 +276,7 @@ export default function UploadSummaryPage() {
                   {SUBJECT_LIST.map(s => (
                     <option key={s.value} value={s.value}>{s.label}</option>
                   ))}
-                  <option value="อื่นๆ">อื่นๆ</option>
+                  <option value="อื่นๆ">อื่นๆ (โปรดระบุ)</option>
                 </select>
                 <ChevronDown size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               </div>
