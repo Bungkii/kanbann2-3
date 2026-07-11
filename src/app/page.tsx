@@ -198,21 +198,21 @@ export default async function Home() {
                   className="text-amber-600 hover:text-amber-700 font-medium transition-colors text-sm flex items-center justify-center gap-1.5 w-full"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-                  จัดการผู้สมัคร (Admin)
+                  จัดการผู้สมัคร
                 </Link>
                 <Link
                   href="/settings"
                   className="text-indigo-600 hover:text-indigo-700 font-medium transition-colors text-sm flex items-center justify-center gap-1.5 w-full mt-2"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg>
-                  ตั้งค่าระบบพริมจ๋า (Admin)
+                  ตั้งค่าระบบพริมจ๋า
                 </Link>
                 <Link
                   href="/funds"
                   className="text-emerald-600 hover:text-emerald-700 font-medium transition-colors text-sm flex items-center justify-center gap-1.5 w-full mt-2"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/></svg>
-                  ระบบทวงเงินห้อง (Admin/Tuang)
+                  ระบบทวงเงินห้อง
                 </Link>
               </>
             ) : (
@@ -221,7 +221,7 @@ export default async function Home() {
                 className="text-slate-400 hover:text-amber-600 font-medium transition-colors text-sm flex items-center justify-center gap-1.5 w-full"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
-                เข้าสู่ระบบแอดมิน
+                เข้าสู่ระบบเพื่อจัดการ
               </Link>
             )}
           </div>

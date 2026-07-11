@@ -30,9 +30,9 @@ export default async function SettingsDashboard() {
             <div className="bg-slate-100 text-slate-600 p-4 rounded-full mb-4">
               <SettingsIcon size={32} />
             </div>
-            <h1 className="text-3xl font-bold text-slate-800 mb-2">ตั้งค่าระบบพริมจ๋า (Admin)</h1>
+            <h1 className="text-3xl font-bold text-slate-800 mb-2">ตั้งค่าระบบพริมจ๋า</h1>
             <p className="text-slate-500">
-              จัดการตารางเรียน, เวรทำความสะอาด และชุดเครื่องแบบ
+              จัดการระบบต่างๆ ภายในห้องเรียน
             </p>
           </div>
 

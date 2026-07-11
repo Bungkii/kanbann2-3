@@ -70,19 +70,8 @@ export default function EditSummaryPage() {
       }
 
       if (data.uploader_id !== user.id) {
-        // Check if admin
-        const { data: roles } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id)
-          .eq('role', 'admin')
-          .single();
-
-        if (!roles) {
-          toast.error('คุณไม่มีสิทธิ์แก้ไขสรุปสอบนี้');
-          router.push('/summaries');
-          return;
-        }
+        // Now everyone can edit, so we don't block them, but you can add a toast notification if needed.
+        // toast('คุณกำลังแก้ไขสรุปสอบของคนอื่น', { icon: 'ℹ️' });
       }
 
       setTitle(data.title);

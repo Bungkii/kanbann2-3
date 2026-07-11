@@ -410,3 +410,8 @@ INSERT INTO exam_topics (subject, teacher, topics) VALUES
 ('สังคมศึกษา 3', 'มิสธนวรรณ', ARRAY['ภูมิศาสตร์ทวีปเอเชีย', 'การพัฒนาที่ยั่งยืน', 'หน้าที่พลเมืองดีตามวิถีประชาธิปไตย'])
 ON CONFLICT DO NOTHING;
 
+
+
+-- Add mcq_count and essay_count to exam_topics
+ALTER TABLE exam_topics ADD COLUMN IF NOT EXISTS mcq_count integer DEFAULT 0;
+ALTER TABLE exam_topics ADD COLUMN IF NOT EXISTS essay_count integer DEFAULT 0;

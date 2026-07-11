@@ -8,6 +8,8 @@ export type ExamTopic = {
   subject: string;
   teacher: string;
   topics: string[];
+  mcq_count?: number;
+  essay_count?: number;
   created_at?: string;
   updated_at?: string;
 };
@@ -38,19 +40,25 @@ export async function addExamTopic(formData: FormData) {
   const subject = formData.get('subject') as string;
   const teacher = formData.get('teacher') as string;
   const topicsString = formData.get('topics') as string;
+  const mcqCountStr = formData.get('mcq_count') as string;
+  const essayCountStr = formData.get('essay_count') as string;
 
   if (!subject || !teacher || !topicsString) {
     return { success: false, error: 'กรุณากรอกข้อมูลให้ครบถ้วน' };
   }
 
   const topics = topicsString.split('\n').map(t => t.trim()).filter(t => t.length > 0);
+  const mcq_count = parseInt(mcqCountStr) || 0;
+  const essay_count = parseInt(essayCountStr) || 0;
 
   const { error } = await supabase
     .from('exam_topics')
     .insert({
       subject,
       teacher,
-      topics
+      topics,
+      mcq_count,
+      essay_count
     });
 
   if (error) {
@@ -74,12 +82,16 @@ export async function updateExamTopic(id: string, formData: FormData) {
   const subject = formData.get('subject') as string;
   const teacher = formData.get('teacher') as string;
   const topicsString = formData.get('topics') as string;
+  const mcqCountStr = formData.get('mcq_count') as string;
+  const essayCountStr = formData.get('essay_count') as string;
 
   if (!subject || !teacher || !topicsString) {
     return { success: false, error: 'กรุณากรอกข้อมูลให้ครบถ้วน' };
   }
 
   const topics = topicsString.split('\n').map(t => t.trim()).filter(t => t.length > 0);
+  const mcq_count = parseInt(mcqCountStr) || 0;
+  const essay_count = parseInt(essayCountStr) || 0;
 
   const { error } = await supabase
     .from('exam_topics')
@@ -87,6 +99,8 @@ export async function updateExamTopic(id: string, formData: FormData) {
       subject,
       teacher,
       topics,
+      mcq_count,
+      essay_count,
       updated_at: new Date().toISOString()
     })
     .eq('id', id);

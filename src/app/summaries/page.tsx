@@ -295,7 +295,7 @@ export default function SummariesPage() {
                         <button 
                           disabled
                           className="bg-white/80 text-slate-300 p-2 rounded-full backdrop-blur-sm cursor-not-allowed shadow-sm"
-                          title="ติดต่อผู้ดูแลระบบ (Admin) เพื่อลบสรุปสอบนี้"
+                          title="ติดต่อผู้ดูแลระบบเพื่อลบสรุปสอบนี้"
                         >
                           <Trash2 size={16} />
                         </button>
