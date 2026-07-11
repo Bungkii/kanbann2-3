@@ -1,33 +1,43 @@
 import { getExamTopics } from './actions';
 import { createClient } from '@/utils/supabase/server';
-import sanitizeHtml from 'sanitize-html';
 import ExamTopicsClient from './ExamTopicsClient';
 
 export const revalidate = 0;
 
 export default async function ExamTopicsPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const examTopics = await getExamTopics();
+  let isLoggedIn = false;
+  let examTopics: any[] = [];
 
-  // Pre-sanitize HTML content on the server before passing to client
-  const sanitizedTopics = examTopics.map(topic => {
-    const topics = topic.topics || [];
-    const isHtml = topics.length === 1 && (topics[0] || '').includes('<');
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    isLoggedIn = !!user;
+  } catch (e) {
+    console.error('Error checking auth:', e);
+  }
+
+  try {
+    examTopics = await getExamTopics();
+  } catch (e) {
+    console.error('Error fetching exam topics:', e);
+  }
+
+  // Safely prepare topics for client - no sanitize-html needed
+  const safeTops = examTopics.map(topic => {
+    const topics = Array.isArray(topic.topics) ? topic.topics : [];
+    const isHtml = topics.length === 1 && typeof topics[0] === 'string' && topics[0].includes('<');
     return {
-      ...topic,
-      sanitizedHtml: isHtml
-        ? sanitizeHtml(topics[0] || '', {
-            allowedTags: sanitizeHtml.defaults.allowedTags.concat(['u']),
-            allowedAttributes: {
-              ...sanitizeHtml.defaults.allowedAttributes,
-              'p': ['style'],
-              'span': ['style'],
-            },
-          })
-        : null,
+      id: topic.id || '',
+      subject: topic.subject || '',
+      teacher: topic.teacher || '',
+      topics: topics,
+      mcq_count: topic.mcq_count ?? 0,
+      essay_count: topic.essay_count ?? 0,
+      created_at: topic.created_at || null,
+      updated_at: topic.updated_at || null,
+      sanitizedHtml: isHtml ? topics[0] : null,
     };
   });
 
-  return <ExamTopicsClient topics={sanitizedTopics} isLoggedIn={!!user} />;
+  return <ExamTopicsClient topics={safeTops} isLoggedIn={isLoggedIn} />;
 }

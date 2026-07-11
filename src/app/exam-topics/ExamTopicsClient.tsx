@@ -1,11 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { ArrowLeft, BookOpen, AlertCircle, Calendar, Edit, CheckCircle2, FileEdit, GraduationCap, Plus, Trash2, X, Save, Layers, ChevronDown } from 'lucide-react';
 import Countdown from '@/components/Countdown';
-import RichTextEditor from '@/components/RichTextEditor';
 import { addExamTopic, updateExamTopic, deleteExamTopic, ExamTopic } from './actions';
+
+const RichTextEditor = dynamic(() => import('@/components/RichTextEditor'), {
+  ssr: false,
+  loading: () => <div className="h-48 w-full bg-slate-50 animate-pulse rounded-2xl border border-slate-200"></div>
+});
 
 const SUBJECT_LIST = [
   { label: 'คณิตศาสตร์', value: 'คณิตศาสตร์' },
