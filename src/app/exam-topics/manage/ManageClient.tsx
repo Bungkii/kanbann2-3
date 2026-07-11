@@ -2,7 +2,19 @@
 
 import { useState } from 'react';
 import { addExamTopic, updateExamTopic, deleteExamTopic, ExamTopic } from '../actions';
-import { Edit, Trash2, Plus, X, Save, BookOpen, Layers, CheckCircle2, FileEdit } from 'lucide-react';
+import { Edit, Trash2, Plus, X, Save, BookOpen, Layers, CheckCircle2, FileEdit, ChevronDown } from 'lucide-react';
+
+const SUBJECT_LIST = [
+  { label: 'คณิตศาสตร์', value: 'คณิตศาสตร์' },
+  { label: 'วิทยาศาสตร์', value: 'วิทยาศาสตร์' },
+  { label: 'ภาษาไทย', value: 'ภาษาไทย' },
+  { label: 'ภาษาอังกฤษ', value: 'ภาษาอังกฤษ' },
+  { label: 'สังคมศึกษา', value: 'สังคมศึกษา' },
+  { label: 'ประวัติศาสตร์', value: 'ประวัติศาสตร์' },
+  { label: 'STEM ACTIVITY', value: 'STEM ACTIVITY' },
+  { label: 'General Science', value: 'General Science' },
+  { label: 'General Math', value: 'General Math' },
+];
 
 export default function ManageClient({ initialTopics }: { initialTopics: ExamTopic[] }) {
   const [topics, setTopics] = useState<ExamTopic[]>(initialTopics);
@@ -108,14 +120,37 @@ export default function ManageClient({ initialTopics }: { initialTopics: ExamTop
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">ชื่อวิชา</label>
-                <input 
-                  type="text" 
-                  required 
-                  value={formData.subject}
-                  onChange={(e) => setFormData({...formData, subject: e.target.value})}
-                  className="w-full bg-slate-50/50 border border-slate-200 rounded-2xl px-5 py-3 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-medium"
-                  placeholder="เช่น คณิตศาสตร์ 3"
-                />
+                <div className="relative">
+                  <select
+                    required={(!SUBJECT_LIST.some(s => s.value === formData.subject) && formData.subject !== '') ? false : true}
+                    value={(!SUBJECT_LIST.some(s => s.value === formData.subject) && formData.subject !== '') ? 'อื่นๆ' : formData.subject}
+                    onChange={(e) => {
+                      if (e.target.value === 'อื่นๆ') {
+                        setFormData({...formData, subject: ' '}); // trigger custom mode
+                      } else {
+                        setFormData({...formData, subject: e.target.value});
+                      }
+                    }}
+                    className="w-full appearance-none bg-slate-50/50 border border-slate-200 rounded-2xl px-5 py-3 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-medium pr-10 cursor-pointer"
+                  >
+                    <option value="">-- เลือกวิชา --</option>
+                    {SUBJECT_LIST.map(s => (
+                      <option key={s.value} value={s.value}>{s.label}</option>
+                    ))}
+                    <option value="อื่นๆ">อื่นๆ (โปรดระบุ)</option>
+                  </select>
+                  <ChevronDown size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                </div>
+                {(!SUBJECT_LIST.some(s => s.value === formData.subject) && formData.subject !== '') && (
+                  <input 
+                    type="text" 
+                    required 
+                    value={formData.subject.trim()}
+                    onChange={(e) => setFormData({...formData, subject: e.target.value})}
+                    className="w-full bg-slate-50/50 border border-slate-200 rounded-2xl px-5 py-3 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-medium mt-3"
+                    placeholder="พิมพ์ชื่อวิชาเอง..."
+                  />
+                )}
               </div>
               
               <div>
