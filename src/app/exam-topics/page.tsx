@@ -105,15 +105,15 @@ export default async function ExamTopicsPage() {
                 </div>
 
                 {/* Exam format counts */}
-                {(item.mcq_count > 0 || item.essay_count > 0) && (
+                {((item.mcq_count ?? 0) > 0 || (item.essay_count ?? 0) > 0) && (
                   <div className="relative z-10 flex flex-wrap gap-3 mb-6 bg-slate-50 rounded-2xl p-4 border border-slate-100">
-                    {item.mcq_count > 0 && (
+                    {(item.mcq_count ?? 0) > 0 && (
                       <div className="flex items-center gap-2 text-emerald-700 bg-emerald-100/50 px-4 py-2 rounded-xl font-bold flex-1 justify-center border border-emerald-100">
                         <CheckCircle2 size={18} />
                         ปรนัย {item.mcq_count} ข้อ
                       </div>
                     )}
-                    {item.essay_count > 0 && (
+                    {(item.essay_count ?? 0) > 0 && (
                       <div className="flex items-center gap-2 text-amber-700 bg-amber-100/50 px-4 py-2 rounded-xl font-bold flex-1 justify-center border border-amber-100">
                         <FileEdit size={18} />
                         อัตนัย {item.essay_count} ข้อ

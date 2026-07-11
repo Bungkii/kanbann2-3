@@ -227,14 +227,14 @@ export default function ManageClient({ initialTopics }: { initialTopics: ExamTop
                     <span className="text-sm bg-indigo-50 border border-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-semibold">
                       ครูผู้สอน: {topic.teacher}
                     </span>
-                    {(topic.mcq_count || topic.essay_count) ? (
+                    {((topic.mcq_count ?? 0) > 0 || (topic.essay_count ?? 0) > 0) ? (
                       <div className="flex gap-2">
-                        {topic.mcq_count > 0 && (
+                        {(topic.mcq_count ?? 0) > 0 && (
                           <span className="text-xs bg-emerald-50 border border-emerald-100 text-emerald-700 px-3 py-1 rounded-full font-semibold flex items-center gap-1">
                             <CheckCircle2 size={12} /> ปรนัย {topic.mcq_count} ข้อ
                           </span>
                         )}
-                        {topic.essay_count > 0 && (
+                        {(topic.essay_count ?? 0) > 0 && (
                           <span className="text-xs bg-amber-50 border border-amber-100 text-amber-700 px-3 py-1 rounded-full font-semibold flex items-center gap-1">
                             <FileEdit size={12} /> อัตนัย {topic.essay_count} ข้อ
                           </span>

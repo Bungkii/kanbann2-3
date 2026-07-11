@@ -8,8 +8,8 @@ export type ExamTopic = {
   subject: string;
   teacher: string;
   topics: string[];
-  mcq_count?: number;
-  essay_count?: number;
+  mcq_count: number;
+  essay_count: number;
   created_at?: string;
   updated_at?: string;
 };
