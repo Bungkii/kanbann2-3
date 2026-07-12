@@ -159,7 +159,7 @@ export default function LinePage() {
       if (result?.error) {
         toast.error(result.error, { id: toastId });
       } else if (result?.requireTrigger) {
-        toast.success('บันทึกโพลแล้ว! พิมว่า "โพลล่าสุดแล้วจะโหวตได่" สรุปโพลแล้วจะบอกเคปะ', { id: toastId, duration: 8000 });
+        toast.success('บันทึกโพลแล้ว! พิมพ์ "โพลล่าสุด" เพื่อโหวต และ "โพลสรุปล่าสุด" เพื่อดูผล', { id: toastId, duration: 8000 });
         setPollQuestion('');
         setPollOptions(['', '']);
         setPollEndTime('');

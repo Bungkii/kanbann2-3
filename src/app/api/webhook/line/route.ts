@@ -471,8 +471,8 @@ export async function POST(request: Request) {
           continue;
         }
 
-        // ถ้าพิมพ์ "พริมจ๋า ส่งโพลล่าสุด" หรือ "โพลล่าสุดแล้วจะโหวตได่" (เพื่อประหยัด Push Quota)
-        if (text === 'พริมจ๋า ส่งโพลล่าสุด' || text === 'พริมจ๋าส่งโพลล่าสุด' || text === 'โพลล่าสุดแล้วจะโหวตได่') {
+        // ถ้าพิมพ์ "พริมจ๋า ส่งโพลล่าสุด" หรือ "โพลล่าสุด" (เพื่อประหยัด Push Quota)
+        if (text === 'พริมจ๋า ส่งโพลล่าสุด' || text === 'พริมจ๋าส่งโพลล่าสุด' || text === 'โพลล่าสุด') {
           const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
           const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
           const supabase = createClient(supabaseUrl, supabaseKey);
@@ -499,6 +499,65 @@ export async function POST(request: Request) {
           );
 
           await replyToLine(event.replyToken, [flexMessage], lineToken);
+          continue;
+        }
+
+        // ถ้าพิมพ์คำว่า "โพลสรุปล่าสุด"
+        if (text === 'โพลสรุปล่าสุด') {
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+          const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+          const supabase = createClient(supabaseUrl, supabaseKey);
+
+          // 1. Fetch latest poll
+          const { data: poll, error: pollError } = await supabase
+            .from('custom_polls')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+          if (pollError || !poll) {
+            await replyToLine(event.replyToken, [{ type: 'text', text: 'ยังไม่มีโพลในระบบจ้า 😢' }], lineToken);
+            continue;
+          }
+
+          // 2. Fetch votes
+          const { data: votes, error: votesError } = await supabase
+            .from('custom_poll_votes')
+            .select('voted_for')
+            .eq('poll_id', poll.id);
+
+          if (votesError) {
+            console.error('Error fetching votes:', votesError);
+            await replyToLine(event.replyToken, [{ type: 'text', text: 'เกิดข้อผิดพลาดในการดึงข้อมูลโหวต 😢' }], lineToken);
+            continue;
+          }
+
+          const now = new Date();
+          const endTime = new Date(poll.end_time);
+          const isEnded = now > endTime;
+
+          let summaryText = `📊 สรุปผลโพลล่าสุด: ${poll.question}\n${isEnded ? '(หมดเวลาโหวตแล้ว)' : '(ยังเปิดโหวตอยู่)'}\n\n`;
+
+          if (!votes || votes.length === 0) {
+            summaryText += 'ยังไม่มีคนโหวตเลยจ้า 🥺';
+            await replyToLine(event.replyToken, [{ type: 'text', text: summaryText }], lineToken);
+            continue;
+          }
+
+          const voteCounts = votes.reduce((acc: any, vote) => {
+            acc[vote.voted_for] = (acc[vote.voted_for] || 0) + 1;
+            return acc;
+          }, {});
+
+          const sortedVotes = Object.entries(voteCounts).sort((a: any, b: any) => b[1] - a[1]);
+          
+          sortedVotes.forEach(([name, count]) => {
+            summaryText += `- ${name}: ${count} โหวต\n`;
+          });
+          summaryText += `\nรวมทั้งหมด ${votes.length} โหวต`;
+
+          await replyToLine(event.replyToken, [{ type: 'text', text: summaryText }], lineToken);
           continue;
         }
 
