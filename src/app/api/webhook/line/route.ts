@@ -471,8 +471,8 @@ export async function POST(request: Request) {
           continue;
         }
 
-        // ถ้าพิมพ์ "พริมจ๋า ส่งโพลล่าสุด" หรือ "พริมจ๋าส่งโพลล่าสุด" (เพื่อประหยัด Push Quota)
-        if (text === 'พริมจ๋า ส่งโพลล่าสุด' || text === 'พริมจ๋าส่งโพลล่าสุด') {
+        // ถ้าพิมพ์ "พริมจ๋า ส่งโพลล่าสุด" หรือ "โพลล่าสุดแล้วจะโหวตได่" (เพื่อประหยัด Push Quota)
+        if (text === 'พริมจ๋า ส่งโพลล่าสุด' || text === 'พริมจ๋าส่งโพลล่าสุด' || text === 'โพลล่าสุดแล้วจะโหวตได่') {
           const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
           const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
           const supabase = createClient(supabaseUrl, supabaseKey);
