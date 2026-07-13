@@ -1052,3 +1052,99 @@ export function createFundsFlexMessage(paidCount: number, unpaidStudents: number
     }
   };
 }
+
+export function createExamTopicFlexMessage(subject: string, teacher: string, topicsHtml: string, mcqCount: number, essayCount: number) {
+  // Strip HTML tags to get plain text for LINE
+  const strippedTopics = topicsHtml
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<\/li>/gi, '\n')
+    .replace(/<li[^>]*>/gi, '- ')
+    .replace(/<[^>]*>/gm, '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&nbsp;/g, ' ')
+    .trim();
+
+  return {
+    type: "flex" as const,
+    altText: `เนื้อหาออกสอบ: ${subject}`,
+    contents: {
+      type: "bubble",
+      size: "kilo",
+      header: {
+        type: "box",
+        layout: "vertical",
+        backgroundColor: "#db2777",
+        contents: [
+          {
+            type: "text",
+            text: "📝 เนื้อหาออกสอบ",
+            weight: "bold",
+            size: "xl",
+            color: "#FFFFFF",
+          },
+          {
+            type: "text",
+            text: subject,
+            color: "#fbcfe8",
+            size: "md",
+            margin: "sm",
+            wrap: true,
+          },
+        ],
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        spacing: "md",
+        contents: [
+          {
+            type: "text",
+            text: `ครูผู้สอน: ${teacher || '-'}`,
+            weight: "bold",
+            size: "sm",
+            color: "#4b5563",
+          },
+          ...(mcqCount > 0 || essayCount > 0 ? [{
+            type: "text" as const,
+            text: `ปรนัย: ${mcqCount} ข้อ | อัตนัย: ${essayCount} ข้อ`,
+            size: "xs" as const,
+            color: "#6b7280",
+            margin: "sm" as const,
+          }] : []),
+          {
+            type: "separator",
+            margin: "md",
+          },
+          {
+            type: "text",
+            text: strippedTopics || 'ยังไม่มีเนื้อหาจ้า',
+            wrap: true,
+            size: "sm",
+            color: "#1f2937",
+            margin: "md",
+          },
+        ],
+      },
+      footer: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          {
+            type: "button",
+            style: "primary",
+            color: "#db2777",
+            height: "sm",
+            action: {
+              type: "uri",
+              label: "ดูเนื้อหาเต็ม",
+              uri: "https://kanbann.bungkii.vercel.app/exam-topics",
+            },
+          },
+        ],
+      },
+    },
+  };
+}
