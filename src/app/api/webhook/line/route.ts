@@ -86,6 +86,40 @@ export async function POST(request: Request) {
         }
         // ----------------------
 
+        // ถ้าพิมพ์ "พริมจ๋าเนื้อหาออกสอบ"
+        if (text.startsWith('พริมจ๋าเนื้อหาออกสอบ') || text.startsWith('พริมจ๋า เนื้อหาออกสอบ')) {
+          const subjectQuery = text.replace('พริมจ๋าเนื้อหาออกสอบ', '').replace('พริมจ๋า เนื้อหาออกสอบ', '').trim();
+          
+          if (!subjectQuery) {
+            await replyToLine(event.replyToken, [{ type: 'text', text: 'พิมพ์วิชามาด้วยสิจ๊ะ ตัวอย่าง: พริมจ๋าเนื้อหาออกสอบ คณิต' }], lineToken);
+            continue;
+          }
+
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+          const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+          const supabase = createClient(supabaseUrl, supabaseKey);
+
+          const { data: topics, error } = await supabase
+            .from('exam_topics')
+            .select('*')
+            .ilike('subject', `%${subjectQuery}%`)
+            .limit(1);
+
+          if (error || !topics || topics.length === 0) {
+            await replyToLine(event.replyToken, [{ type: 'text', text: `ไม่พบเนื้อหาออกสอบของวิชา "${subjectQuery}" จ้า 😢` }], lineToken);
+            continue;
+          }
+
+          const topic = topics[0];
+          const topicsHtml = topic.topics && topic.topics.length > 0 ? topic.topics[0] : '';
+          
+          const { createExamTopicFlexMessage } = await import('@/utils/line/flex');
+          const flexMessage = createExamTopicFlexMessage(topic.subject, topic.teacher, topicsHtml, topic.mcq_count || 0, topic.essay_count || 0);
+          
+          await replyToLine(event.replyToken, [flexMessage], lineToken);
+          continue;
+        }
+
         // ถ้าพิมพ์คำว่า "พริมจ๋า ดูไอดี" หรือ "พริมจ๋าดูไอดี"
         if (text === 'พริมจ๋า ดูไอดี' || text === 'พริมจ๋าดูไอดี') {
           const groupId = event.source.groupId || event.source.roomId;
@@ -244,7 +278,7 @@ export async function POST(request: Request) {
 
         // ถ้าพิมพ์คำว่า "คำสั่งเพิ่มเติม"
         if (text === 'คำสั่งเพิ่มเติม') {
-          const replyText = `คู่มือการใช้งานของชามนพิ\nสามารถพิมพ์คำสั่งเหล่านี้ในแชทได้เลยคราบ\n\n🔹 "พริมจ๋า" - เรียกเมนูหลัก\n🔹 "พริมจ๋า งานวันนี้" - ดูงานที่ต้องส่งวันนี้\n🔹 "พริมจ๋า งานค้าง" - ดูงานที่เลยกำหนดแล้ว\n🔹 "พริมจ๋า สรุปงาน" - ดูงานทั้งหมด\n🔹 "พริมจ๋าวันนี้ใส่ชุดไร" - ดูชุดนักเรียน\n🔹 "พริมจ๋า วันนี้ใครเวร" - ดูเวรทำความสะอาด\n🔹 "พริมจ๋า ต่อไปคาบไร" - ดูวิชาเรียนคาบต่อไป\n🔹 "พริมจ๋า พรุ่งนี้เรียนไร" - ดูตารางเรียน\n🔹 "พริมจ๋า เปลี่ยนหัวหน้า" - เปิดโหวตเปลี่ยนหัวหน้า\n🔹 "พริมจ๋า สรุปโหวตหัวหน้า" - ดูคะแนนโหวต\n🔹 "โพลล่าสุด" - ดึงโพลล่าสุดมาโหวต\n🔹 "โพลสรุปล่าสุด" - ดูสรุปผลโหวตโพลล่าสุด\n🔹 "พริมจ๋า ดูไอดี" - ดูไอดีกลุ่ม\n\n🌟 คำสั่งปั่นๆ (แยกจากพริมจ๋า) 🌟\n🔸 "พลอยจี" - คุยแก้เหงา\n🔸 "อัยย์แจ๋" - ความรู้ดนตรีไทย\n🔸 "ยูกิจือ" - สาระ Skibidi Toilet\n🔸 "ออสตินจีจ้าบูกิ๊ก" - คำให้อภัย\n🔸 "ดินปืนปู๊ดแป่ว" - อรุณสวัสดิ์บอกวันที่\n🔸 "ฟอสเฟี้ยวฟ้าว" - สุ่มเมนูอาหาร\n🔸 "แสตมป์" - หาพิกัดห้องน้ำ\n🔸 "ชิน" - ว่างเปล่า\n🔸 "ฉงฉึกฉัก" หรือ "ฉง" - ฮอร์โมนเพศ\n🔸 "ตาลทวงยับ" หรือ "ตาล ทวงเงิน" - ให้ตาลทวงเงินเพื่อนแบบดุดัน`;
+          const replyText = `คู่มือการใช้งานของชามนพิ\nสามารถพิมพ์คำสั่งเหล่านี้ในแชทได้เลยคราบ\n\n🔹 "พริมจ๋า" - เรียกเมนูหลัก\n🔹 "พริมจ๋า งานวันนี้" - ดูงานที่ต้องส่งวันนี้\n🔹 "พริมจ๋า งานค้าง" - ดูงานที่เลยกำหนดแล้ว\n🔹 "พริมจ๋า สรุปงาน" - ดูงานทั้งหมด\n🔹 "พริมจ๋าวันนี้ใส่ชุดไร" - ดูชุดนักเรียน\n🔹 "พริมจ๋า วันนี้ใครเวร" - ดูเวรทำความสะอาด\n🔹 "พริมจ๋า ต่อไปคาบไร" - ดูวิชาเรียนคาบต่อไป\n🔹 "พริมจ๋า พรุ่งนี้เรียนไร" - ดูตารางเรียน\n🔹 "พริมจ๋า เปลี่ยนหัวหน้า" - เปิดโหวตเปลี่ยนหัวหน้า\n🔹 "พริมจ๋า สรุปโหวตหัวหน้า" - ดูคะแนนโหวต\n🔹 "โพลล่าสุด" - ดึงโพลล่าสุดมาโหวต\n🔹 "โพลสรุปล่าสุด" - ดูสรุปผลโหวตโพลล่าสุด\n🔹 "พริมจ๋าเนื้อหาออกสอบ (วิชาชื่อเต็ม)" - ดูเนื้อหาสอบ\n🔹 "พริมจ๋า ดูไอดี" - ดูไอดีกลุ่ม\n\n🌟 คำสั่งปั่นๆ (แยกจากพริมจ๋า) 🌟\n🔸 "พลอยจี" - คุยแก้เหงา\n🔸 "อัยย์แจ๋" - ความรู้ดนตรีไทย\n🔸 "ยูกิจือ" - สาระ Skibidi Toilet\n🔸 "ออสตินจีจ้าบูกิ๊ก" - คำให้อภัย\n🔸 "ดินปืนปู๊ดแป่ว" - อรุณสวัสดิ์บอกวันที่\n🔸 "ฟอสเฟี้ยวฟ้าว" - สุ่มเมนูอาหาร\n🔸 "แสตมป์" - หาพิกัดห้องน้ำ\n🔸 "ชิน" - ว่างเปล่า\n🔸 "ฉงฉึกฉัก" หรือ "ฉง" - ฮอร์โมนเพศ\n🔸 "ตาลทวงยับ" หรือ "ตาล ทวงเงิน" - ให้ตาลทวงเงินเพื่อนแบบดุดัน`;
           
           await replyToLine(event.replyToken, [{ type: 'text', text: replyText }], lineToken);
           continue;

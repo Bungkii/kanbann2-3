@@ -6,11 +6,13 @@ import toast from "react-hot-toast";
 import { Download } from "lucide-react";
 
 const systemFeatures = [
+  { key: "maintenance_mode_enabled", label: "โหมดปิดปรับปรุงระบบ (Maintenance Mode)", description: "บล็อคการเข้าใช้งานเว็บทั้งหมด (ต้องเข้า Database เพื่อเปิดใหม่)" },
   { key: "add_work_enabled", label: "ระบบจดงาน (Add Work)", description: "เปิด-ปิดหน้าสำหรับเพิ่มงานใหม่" },
   { key: "kanban_enabled", label: "ระบบกระดานงาน (Kanban)", description: "เปิด-ปิดหน้ากระดานทวงงาน" },
   { key: "summaries_enabled", label: "ระบบแจกสรุปสอบ (Summaries)", description: "เปิด-ปิดหน้าโหลดสรุปสอบ" },
   { key: "election_enabled", label: "ระบบผลเลือกตั้ง (Election)", description: "เปิด-ปิดหน้าดูผลเลือกตั้ง" },
   { key: "boss_evaluation_enabled", label: "ระบบประเมินหัวหน้า (Evaluate Boss)", description: "เปิด-ปิดหน้าประเมินหัวหน้าห้อง" },
+  { key: "announcement_enabled", label: "ประกาศบนเว็บ (Announcement)", description: "แสดงแถบประกาศด้านบนของเว็บ" },
 ];
 
 export default function SystemSettingsForm({ 
@@ -28,10 +30,19 @@ export default function SystemSettingsForm({
 
   const [savingKeys, setSavingKeys] = useState<Record<string, boolean>>({});
   const [isExporting, setIsExporting] = useState(false);
+  const [announcementText, setAnnouncementText] = useState(initialSettings.announcement_text || '');
+  const [isSavingAnnouncement, setIsSavingAnnouncement] = useState(false);
 
   const handleToggle = async (key: string) => {
     const newValue = !settings[key];
     
+    // For maintenance mode, we show a warning first
+    if (key === 'maintenance_mode_enabled' && newValue) {
+      if (!confirm('คำเตือน: หากคุณเปิดโหมดนี้ คุณจะถูกบล็อคออกจากเว็บด้วย และต้องเข้าไปแก้ใน Database เท่านั้น ยืนยันหรือไม่?')) {
+        return;
+      }
+    }
+
     setSettings(prev => ({ ...prev, [key]: newValue }));
     setSavingKeys(prev => ({ ...prev, [key]: true }));
     
@@ -43,6 +54,18 @@ export default function SystemSettingsForm({
     } else {
       toast.error('เกิดข้อผิดพลาดในการบันทึกการตั้งค่า');
       setSettings(prev => ({ ...prev, [key]: !newValue })); // Revert
+    }
+  };
+
+  const handleSaveAnnouncement = async () => {
+    setIsSavingAnnouncement(true);
+    const result = await updateSystemSetting('announcement_text', announcementText);
+    setIsSavingAnnouncement(false);
+    
+    if (result.success) {
+      toast.success('บันทึกข้อความประกาศสำเร็จ!');
+    } else {
+      toast.error('เกิดข้อผิดพลาดในการบันทึกข้อความประกาศ');
     }
   };
 
@@ -130,16 +153,17 @@ export default function SystemSettingsForm({
         </div>
       </div>
 
-      <div className="space-y-4">
+    <div className="space-y-4">
       {systemFeatures.map((feature) => {
         const isEnabled = settings[feature.key];
         const isSaving = savingKeys[feature.key];
+        const isMaintenance = feature.key === 'maintenance_mode_enabled';
 
         return (
-          <div key={feature.key} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 transition-colors hover:border-slate-200">
+          <div key={feature.key} className={`flex items-center justify-between p-4 rounded-2xl border transition-colors hover:border-slate-300 ${isMaintenance ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-100'}`}>
             <div>
-              <h3 className="font-semibold text-slate-800 text-base md:text-lg">{feature.label}</h3>
-              <p className="text-xs md:text-sm text-slate-500 mt-1">
+              <h3 className={`font-semibold text-base md:text-lg ${isMaintenance ? 'text-red-700' : 'text-slate-800'}`}>{feature.label}</h3>
+              <p className={`text-xs md:text-sm mt-1 ${isMaintenance ? 'text-red-500 font-medium' : 'text-slate-500'}`}>
                 {feature.description}
               </p>
             </div>
@@ -152,12 +176,37 @@ export default function SystemSettingsForm({
                 onChange={() => handleToggle(feature.key)}
                 disabled={isSaving}
               />
-              <div className={`w-14 h-7 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all ${isEnabled ? 'bg-emerald-500' : 'bg-slate-300'} ${isSaving ? 'opacity-50' : ''}`}></div>
+              <div className={`w-14 h-7 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all ${isEnabled ? (isMaintenance ? 'bg-red-500' : 'bg-emerald-500') : 'bg-slate-300'} ${isSaving ? 'opacity-50' : ''}`}></div>
             </label>
           </div>
         );
       })}
     </div>
+
+    {settings.announcement_enabled && (
+      <div className="bg-indigo-50 p-6 rounded-2xl border border-indigo-100 flex flex-col gap-4">
+        <div>
+          <h3 className="font-bold text-indigo-900 text-lg">ข้อความประกาศบนเว็บไซต์</h3>
+          <p className="text-sm text-indigo-700">จะแสดงเป็นแถบด้านบนสุดของทุกหน้าเว็บ</p>
+        </div>
+        <div className="flex gap-2">
+          <input 
+            type="text" 
+            value={announcementText}
+            onChange={(e) => setAnnouncementText(e.target.value)}
+            placeholder="เช่น พรุ่งนี้หยุดเรียน 1 วัน..."
+            className="flex-1 px-4 py-2 rounded-xl border border-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          <button
+            onClick={handleSaveAnnouncement}
+            disabled={isSavingAnnouncement}
+            className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50"
+          >
+            {isSavingAnnouncement ? 'กำลังบันทึก...' : 'บันทึก'}
+          </button>
+        </div>
+      </div>
+    )}
     </div>
   );
 }
