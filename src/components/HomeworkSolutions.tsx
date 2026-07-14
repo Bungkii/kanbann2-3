@@ -8,10 +8,10 @@ import { Heart, MessageSquare, Send, Image as ImageIcon, X, ChevronDown, Chevron
 import { formatDistanceToNow } from 'date-fns';
 import { th } from 'date-fns/locale';
 import dynamic from 'next/dynamic';
-import 'react-quill/dist/quill.snow.css';
+import 'react-quill-new/dist/quill.snow.css';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
+const ReactQuill = dynamic(() => import('react-quill-new'), { ssr: false });
 
 export default function HomeworkSolutions({ taskId }: { taskId: string }) {
   const [solutions, setSolutions] = useState<any[]>([]);

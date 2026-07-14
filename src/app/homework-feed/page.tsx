@@ -9,10 +9,10 @@ import PageTransition from '@/components/PageTransition';
 import toast from 'react-hot-toast';
 import { createClient } from '@/utils/supabase/client';
 import dynamic from 'next/dynamic';
-import 'react-quill/dist/quill.snow.css';
+import 'react-quill-new/dist/quill.snow.css';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
+const ReactQuill = dynamic(() => import('react-quill-new'), { ssr: false });
 
 export default function HomeworkFeedPage() {
   const [solutions, setSolutions] = useState<any[]>([]);
