@@ -26,6 +26,7 @@ export default function AnnouncementPopup() {
       }
 
       // Try reading popup_image_url from system_settings via API
+      let usedDbUrl = false;
       try {
         const res = await fetch('/api/popup-settings');
         if (res.ok) {
@@ -34,10 +35,15 @@ export default function AnnouncementPopup() {
             setImgSrc(data.popup_image_url);
             setLinkUrl(data.popup_link_url || null);
             setIsOpen(true);
+            usedDbUrl = true;
           }
         }
-      } catch (err) {
-        // Fallback: try old /api/asset/media file-based approach
+      } catch {
+        // will fall through to file-based fallback
+      }
+
+      // Fallback: ถ้าไม่มี URL ใน DB ให้ดึงจากไฟล์ /api/asset/media
+      if (!usedDbUrl) {
         try {
           const fallback = await fetch('/api/asset/media', { method: 'HEAD' });
           if (fallback.ok) {
@@ -45,7 +51,7 @@ export default function AnnouncementPopup() {
             setIsOpen(true);
           }
         } catch {
-          // No popup
+          // No popup at all
         }
       }
 
