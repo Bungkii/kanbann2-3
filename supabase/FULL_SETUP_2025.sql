@@ -394,7 +394,8 @@ CREATE TABLE IF NOT EXISTS homework_solutions (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     task_id uuid REFERENCES homework_tasks(id) ON DELETE CASCADE NOT NULL,
     uploader_name text NOT NULL,
-    image_url text, -- Nullable for request posts
+    image_url text, -- Nullable for request posts (deprecated)
+    image_urls text[] DEFAULT '{}'::text[], -- Multiple images support
     post_type text DEFAULT 'share', -- 'share' or 'request'
     description text,
     liked_by text[] DEFAULT '{}'::text[],

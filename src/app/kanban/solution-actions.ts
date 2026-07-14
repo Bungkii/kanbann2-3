@@ -13,6 +13,7 @@ export async function getSolutions(taskId: string) {
       task_id,
       uploader_name,
       image_url,
+      image_urls,
       post_type,
       description,
       liked_by,
@@ -61,6 +62,7 @@ export async function getAllSolutions() {
       task_id,
       uploader_name,
       image_url,
+      image_urls,
       post_type,
       description,
       liked_by,
@@ -98,7 +100,7 @@ export async function getAllSolutions() {
   return { success: true, data: solutionsWithComments };
 }
 
-export async function addSolution(taskId: string, uploaderName: string, description: string, imageUrl: string | null, postType: string = 'share') {
+export async function addSolution(taskId: string, uploaderName: string, description: string, imageUrls: string[] = [], postType: string = 'share') {
   const supabase = await createClient();
   
   const { data, error } = await supabase
@@ -107,7 +109,8 @@ export async function addSolution(taskId: string, uploaderName: string, descript
       task_id: taskId,
       uploader_name: uploaderName,
       description,
-      image_url: imageUrl,
+      image_urls: imageUrls,
+      image_url: imageUrls.length > 0 ? imageUrls[0] : null, // keep backward compat
       post_type: postType
     })
     .select()

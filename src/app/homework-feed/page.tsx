@@ -8,6 +8,10 @@ import { ChevronLeft, X, Image as ImageIcon } from 'lucide-react';
 import PageTransition from '@/components/PageTransition';
 import toast from 'react-hot-toast';
 import { createClient } from '@/utils/supabase/client';
+import dynamic from 'next/dynamic';
+import 'react-quill/dist/quill.snow.css';
+
+const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 
 export default function HomeworkFeedPage() {
   const [solutions, setSolutions] = useState<any[]>([]);
@@ -21,8 +25,8 @@ export default function HomeworkFeedPage() {
   const [selectedTaskId, setSelectedTaskId] = useState('');
   const [uploaderName, setUploaderName] = useState('');
   const [description, setDescription] = useState('');
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -49,22 +53,34 @@ export default function HomeworkFeedPage() {
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setImagePreview(reader.result as string);
-      reader.readAsDataURL(file);
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      setImageFiles(files);
+      
+      const previews: string[] = [];
+      let loaded = 0;
+      
+      files.forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          previews[index] = reader.result as string;
+          loaded++;
+          if (loaded === files.length) {
+            setImagePreviews([...previews]);
+          }
+        };
+        reader.readAsDataURL(file);
+      });
     } else {
-      setImageFile(null);
-      setImagePreview(null);
+      setImageFiles([]);
+      setImagePreviews([]);
     }
   };
 
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedTaskId) return toast.error('กรุณาเลือกวิชา/งาน');
-    if (postType === 'share' && !imageFile) return toast.error('กรุณาเลือกรูปภาพแนวทาง');
+    if (postType === 'share' && imageFiles.length === 0) return toast.error('กรุณาเลือกรูปภาพแนวทางอย่างน้อย 1 รูป');
     if (!uploaderName.trim()) return toast.error('กรุณากรอกชื่อของคุณ');
 
     localStorage.setItem('kb_nickname', uploaderName.trim());
@@ -72,36 +88,42 @@ export default function HomeworkFeedPage() {
     const toastId = toast.loading(postType === 'share' ? 'กำลังอัปโหลดรูปภาพ...' : 'กำลังสร้างคำขอ...');
 
     try {
-      let publicUrl = null;
+      let publicUrls: string[] = [];
       
-      if (postType === 'share' && imageFile) {
+      if (postType === 'share' && imageFiles.length > 0) {
         const supabase = createClient();
-        const fileExt = imageFile.name.split('.').pop();
-        const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
         
-        const { error: uploadError } = await supabase.storage
-          .from('homework-images')
-          .upload(fileName, imageFile);
-
-        if (uploadError) throw uploadError;
-
-        const { data } = supabase.storage
-          .from('homework-images')
-          .getPublicUrl(fileName);
+        // Upload all images in parallel
+        const uploadPromises = imageFiles.map(async (file) => {
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
           
-        publicUrl = data.publicUrl;
+          const { error: uploadError } = await supabase.storage
+            .from('homework-images')
+            .upload(fileName, file);
+
+          if (uploadError) throw uploadError;
+
+          const { data } = supabase.storage
+            .from('homework-images')
+            .getPublicUrl(fileName);
+            
+          return data.publicUrl;
+        });
+
+        publicUrls = await Promise.all(uploadPromises);
         toast.loading('กำลังบันทึกข้อมูล...', { id: toastId });
       }
       
-      const res = await addSolution(selectedTaskId, uploaderName.trim(), description.trim(), publicUrl, postType);
+      const res = await addSolution(selectedTaskId, uploaderName.trim(), description, publicUrls, postType);
       if (!res.success) throw new Error(res.error);
 
       toast.success(postType === 'share' ? 'แชร์แนวทางสำเร็จ!' : 'โพสต์ตามหางานสำเร็จ!', { id: toastId });
       
       setShowAddForm(false);
       setDescription('');
-      setImageFile(null);
-      setImagePreview(null);
+      setImageFiles([]);
+      setImagePreviews([]);
       setSelectedTaskId('');
       
       fetchData();
@@ -183,17 +205,21 @@ export default function HomeworkFeedPage() {
 
               {postType === 'share' && (
                 <div>
-                  <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                  <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleImageChange} className="hidden" />
                   <div 
                     onClick={() => fileInputRef.current?.click()}
                     className="border-2 border-dashed border-slate-300 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 transition-colors bg-slate-50/50 min-h-[120px]"
                   >
-                    {imagePreview ? (
-                      <img src={imagePreview} alt="Preview" className="max-h-48 rounded-lg object-contain" />
+                    {imagePreviews.length > 0 ? (
+                      <div className="flex flex-wrap gap-2 justify-center">
+                        {imagePreviews.map((preview, idx) => (
+                          <img key={idx} src={preview} alt={`Preview ${idx + 1}`} className="h-24 w-auto rounded-lg object-contain shadow-sm border border-slate-200" />
+                        ))}
+                      </div>
                     ) : (
                       <div className="text-center text-slate-500">
                         <ImageIcon size={32} className="mx-auto mb-2 opacity-50" />
-                        <span className="text-sm font-medium">คลิกเพื่อเลือกรูปภาพ หรือถ่ายรูป</span>
+                        <span className="text-sm font-medium">คลิกเพื่อเลือกรูปภาพ (เลือกได้หลายรูป)</span>
                       </div>
                     )}
                   </div>
@@ -209,12 +235,20 @@ export default function HomeworkFeedPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">คำอธิบายเพิ่มเติม (ตัวเลือก)</label>
-                <textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none resize-none" placeholder={postType === 'share' ? "เช่น ข้อ 3 ผมไม่แน่ใจนะ..." : "ช่วยด้วยยย ทำไม่เป็น"} />
+                <div className="bg-white rounded-xl overflow-hidden border border-slate-300 focus-within:ring-2 focus-within:ring-indigo-500">
+                  <ReactQuill 
+                    theme="snow" 
+                    value={description} 
+                    onChange={setDescription} 
+                    placeholder={postType === 'share' ? "เช่น ข้อ 3 ผมไม่แน่ใจนะ..." : "ช่วยด้วยยย ทำไม่เป็น"}
+                    className="h-32 mb-10"
+                  />
+                </div>
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
                 <button type="button" onClick={() => setShowAddForm(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">ยกเลิก</button>
-                <button type="submit" disabled={isSubmitting || (postType === 'share' && !imageFile) || !selectedTaskId} className={`px-5 py-2 text-sm font-bold text-white rounded-xl shadow-sm transition-colors disabled:opacity-50 ${postType === 'share' ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-pink-600 hover:bg-pink-700'}`}>
+                <button type="submit" disabled={isSubmitting || (postType === 'share' && imageFiles.length === 0) || !selectedTaskId} className={`px-5 py-2 text-sm font-bold text-white rounded-xl shadow-sm transition-colors disabled:opacity-50 ${postType === 'share' ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-pink-600 hover:bg-pink-700'}`}>
                   {isSubmitting ? 'กำลังบันทึก...' : postType === 'share' ? 'อัปโหลดแบ่งปัน' : 'โพสต์ขอลอก'}
                 </button>
               </div>

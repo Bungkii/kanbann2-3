@@ -7,6 +7,10 @@ import toast from 'react-hot-toast';
 import { Heart, MessageSquare, Send, Image as ImageIcon, X, ChevronDown, ChevronUp, Share } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { th } from 'date-fns/locale';
+import dynamic from 'next/dynamic';
+import 'react-quill/dist/quill.snow.css';
+
+const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 
 export default function HomeworkSolutions({ taskId }: { taskId: string }) {
   const [solutions, setSolutions] = useState<any[]>([]);
@@ -38,8 +42,8 @@ export default function HomeworkSolutions({ taskId }: { taskId: string }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploaderName, setUploaderName] = useState('');
   const [description, setDescription] = useState('');
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Restore nickname from local storage if available
@@ -49,22 +53,34 @@ export default function HomeworkSolutions({ taskId }: { taskId: string }) {
   }, []);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setImagePreview(reader.result as string);
-      reader.readAsDataURL(file);
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      setImageFiles(files);
+      
+      const previews: string[] = [];
+      let loaded = 0;
+      
+      files.forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          previews[index] = reader.result as string;
+          loaded++;
+          if (loaded === files.length) {
+            setImagePreviews([...previews]);
+          }
+        };
+        reader.readAsDataURL(file);
+      });
     } else {
-      setImageFile(null);
-      setImagePreview(null);
+      setImageFiles([]);
+      setImagePreviews([]);
     }
   };
 
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!imageFile) {
-      toast.error('กรุณาเลือกรูปภาพแนวทาง');
+    if (imageFiles.length === 0) {
+      toast.error('กรุณาเลือกรูปภาพแนวทางอย่างน้อย 1 รูป');
       return;
     }
     if (!uploaderName.trim()) {
@@ -78,22 +94,29 @@ export default function HomeworkSolutions({ taskId }: { taskId: string }) {
 
     try {
       const supabase = createClient();
-      const fileExt = imageFile.name.split('.').pop();
-      const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
       
-      const { error: uploadError } = await supabase.storage
-        .from('homework-images')
-        .upload(fileName, imageFile);
+      const uploadPromises = imageFiles.map(async (file) => {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('homework-images')
+          .upload(fileName, file);
 
-      if (uploadError) throw uploadError;
+        if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('homework-images')
-        .getPublicUrl(fileName);
+        const { data } = supabase.storage
+          .from('homework-images')
+          .getPublicUrl(fileName);
+          
+        return data.publicUrl;
+      });
+
+      const publicUrls = await Promise.all(uploadPromises);
 
       toast.loading('กำลังบันทึกข้อมูล...', { id: toastId });
       
-      const res = await addSolution(taskId, uploaderName.trim(), description.trim(), publicUrl);
+      const res = await addSolution(taskId, uploaderName.trim(), description, publicUrls, 'share');
       if (!res.success) throw new Error(res.error);
 
       toast.success('แชร์แนวทางสำเร็จ!', { id: toastId });
@@ -101,8 +124,8 @@ export default function HomeworkSolutions({ taskId }: { taskId: string }) {
       // Reset form
       setShowAddForm(false);
       setDescription('');
-      setImageFile(null);
-      setImagePreview(null);
+      setImageFiles([]);
+      setImagePreviews([]);
       
       // Refresh
       fetchSolutions();
@@ -150,17 +173,21 @@ export default function HomeworkSolutions({ taskId }: { taskId: string }) {
           <div className="space-y-4">
             {/* Image Upload */}
             <div>
-              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+              <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleImageChange} className="hidden" />
               <div 
                 onClick={() => fileInputRef.current?.click()}
                 className="border-2 border-dashed border-slate-300 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 transition-colors bg-slate-50/50 min-h-[120px]"
               >
-                {imagePreview ? (
-                  <img src={imagePreview} alt="Preview" className="max-h-48 rounded-lg object-contain" />
+                {imagePreviews.length > 0 ? (
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    {imagePreviews.map((preview, idx) => (
+                      <img key={idx} src={preview} alt={`Preview ${idx + 1}`} className="h-24 w-auto rounded-lg object-contain shadow-sm border border-slate-200" />
+                    ))}
+                  </div>
                 ) : (
                   <div className="text-center text-slate-500">
                     <ImageIcon size={32} className="mx-auto mb-2 opacity-50" />
-                    <span className="text-sm font-medium">คลิกเพื่อเลือกรูปภาพ หรือถ่ายรูป</span>
+                    <span className="text-sm font-medium">คลิกเพื่อเลือกรูปภาพ (เลือกได้หลายรูป)</span>
                   </div>
                 )}
               </div>
@@ -175,12 +202,20 @@ export default function HomeworkSolutions({ taskId }: { taskId: string }) {
 
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1">คำอธิบายเพิ่มเติม (ตัวเลือก)</label>
-              <textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none resize-none" placeholder="เช่น ข้อ 3 ผมไม่แน่ใจนะ, ลายมืออาจจะอ่านยากนิดนึง..." />
+              <div className="bg-white rounded-xl overflow-hidden border border-slate-300 focus-within:ring-2 focus-within:ring-indigo-500">
+                <ReactQuill 
+                  theme="snow" 
+                  value={description} 
+                  onChange={setDescription} 
+                  placeholder="เช่น ข้อ 3 ผมไม่แน่ใจนะ, ลายมืออาจจะอ่านยากนิดนึง..."
+                  className="h-32 mb-10"
+                />
+              </div>
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
               <button type="button" onClick={() => setShowAddForm(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">ยกเลิก</button>
-              <button type="submit" disabled={isSubmitting || !imageFile} className="px-5 py-2 text-sm font-bold bg-indigo-600 text-white rounded-xl shadow-sm hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center gap-2">
+              <button type="submit" disabled={isSubmitting || imageFiles.length === 0} className="px-5 py-2 text-sm font-bold bg-indigo-600 text-white rounded-xl shadow-sm hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center gap-2">
                 {isSubmitting ? 'กำลังอัปโหลด...' : 'อัปโหลดแบ่งปัน'}
               </button>
             </div>
@@ -229,13 +264,29 @@ export function SolutionCard({ solution, deviceId, onUpdate }: { solution: any, 
   const likesCount = (solution.liked_by || []).length;
   const commentsCount = (solution.comments || []).length;
 
+  const [optimisticLikeCount, setOptimisticLikeCount] = useState(likesCount);
+  const [optimisticHasLiked, setOptimisticHasLiked] = useState(hasLiked);
+
+  useEffect(() => {
+    setOptimisticLikeCount(likesCount);
+    setOptimisticHasLiked(hasLiked);
+  }, [likesCount, hasLiked]);
+
   const handleLike = async () => {
     if (isLiking) return;
     setIsLiking(true);
-    // Optimistic UI update could be done here, but we'll just wait for the fast server action
+    
+    // Optimistic UI update
+    setOptimisticHasLiked(!optimisticHasLiked);
+    setOptimisticLikeCount((prev: number) => optimisticHasLiked ? prev - 1 : prev + 1);
+
     const res = await toggleLikeSolution(solution.id, deviceId);
     if (res.success) {
       onUpdate();
+    } else {
+      toast.error('ไม่สามารถถูกใจได้: ' + (res.error || 'Unknown Error'));
+      setOptimisticHasLiked(hasLiked);
+      setOptimisticLikeCount(likesCount);
     }
     setIsLiking(false);
   };
@@ -271,6 +322,10 @@ export function SolutionCard({ solution, deviceId, onUpdate }: { solution: any, 
 
   const isRequest = solution.post_type === 'request';
 
+  const images = solution.image_urls && solution.image_urls.length > 0 
+    ? solution.image_urls 
+    : (solution.image_url ? [solution.image_url] : []);
+
   return (
     <div className={`border rounded-2xl overflow-hidden shadow-sm ${isRequest ? 'bg-pink-50/30 border-pink-100' : 'bg-white border-slate-200'}`}>
       {/* Header */}
@@ -288,10 +343,21 @@ export function SolutionCard({ solution, deviceId, onUpdate }: { solution: any, 
         </div>
       </div>
 
-      {/* Image */}
-      {!isRequest && solution.image_url && (
-        <div className="bg-slate-900 relative">
-          <img src={solution.image_url} alt="Homework Solution" className="w-full h-auto max-h-[500px] object-contain" />
+      {/* Images */}
+      {!isRequest && images.length > 0 && (
+        <div className="bg-slate-900 relative border-b border-slate-200">
+          <div className="flex overflow-x-auto snap-x snap-mandatory flex-nowrap" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            {images.map((url: string, idx: number) => (
+              <div key={idx} className="w-full shrink-0 snap-center relative">
+                <img src={url} alt={`Homework Solution ${idx + 1}`} className="w-full h-auto max-h-[500px] object-contain" />
+                {images.length > 1 && (
+                  <div className="absolute top-4 right-4 bg-black/50 text-white text-xs px-2.5 py-1 rounded-full font-medium backdrop-blur-sm shadow-sm">
+                    {idx + 1} / {images.length}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -301,10 +367,10 @@ export function SolutionCard({ solution, deviceId, onUpdate }: { solution: any, 
           <button 
             onClick={handleLike}
             disabled={isLiking}
-            className={`flex items-center gap-1.5 font-bold transition-colors ${hasLiked ? 'text-pink-600' : 'text-slate-600 hover:text-pink-500'}`}
+            className={`flex items-center gap-1.5 font-bold transition-colors ${optimisticHasLiked ? 'text-pink-600' : 'text-slate-600 hover:text-pink-500'}`}
           >
-            <Heart size={22} className={hasLiked ? 'fill-pink-600' : ''} />
-            <span>{likesCount > 0 ? likesCount : 'ถูกใจ'}</span>
+            <Heart size={22} className={optimisticHasLiked ? 'fill-pink-600' : ''} />
+            <span>{optimisticLikeCount > 0 ? optimisticLikeCount : 'ถูกใจ'}</span>
           </button>
           
           <button 
@@ -325,10 +391,10 @@ export function SolutionCard({ solution, deviceId, onUpdate }: { solution: any, 
         </div>
 
         {solution.description && (
-          <p className="text-sm text-slate-700 mt-3 whitespace-pre-wrap">
-            <span className="font-bold mr-2">{solution.uploader_name}</span>
-            {solution.description}
-          </p>
+          <div className="text-sm text-slate-700 mt-3 bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+            <div className="font-bold text-indigo-700 mb-1">{solution.uploader_name}</div>
+            <div className="prose prose-sm max-w-none text-slate-600" dangerouslySetInnerHTML={{ __html: solution.description }} />
+          </div>
         )}
       </div>
 
