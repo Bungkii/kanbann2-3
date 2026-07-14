@@ -91,24 +91,22 @@ export default function HomeworkFeedPage() {
       let publicUrls: string[] = [];
       
       if (postType === 'share' && imageFiles.length > 0) {
-        const supabase = createClient();
-        
-        // Upload all images in parallel
+        // Upload all images in parallel to ImgBB
         const uploadPromises = imageFiles.map(async (file) => {
-          const fileExt = file.name.split('.').pop();
-          const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
+          const formData = new FormData();
+          formData.append('image', file);
           
-          const { error: uploadError } = await supabase.storage
-            .from('homework-images')
-            .upload(fileName, file);
+          const response = await fetch('https://api.imgbb.com/1/upload?key=d6e98dfc0cc0437c381b0f99f293fa14', {
+            method: 'POST',
+            body: formData,
+          });
 
-          if (uploadError) throw uploadError;
-
-          const { data } = supabase.storage
-            .from('homework-images')
-            .getPublicUrl(fileName);
+          const result = await response.json();
+          if (!result.success) {
+            throw new Error(result.error?.message || 'ImgBB upload failed');
+          }
             
-          return data.publicUrl;
+          return result.data.url;
         });
 
         publicUrls = await Promise.all(uploadPromises);
