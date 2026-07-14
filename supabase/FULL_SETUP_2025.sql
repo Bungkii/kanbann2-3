@@ -39,6 +39,7 @@ CREATE POLICY "Allow authenticated delete access" ON homework_tasks FOR DELETE T
 -- 2. SYSTEM SETTINGS
 -- ============================================================
 -- ถ้ามีตารางเก่าที่ value เป็น text ให้แปลงเป็น JSONB ก่อน
+-- (แปลง 'true'/'false' เป็น boolean JSON, อื่นๆ เป็น string JSON)
 DO $$
 BEGIN
   IF EXISTS (
@@ -47,7 +48,16 @@ BEGIN
     AND column_name = 'value' 
     AND data_type = 'text'
   ) THEN
-    ALTER TABLE public.system_settings ALTER COLUMN value TYPE JSONB USING value::jsonb;
+    ALTER TABLE public.system_settings 
+    ALTER COLUMN value TYPE JSONB USING (
+      CASE 
+        WHEN value = 'true'  THEN 'true'::jsonb
+        WHEN value = 'false' THEN 'false'::jsonb
+        WHEN value ~ '^-?[0-9]+(\.[0-9]+)?$' THEN value::jsonb
+        WHEN value ~ '^[\[{"]' THEN value::jsonb
+        ELSE to_jsonb(value)
+      END
+    );
   END IF;
 END $$;
 

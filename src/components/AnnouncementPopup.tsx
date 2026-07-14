@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, ExternalLink } from 'lucide-react';
 
 export default function AnnouncementPopup() {
   const [isOpen, setIsOpen] = useState(false);
   const [imgSrc, setImgSrc] = useState<string | null>(null);
+  const [linkUrl, setLinkUrl] = useState<string | null>(null);
   const [dontShowAgain, setDontShowAgain] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -20,22 +21,34 @@ export default function AnnouncementPopup() {
           setIsLoading(false);
           return;
         } else {
-          localStorage.removeItem('hide_popup_until'); // Expired
+          localStorage.removeItem('hide_popup_until');
         }
       }
 
-      // Check if media exists via our API
+      // Try reading popup_image_url from system_settings via API
       try {
-        const res = await fetch('/api/asset/media', { method: 'HEAD' });
+        const res = await fetch('/api/popup-settings');
         if (res.ok) {
-          // Add a random query param just to bust browser cache while testing if needed,
-          // but usually static url is fine.
-          setImgSrc('/api/asset/media');
-          setIsOpen(true);
+          const data = await res.json();
+          if (data.popup_image_url) {
+            setImgSrc(data.popup_image_url);
+            setLinkUrl(data.popup_link_url || null);
+            setIsOpen(true);
+          }
         }
       } catch (err) {
-        console.error('Failed to check popup media', err);
+        // Fallback: try old /api/asset/media file-based approach
+        try {
+          const fallback = await fetch('/api/asset/media', { method: 'HEAD' });
+          if (fallback.ok) {
+            setImgSrc('/api/asset/media');
+            setIsOpen(true);
+          }
+        } catch {
+          // No popup
+        }
       }
+
       setIsLoading(false);
     };
 
@@ -44,7 +57,6 @@ export default function AnnouncementPopup() {
 
   const handleClose = () => {
     if (dontShowAgain) {
-      // Set to hide for 14 days
       const hideUntil = Date.now() + 14 * 24 * 60 * 60 * 1000;
       localStorage.setItem('hide_popup_until', hideUntil.toString());
     }
@@ -75,11 +87,32 @@ export default function AnnouncementPopup() {
           >
             {/* Image Section */}
             <div className="flex-1 overflow-hidden bg-slate-900 relative">
-              <img 
-                src={imgSrc} 
-                alt="Announcement" 
-                className="w-full h-auto object-contain max-h-[calc(90vh-60px)]"
-              />
+              {linkUrl ? (
+                <a
+                  href={linkUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block cursor-pointer group"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <img
+                    src={imgSrc}
+                    alt="Announcement"
+                    className="w-full h-auto object-contain max-h-[calc(90vh-60px)] group-hover:brightness-90 transition-all"
+                  />
+                  {/* Link badge */}
+                  <div className="absolute bottom-3 right-3 bg-black/60 text-white text-xs px-2.5 py-1.5 rounded-full flex items-center gap-1.5 backdrop-blur-sm">
+                    <ExternalLink size={12} />
+                    <span>กดเพื่อดูเพิ่มเติม</span>
+                  </div>
+                </a>
+              ) : (
+                <img
+                  src={imgSrc}
+                  alt="Announcement"
+                  className="w-full h-auto object-contain max-h-[calc(90vh-60px)]"
+                />
+              )}
             </div>
 
             {/* Bottom Bar */}
@@ -92,11 +125,11 @@ export default function AnnouncementPopup() {
                     onChange={(e) => setDontShowAgain(e.target.checked)}
                     className="peer appearance-none w-5 h-5 border-2 border-slate-300 rounded focus:ring-2 focus:ring-slate-400 focus:outline-none checked:bg-slate-800 checked:border-slate-800 transition-colors cursor-pointer"
                   />
-                  <svg 
-                    className="absolute w-3 h-3 text-white pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" 
-                    fill="none" 
-                    viewBox="0 0 24 24" 
-                    stroke="currentColor" 
+                  <svg
+                    className="absolute w-3 h-3 text-white pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
                     strokeWidth="3"
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
