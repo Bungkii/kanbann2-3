@@ -160,7 +160,7 @@ export async function toggleLikeSolution(solutionId: string, deviceId: string) {
   return { success: true, liked_by: likedBy };
 }
 
-export async function addComment(solutionId: string, authorName: string, content: string) {
+export async function addComment(solutionId: string, authorName: string, content: string, imageUrls: string[] = []) {
   const supabase = await createClient();
   
   const { data, error } = await supabase
@@ -168,7 +168,8 @@ export async function addComment(solutionId: string, authorName: string, content
     .insert({
       solution_id: solutionId,
       author_name: authorName,
-      content
+      content,
+      image_urls: imageUrls
     })
     .select()
     .single();
