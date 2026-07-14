@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { getSolutions, addSolution, toggleLikeSolution, addComment } from '@/app/kanban/solution-actions';
 import { createClient } from '@/utils/supabase/client';
 import toast from 'react-hot-toast';
-import { Heart, MessageSquare, Send, Image as ImageIcon, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Heart, MessageSquare, Send, Image as ImageIcon, X, ChevronDown, ChevronUp, Share } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { th } from 'date-fns/locale';
 
@@ -263,12 +263,20 @@ export function SolutionCard({ solution, deviceId, onUpdate }: { solution: any, 
     }
   };
 
+  const handleShare = () => {
+    const url = `${window.location.origin}/homework-feed`;
+    navigator.clipboard.writeText(url);
+    toast.success('คัดลอกลิงก์เพื่อรีโพสต์แล้ว');
+  };
+
+  const isRequest = solution.post_type === 'request';
+
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+    <div className={`border rounded-2xl overflow-hidden shadow-sm ${isRequest ? 'bg-pink-50/30 border-pink-100' : 'bg-white border-slate-200'}`}>
       {/* Header */}
-      <div className="px-4 py-3 flex items-center justify-between border-b border-slate-100 bg-slate-50/50">
+      <div className={`px-4 py-3 flex items-center justify-between border-b ${isRequest ? 'border-pink-100 bg-pink-50' : 'border-slate-100 bg-slate-50/50'}`}>
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${isRequest ? 'bg-gradient-to-tr from-pink-500 to-rose-500' : 'bg-gradient-to-tr from-indigo-500 to-purple-500'}`}>
             {solution.uploader_name.charAt(0)}
           </div>
           <div>
@@ -281,9 +289,11 @@ export function SolutionCard({ solution, deviceId, onUpdate }: { solution: any, 
       </div>
 
       {/* Image */}
-      <div className="bg-slate-900 relative">
-        <img src={solution.image_url} alt="Homework Solution" className="w-full h-auto max-h-[500px] object-contain" />
-      </div>
+      {!isRequest && solution.image_url && (
+        <div className="bg-slate-900 relative">
+          <img src={solution.image_url} alt="Homework Solution" className="w-full h-auto max-h-[500px] object-contain" />
+        </div>
+      )}
 
       {/* Actions */}
       <div className="px-4 py-3 border-b border-slate-50">
@@ -303,6 +313,14 @@ export function SolutionCard({ solution, deviceId, onUpdate }: { solution: any, 
           >
             <MessageSquare size={22} />
             <span>{commentsCount > 0 ? commentsCount : 'คอมเมนต์'}</span>
+          </button>
+          
+          <button 
+            onClick={handleShare}
+            className="flex items-center gap-1.5 text-slate-600 font-bold hover:text-indigo-600 transition-colors ml-auto"
+          >
+            <Share size={20} />
+            <span>รีโพสต์</span>
           </button>
         </div>
 

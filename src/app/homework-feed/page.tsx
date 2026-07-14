@@ -17,6 +17,7 @@ export default function HomeworkFeedPage() {
 
   // Upload Form State
   const [showAddForm, setShowAddForm] = useState(false);
+  const [postType, setPostType] = useState<'share' | 'request'>('share');
   const [selectedTaskId, setSelectedTaskId] = useState('');
   const [uploaderName, setUploaderName] = useState('');
   const [description, setDescription] = useState('');
@@ -63,34 +64,39 @@ export default function HomeworkFeedPage() {
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedTaskId) return toast.error('กรุณาเลือกวิชา/งาน');
-    if (!imageFile) return toast.error('กรุณาเลือกรูปภาพแนวทาง');
+    if (postType === 'share' && !imageFile) return toast.error('กรุณาเลือกรูปภาพแนวทาง');
     if (!uploaderName.trim()) return toast.error('กรุณากรอกชื่อของคุณ');
 
     localStorage.setItem('kb_nickname', uploaderName.trim());
     setIsSubmitting(true);
-    const toastId = toast.loading('กำลังอัปโหลดรูปภาพ...');
+    const toastId = toast.loading(postType === 'share' ? 'กำลังอัปโหลดรูปภาพ...' : 'กำลังสร้างคำขอ...');
 
     try {
-      const supabase = createClient();
-      const fileExt = imageFile.name.split('.').pop();
-      const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
+      let publicUrl = null;
       
-      const { error: uploadError } = await supabase.storage
-        .from('homework-images')
-        .upload(fileName, imageFile);
+      if (postType === 'share' && imageFile) {
+        const supabase = createClient();
+        const fileExt = imageFile.name.split('.').pop();
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('homework-images')
+          .upload(fileName, imageFile);
 
-      if (uploadError) throw uploadError;
+        if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('homework-images')
-        .getPublicUrl(fileName);
-
-      toast.loading('กำลังบันทึกข้อมูล...', { id: toastId });
+        const { data } = supabase.storage
+          .from('homework-images')
+          .getPublicUrl(fileName);
+          
+        publicUrl = data.publicUrl;
+        toast.loading('กำลังบันทึกข้อมูล...', { id: toastId });
+      }
       
-      const res = await addSolution(selectedTaskId, uploaderName.trim(), description.trim(), publicUrl);
+      const res = await addSolution(selectedTaskId, uploaderName.trim(), description.trim(), publicUrl, postType);
       if (!res.success) throw new Error(res.error);
 
-      toast.success('แชร์แนวทางสำเร็จ!', { id: toastId });
+      toast.success(postType === 'share' ? 'แชร์แนวทางสำเร็จ!' : 'โพสต์ตามหางานสำเร็จ!', { id: toastId });
       
       setShowAddForm(false);
       setDescription('');
@@ -143,6 +149,23 @@ export default function HomeworkFeedPage() {
             </div>
 
             <div className="space-y-4">
+              <div className="flex bg-slate-100 p-1 rounded-xl">
+                <button 
+                  type="button" 
+                  onClick={() => setPostType('share')} 
+                  className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${postType === 'share' ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-500'}`}
+                >
+                  แจกแนวทาง
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => setPostType('request')} 
+                  className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${postType === 'request' ? 'bg-white shadow-sm text-pink-700' : 'text-slate-500'}`}
+                >
+                  ขอลอกงาน
+                </button>
+              </div>
+
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">เลือกงาน/วิชา</label>
                 <select 
@@ -151,46 +174,48 @@ export default function HomeworkFeedPage() {
                   onChange={e => setSelectedTaskId(e.target.value)} 
                   className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
                 >
-                  <option value="" disabled>-- เลือกงานที่ต้องการแชร์ --</option>
+                  <option value="" disabled>-- เลือกงานที่ต้องการ{postType === 'share' ? 'แชร์' : 'ขอ'} --</option>
                   {tasks.map(t => (
                     <option key={t.id} value={t.id}>{t.subject}</option>
                   ))}
                 </select>
               </div>
 
-              <div>
-                <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
-                <div 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-slate-300 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 transition-colors bg-slate-50/50 min-h-[120px]"
-                >
-                  {imagePreview ? (
-                    <img src={imagePreview} alt="Preview" className="max-h-48 rounded-lg object-contain" />
-                  ) : (
-                    <div className="text-center text-slate-500">
-                      <ImageIcon size={32} className="mx-auto mb-2 opacity-50" />
-                      <span className="text-sm font-medium">คลิกเพื่อเลือกรูปภาพ หรือถ่ายรูป</span>
-                    </div>
-                  )}
+              {postType === 'share' && (
+                <div>
+                  <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                  <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="border-2 border-dashed border-slate-300 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 transition-colors bg-slate-50/50 min-h-[120px]"
+                  >
+                    {imagePreview ? (
+                      <img src={imagePreview} alt="Preview" className="max-h-48 rounded-lg object-contain" />
+                    ) : (
+                      <div className="text-center text-slate-500">
+                        <ImageIcon size={32} className="mx-auto mb-2 opacity-50" />
+                        <span className="text-sm font-medium">คลิกเพื่อเลือกรูปภาพ หรือถ่ายรูป</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">ชื่อผู้แชร์ (นามแฝงได้)</label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">ชื่อผู้{postType === 'share' ? 'แชร์' : 'ขอ'} (นามแฝงได้)</label>
                   <input required type="text" value={uploaderName} onChange={e => setUploaderName(e.target.value)} className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="เช่น ด.ช.สมชาย" />
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">คำอธิบายเพิ่มเติม (ตัวเลือก)</label>
-                <textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none resize-none" placeholder="เช่น ข้อ 3 ผมไม่แน่ใจนะ..." />
+                <textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none resize-none" placeholder={postType === 'share' ? "เช่น ข้อ 3 ผมไม่แน่ใจนะ..." : "ช่วยด้วยยย ทำไม่เป็น"} />
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
                 <button type="button" onClick={() => setShowAddForm(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">ยกเลิก</button>
-                <button type="submit" disabled={isSubmitting || !imageFile || !selectedTaskId} className="px-5 py-2 text-sm font-bold bg-indigo-600 text-white rounded-xl shadow-sm hover:bg-indigo-700 transition-colors disabled:opacity-50">
-                  {isSubmitting ? 'กำลังอัปโหลด...' : 'อัปโหลดแบ่งปัน'}
+                <button type="submit" disabled={isSubmitting || (postType === 'share' && !imageFile) || !selectedTaskId} className={`px-5 py-2 text-sm font-bold text-white rounded-xl shadow-sm transition-colors disabled:opacity-50 ${postType === 'share' ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-pink-600 hover:bg-pink-700'}`}>
+                  {isSubmitting ? 'กำลังบันทึก...' : postType === 'share' ? 'อัปโหลดแบ่งปัน' : 'โพสต์ขอลอก'}
                 </button>
               </div>
             </div>
