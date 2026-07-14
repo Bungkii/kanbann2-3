@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 import { createClient } from '@/utils/supabase/client';
 import dynamic from 'next/dynamic';
 import 'react-quill/dist/quill.snow.css';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 
@@ -158,101 +159,134 @@ export default function HomeworkFeedPage() {
           )}
         </div>
 
-        {/* Add Form */}
-        {showAddForm && (
-          <form onSubmit={handleAddSubmit} className="bg-white border-2 border-indigo-100 rounded-2xl p-5 shadow-sm">
-            <div className="flex justify-between items-center mb-4">
-              <h4 className="font-bold text-slate-800">แชร์แนวทางของคุณ</h4>
-              <button type="button" onClick={() => setShowAddForm(false)} className="text-slate-400 hover:text-slate-600 p-1">
-                <X size={20} />
-              </button>
-            </div>
+        {/* Drawer Add Form */}
+        <AnimatePresence>
+          {showAddForm && (
+            <>
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowAddForm(false)}
+                className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40"
+              />
 
-            <div className="space-y-4">
-              <div className="flex bg-slate-100 p-1 rounded-xl">
-                <button 
-                  type="button" 
-                  onClick={() => setPostType('share')} 
-                  className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${postType === 'share' ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-500'}`}
-                >
-                  แจกแนวทาง
-                </button>
-                <button 
-                  type="button" 
-                  onClick={() => setPostType('request')} 
-                  className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${postType === 'request' ? 'bg-white shadow-sm text-pink-700' : 'text-slate-500'}`}
-                >
-                  ขอลอกงาน
-                </button>
-              </div>
+              {/* Sidebar/Drawer */}
+              <motion.div
+                initial={{ x: '100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '100%' }}
+                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                className="fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-2xl z-50 flex flex-col"
+              >
+                <form onSubmit={handleAddSubmit} className="flex flex-col h-full">
+                  
+                  {/* Sticky Header */}
+                  <div className="flex-none p-5 border-b border-slate-100 flex justify-between items-center bg-white z-10">
+                    <div>
+                      <h3 className="font-bold text-lg text-slate-800">แชร์แนวทาง / ขอลอก</h3>
+                      <p className="text-xs text-slate-500 mt-1">แบ่งปันหรือขอความช่วยเหลือจากเพื่อนๆ</p>
+                    </div>
+                    <button type="button" onClick={() => setShowAddForm(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors">
+                      <X size={20} />
+                    </button>
+                  </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">เลือกงาน/วิชา</label>
-                <select 
-                  required 
-                  value={selectedTaskId} 
-                  onChange={e => setSelectedTaskId(e.target.value)} 
-                  className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
-                >
-                  <option value="" disabled>-- เลือกงานที่ต้องการ{postType === 'share' ? 'แชร์' : 'ขอ'} --</option>
-                  {tasks.map(t => (
-                    <option key={t.id} value={t.id}>{t.subject}</option>
-                  ))}
-                </select>
-              </div>
+                  {/* Scrollable Content */}
+                  <div className="flex-1 overflow-y-auto p-5 space-y-5 hide-scrollbar">
+                    
+                    <div className="flex bg-slate-100 p-1 rounded-xl">
+                      <button 
+                        type="button" 
+                        onClick={() => setPostType('share')} 
+                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${postType === 'share' ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-500 hover:text-slate-700'}`}
+                      >
+                        แจกแนวทาง
+                      </button>
+                      <button 
+                        type="button" 
+                        onClick={() => setPostType('request')} 
+                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${postType === 'request' ? 'bg-white shadow-sm text-pink-700' : 'text-slate-500 hover:text-slate-700'}`}
+                      >
+                        ขอลอกงาน
+                      </button>
+                    </div>
 
-              {postType === 'share' && (
-                <div>
-                  <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleImageChange} className="hidden" />
-                  <div 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="border-2 border-dashed border-slate-300 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 transition-colors bg-slate-50/50 min-h-[120px]"
-                  >
-                    {imagePreviews.length > 0 ? (
-                      <div className="flex flex-wrap gap-2 justify-center">
-                        {imagePreviews.map((preview, idx) => (
-                          <img key={idx} src={preview} alt={`Preview ${idx + 1}`} className="h-24 w-auto rounded-lg object-contain shadow-sm border border-slate-200" />
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">เลือกงาน/วิชา <span className="text-red-500">*</span></label>
+                      <select 
+                        required 
+                        value={selectedTaskId} 
+                        onChange={e => setSelectedTaskId(e.target.value)} 
+                        className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white transition-shadow"
+                      >
+                        <option value="" disabled>-- เลือกงานที่ต้องการ{postType === 'share' ? 'แชร์' : 'ขอ'} --</option>
+                        {tasks.map(t => (
+                          <option key={t.id} value={t.id}>{t.subject}</option>
                         ))}
-                      </div>
-                    ) : (
-                      <div className="text-center text-slate-500">
-                        <ImageIcon size={32} className="mx-auto mb-2 opacity-50" />
-                        <span className="text-sm font-medium">คลิกเพื่อเลือกรูปภาพ (เลือกได้หลายรูป)</span>
+                      </select>
+                    </div>
+
+                    {postType === 'share' && (
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">รูปภาพแนวทาง <span className="text-red-500">*</span></label>
+                        <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleImageChange} className="hidden" />
+                        <div 
+                          onClick={() => fileInputRef.current?.click()}
+                          className="border-2 border-dashed border-slate-300 rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 hover:border-indigo-300 transition-colors bg-slate-50/50 min-h-[140px]"
+                        >
+                          {imagePreviews.length > 0 ? (
+                            <div className="flex flex-wrap gap-2 justify-center">
+                              {imagePreviews.map((preview, idx) => (
+                                <img key={idx} src={preview} alt={`Preview ${idx + 1}`} className="h-24 w-auto rounded-lg object-cover shadow-sm border border-slate-200" />
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-center text-slate-500">
+                              <div className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center mx-auto mb-3">
+                                <ImageIcon size={24} className="text-indigo-400" />
+                              </div>
+                              <span className="text-sm font-bold text-slate-700 block">อัปโหลดรูปภาพ</span>
+                              <span className="text-xs text-slate-400">เลือกได้หลายรูปพร้อมกัน</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">ชื่อผู้{postType === 'share' ? 'แชร์' : 'ขอ'} (นามแฝงได้) <span className="text-red-500">*</span></label>
+                      <input required type="text" value={uploaderName} onChange={e => setUploaderName(e.target.value)} className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-shadow" placeholder="เช่น ด.ช.สมชาย" />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">คำอธิบายเพิ่มเติม (ตัวเลือก)</label>
+                      <div className="bg-white rounded-xl overflow-hidden border border-slate-300 focus-within:ring-2 focus-within:ring-indigo-500 transition-shadow">
+                        <ReactQuill 
+                          theme="snow" 
+                          value={description} 
+                          onChange={setDescription} 
+                          placeholder={postType === 'share' ? "เช่น ข้อ 3 ผมไม่แน่ใจนะ..." : "ช่วยด้วยยย ทำไม่เป็น"}
+                          className="h-40 mb-12"
+                        />
+                      </div>
+                    </div>
+                    
                   </div>
-                </div>
-              )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">ชื่อผู้{postType === 'share' ? 'แชร์' : 'ขอ'} (นามแฝงได้)</label>
-                  <input required type="text" value={uploaderName} onChange={e => setUploaderName(e.target.value)} className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="เช่น ด.ช.สมชาย" />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">คำอธิบายเพิ่มเติม (ตัวเลือก)</label>
-                <div className="bg-white rounded-xl overflow-hidden border border-slate-300 focus-within:ring-2 focus-within:ring-indigo-500">
-                  <ReactQuill 
-                    theme="snow" 
-                    value={description} 
-                    onChange={setDescription} 
-                    placeholder={postType === 'share' ? "เช่น ข้อ 3 ผมไม่แน่ใจนะ..." : "ช่วยด้วยยย ทำไม่เป็น"}
-                    className="h-32 mb-10"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setShowAddForm(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">ยกเลิก</button>
-                <button type="submit" disabled={isSubmitting || (postType === 'share' && imageFiles.length === 0) || !selectedTaskId} className={`px-5 py-2 text-sm font-bold text-white rounded-xl shadow-sm transition-colors disabled:opacity-50 ${postType === 'share' ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-pink-600 hover:bg-pink-700'}`}>
-                  {isSubmitting ? 'กำลังบันทึก...' : postType === 'share' ? 'อัปโหลดแบ่งปัน' : 'โพสต์ขอลอก'}
-                </button>
-              </div>
-            </div>
-          </form>
-        )}
+                  {/* Sticky Footer */}
+                  <div className="flex-none p-5 border-t border-slate-100 bg-white z-10 shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.05)]">
+                    <button type="submit" disabled={isSubmitting || (postType === 'share' && imageFiles.length === 0) || !selectedTaskId} className={`w-full py-3 text-sm font-bold text-white rounded-xl shadow-sm transition-all disabled:opacity-50 disabled:scale-100 active:scale-[0.98] ${postType === 'share' ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200' : 'bg-pink-600 hover:bg-pink-700 shadow-pink-200'}`}>
+                      {isSubmitting ? 'กำลังบันทึกข้อมูล...' : postType === 'share' ? '✨ อัปโหลดแบ่งปัน' : '🙏 โพสต์ขอลอก'}
+                    </button>
+                  </div>
+                  
+                </form>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
 
         {/* Content */}
         {isLoading ? (
