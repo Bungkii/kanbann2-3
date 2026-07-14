@@ -213,7 +213,7 @@ export default function HomeworkSolutions({ taskId }: { taskId: string }) {
 }
 
 // Subcomponent for each solution card
-function SolutionCard({ solution, deviceId, onUpdate }: { solution: any, deviceId: string, onUpdate: () => void }) {
+export function SolutionCard({ solution, deviceId, onUpdate }: { solution: any, deviceId: string, onUpdate: () => void }) {
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [authorName, setAuthorName] = useState('');

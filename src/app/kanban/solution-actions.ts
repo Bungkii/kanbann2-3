@@ -50,6 +50,52 @@ export async function getSolutions(taskId: string) {
   return { success: true, data: solutionsWithComments };
 }
 
+export async function getAllSolutions() {
+  const supabase = await createClient();
+
+  const { data: solutions, error: solError } = await supabase
+    .from('homework_solutions')
+    .select(`
+      id,
+      task_id,
+      uploader_name,
+      image_url,
+      description,
+      liked_by,
+      created_at,
+      homework_tasks(subject)
+    `)
+    .order('created_at', { ascending: false });
+
+  if (solError) {
+    console.error('Error fetching all solutions:', solError);
+    return { success: false, error: solError.message };
+  }
+
+  const solutionIds = (solutions || []).map(s => s.id);
+  
+  let commentsData: any[] = [];
+  if (solutionIds.length > 0) {
+    const { data: comments, error: comError } = await supabase
+      .from('homework_solution_comments')
+      .select('*')
+      .in('solution_id', solutionIds)
+      .order('created_at', { ascending: true });
+      
+    if (!comError) {
+      commentsData = comments || [];
+    }
+  }
+
+  const solutionsWithComments = (solutions || []).map(sol => ({
+    ...sol,
+    task_subject: (sol.homework_tasks as any)?.subject || 'ไม่ระบุวิชา',
+    comments: commentsData.filter(c => c.solution_id === sol.id)
+  }));
+
+  return { success: true, data: solutionsWithComments };
+}
+
 export async function addSolution(taskId: string, uploaderName: string, description: string, imageUrl: string) {
   const supabase = await createClient();
   
@@ -128,4 +174,18 @@ export async function addComment(solutionId: string, authorName: string, content
 
   revalidatePath('/kanban');
   return { success: true, data };
+}
+
+export async function getActiveTasks() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('homework_tasks')
+    .select('id, subject')
+    .neq('status', 'deleted')
+    .order('due_date', { ascending: true });
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+  return { success: true, data: data || [] };
 }
