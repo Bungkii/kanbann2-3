@@ -362,8 +362,12 @@ export function SolutionCard({ solution, deviceId, onUpdate }: { solution: any, 
       {/* Header */}
       <div className={`px-4 py-3 flex items-center justify-between border-b ${isRequest ? 'border-pink-100 bg-pink-50' : 'border-slate-100 bg-slate-50/50'}`}>
         <div className="flex items-center gap-2">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${isRequest ? 'bg-gradient-to-tr from-pink-500 to-rose-500' : 'bg-gradient-to-tr from-indigo-500 to-purple-500'}`}>
-            {solution.uploader_name.charAt(0)}
+          <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 border border-slate-200 bg-slate-100">
+            <img 
+              src={`https://api.dicebear.com/10.x/dylan/svg?seed=${encodeURIComponent(solution.uploader_name)}`} 
+              alt={solution.uploader_name}
+              className="w-full h-full object-cover" 
+            />
           </div>
           <div>
             <p className="font-bold text-sm text-slate-800 leading-none">{solution.uploader_name}</p>
@@ -437,9 +441,18 @@ export function SolutionCard({ solution, deviceId, onUpdate }: { solution: any, 
           {solution.comments && solution.comments.length > 0 ? (
             <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
               {solution.comments.map((comment: any) => (
-                <div key={comment.id} className="text-sm flex gap-2">
-                  <span className="font-bold text-slate-800 whitespace-nowrap">{comment.author_name}:</span>
-                  <span className="text-slate-700 break-words">{comment.content}</span>
+                <div key={comment.id} className="text-sm flex gap-2 items-start">
+                  <div className="w-6 h-6 rounded-full overflow-hidden shrink-0 border border-slate-200 bg-slate-100 mt-0.5">
+                    <img 
+                      src={`https://api.dicebear.com/10.x/dylan/svg?seed=${encodeURIComponent(comment.author_name)}`} 
+                      alt={comment.author_name}
+                      className="w-full h-full object-cover" 
+                    />
+                  </div>
+                  <div className="flex-1 leading-tight">
+                    <span className="font-bold text-slate-800 whitespace-nowrap mr-1.5">{comment.author_name}</span>
+                    <span className="text-slate-700 break-words">{comment.content}</span>
+                  </div>
                 </div>
               ))}
             </div>
