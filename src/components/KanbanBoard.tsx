@@ -22,6 +22,7 @@ import { updateTaskDetails } from '@/app/kanban/actions';
 import { createClient } from '@/utils/supabase/client';
 import { Users, User, Trophy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import HomeworkSolutions from './HomeworkSolutions';
 
 export type Task = {
   id: string;
@@ -47,12 +48,17 @@ export default function KanbanBoard({ initialTasks, isAuthenticated = false }: {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [modalTab, setModalTab] = useState<'details' | 'solutions'>('details');
   const [viewMode, setViewMode] = useState<'board' | 'list' | 'category'>('board');
   const [filterSubject, setFilterSubject] = useState<string>('all');
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (selectedTask) setModalTab('details');
+  }, [selectedTask?.id]);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -609,8 +615,26 @@ export default function KanbanBoard({ initialTasks, isAuthenticated = false }: {
                 </form>
               ) : (
                 <>
+                  {!isEditing && (
+                    <div className="flex gap-4 mb-6 border-b border-slate-200">
+                      <button 
+                        onClick={() => setModalTab('details')}
+                        className={`pb-3 font-bold text-sm border-b-2 transition-colors ${modalTab === 'details' ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}
+                      >
+                        รายละเอียดงาน
+                      </button>
+                      <button 
+                        onClick={() => setModalTab('solutions')}
+                        className={`pb-3 font-bold text-sm border-b-2 transition-colors flex items-center gap-1.5 ${modalTab === 'solutions' ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}
+                      >
+                        แนวทาง/ลอก 🚀
+                      </button>
+                    </div>
+                  )}
 
-              {selectedTask.image_url && (
+                  {modalTab === 'details' ? (
+                    <>
+                      {selectedTask.image_url && (
                 <div className="mb-6 rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
                   <img src={selectedTask.image_url} alt="Task attachment" className="w-full object-contain max-h-64" />
                 </div>
@@ -658,7 +682,11 @@ export default function KanbanBoard({ initialTasks, isAuthenticated = false }: {
                   </div>
                 )}
               </div>
-              </>
+                    </>
+                  ) : (
+                    <HomeworkSolutions taskId={selectedTask.id} />
+                  )}
+                </>
               )}
             </div>
             
