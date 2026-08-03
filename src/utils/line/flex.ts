@@ -1213,9 +1213,9 @@ export function createRandomQuestionFlexMessage(questionNo: number, questionText
             color: "#8B5CF6",
             height: "sm",
             action: {
-              type: "message",
-              label: "ตอบคำถามนี้",
-              text: `ตอบถาพัด: [ข้อ ${questionNo}] `,
+              type: "clipboard",
+              label: "คัดลอกคำสั่งเพื่อตอบ",
+              clipboardText: `ตอบถาพัด: [ข้อ ${questionNo}] `,
             },
           },
         ],
