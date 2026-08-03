@@ -1145,6 +1145,82 @@ export function createExamTopicFlexMessage(subject: string, teacher: string, top
           },
         ],
       },
+      },
+    },
+  };
+}
+
+export function createRandomQuestionFlexMessage(questionNo: number, questionText: string) {
+  return {
+    type: "flex" as const,
+    altText: "🎲 ถาพัดจัดให้ - สุ่มคำถาม!",
+    contents: {
+      type: "bubble",
+      size: "kilo",
+      header: {
+        type: "box",
+        layout: "vertical",
+        backgroundColor: "#8B5CF6", // Purple
+        contents: [
+          {
+            type: "text",
+            text: "🎲 ถาพัดจัดให้!",
+            weight: "bold",
+            size: "xl",
+            color: "#FFFFFF",
+          },
+          {
+            type: "text",
+            text: `คำถามข้อที่ ${questionNo}/214`,
+            color: "#DDD6FE",
+            size: "sm",
+            margin: "sm",
+          },
+        ],
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        spacing: "md",
+        paddingAll: "xl",
+        contents: [
+          {
+            type: "text",
+            text: questionText,
+            weight: "bold",
+            size: "md",
+            wrap: true,
+            color: "#1F2937",
+            align: "center",
+          },
+          {
+            type: "text",
+            text: "กดปุ่มด้านล่างเพื่อพิมพ์คำตอบ",
+            size: "xs",
+            color: "#9CA3AF",
+            align: "center",
+            margin: "xl",
+          },
+        ],
+      },
+      footer: {
+        type: "box",
+        layout: "vertical",
+        paddingAll: "md",
+        contents: [
+          {
+            type: "button",
+            style: "primary",
+            color: "#8B5CF6",
+            height: "sm",
+            action: {
+              type: "message",
+              label: "ตอบคำถามนี้",
+              text: `ตอบถาพัด: [ข้อ ${questionNo}] `,
+            },
+          },
+        ],
+      },
     },
   };
 }

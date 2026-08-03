@@ -128,6 +128,85 @@ export async function POST(request: Request) {
           await replyToLine(event.replyToken, [{ type: 'text', text: replyText }], lineToken);
           continue;
         }
+        // ถาพัดจัดให้ (Random Question)
+        if (text === 'ถาพัดจัดให้') {
+          const { RANDOM_QUESTIONS } = await import('@/utils/questions');
+          const randomIndex = Math.floor(Math.random() * RANDOM_QUESTIONS.length);
+          const questionText = RANDOM_QUESTIONS[randomIndex];
+          const questionNo = randomIndex + 1;
+          
+          const { createRandomQuestionFlexMessage } = await import('@/utils/line/flex');
+          const flexMsg = createRandomQuestionFlexMessage(questionNo, questionText);
+          await replyToLine(event.replyToken, [flexMsg], lineToken);
+          continue;
+        }
+
+        // ตอบถาพัด:
+        if (text.startsWith('ตอบถาพัด:')) {
+          const answerText = text.replace('ตอบถาพัด:', '').trim();
+          const userId = event.source.userId;
+          
+          if (!userId) {
+            await replyToLine(event.replyToken, [{ type: 'text', text: 'ไม่สามารถบันทึกคำตอบได้ กรุณาแอดบอทเป็นเพื่อนก่อนนะจ้ะ 😢' }], lineToken);
+            continue;
+          }
+
+          // Extract question number if provided in format [ข้อ X]
+          let questionNo = 0;
+          let questionText = 'ไม่ระบุ';
+          let finalAnswerText = answerText;
+          
+          const match = answerText.match(/^\[ข้อ (\d+)\]\s*(.*)$/);
+          if (match) {
+            questionNo = parseInt(match[1], 10);
+            finalAnswerText = match[2];
+            const { RANDOM_QUESTIONS } = await import('@/utils/questions');
+            if (questionNo >= 1 && questionNo <= RANDOM_QUESTIONS.length) {
+              questionText = RANDOM_QUESTIONS[questionNo - 1];
+            }
+          }
+
+          if (!finalAnswerText.trim()) {
+            await replyToLine(event.replyToken, [{ type: 'text', text: 'อย่าลืมพิมพ์คำตอบต่อท้ายด้วยน้า~ 😉' }], lineToken);
+            continue;
+          }
+
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+          const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+          const supabase = createClient(supabaseUrl, supabaseKey);
+
+          // Get user profile to get display name
+          let userName = 'Unknown';
+          try {
+            const profileRes = await fetch(`https://api.line.me/v2/bot/profile/${userId}`, {
+              headers: { Authorization: `Bearer ${lineToken}` }
+            });
+            if (profileRes.ok) {
+              const profile = await profileRes.json();
+              userName = profile.displayName;
+            }
+          } catch (e) {
+            console.error('Error fetching line profile:', e);
+          }
+
+          const { error } = await supabase
+            .from('random_questions_answers')
+            .insert({
+              user_id: userId,
+              user_name: userName,
+              question_no: questionNo,
+              question_text: questionText,
+              answer_text: finalAnswerText
+            });
+
+          if (error) {
+            console.error('Error saving random question answer:', error);
+            await replyToLine(event.replyToken, [{ type: 'text', text: 'เกิดข้อผิดพลาดในการบันทึกคำตอบ 😢' }], lineToken);
+          } else {
+            await replyToLine(event.replyToken, [{ type: 'text', text: `บันทึกคำตอบของ ${userName} เรียบร้อย! ✨` }], lineToken);
+          }
+          continue;
+        }
 
         // New funny commands
         if (text === 'พลอยจี') {

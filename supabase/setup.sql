@@ -415,3 +415,20 @@ ON CONFLICT DO NOTHING;
 -- Add mcq_count and essay_count to exam_topics
 ALTER TABLE exam_topics ADD COLUMN IF NOT EXISTS mcq_count integer DEFAULT 0;
 ALTER TABLE exam_topics ADD COLUMN IF NOT EXISTS essay_count integer DEFAULT 0;
+
+-- Create table for random questions answers
+CREATE TABLE IF NOT EXISTS random_questions_answers (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id text NOT NULL,
+    user_name text NOT NULL,
+    question_no integer NOT NULL,
+    question_text text NOT NULL,
+    answer_text text NOT NULL,
+    created_at timestamp with time zone DEFAULT now()
+);
+
+-- Enable Row Level Security for random_questions_answers
+ALTER TABLE random_questions_answers ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public all access on random_questions_answers" ON random_questions_answers;
+CREATE POLICY "Allow public all access on random_questions_answers" ON random_questions_answers FOR ALL USING (true) WITH CHECK (true);
+
