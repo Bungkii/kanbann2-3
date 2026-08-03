@@ -1145,7 +1145,6 @@ export function createExamTopicFlexMessage(subject: string, teacher: string, top
           },
         ],
       },
-      },
     },
   };
 }
