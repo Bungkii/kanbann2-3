@@ -23,5 +23,7 @@ export async function updateClassSchedule(dayOfWeek: number, period: number, sub
   }
 
   revalidatePath('/settings/schedule');
+  revalidatePath('/schedule');
+  revalidatePath('/');
   return { success: true };
 }
