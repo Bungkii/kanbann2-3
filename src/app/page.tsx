@@ -74,21 +74,12 @@ export default async function Home() {
           {renderCard(
             true,
             "/schedule",
-            <div className="bg-gradient-to-br from-amber-500 via-amber-600 to-yellow-600 rounded-3xl p-8 border border-amber-300/40 flex flex-col items-center justify-center transition-all duration-300 hover:shadow-[0_8px_30px_rgb(245,158,11,0.25)] hover:-translate-y-1 relative overflow-hidden h-full">
-              <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white opacity-20 rounded-full blur-2xl"></div>
-              <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-24 h-24 bg-white opacity-20 rounded-full blur-2xl"></div>
-              
-              <div className="bg-white/20 text-white p-4 rounded-full mb-3 group-hover:scale-110 transition-transform backdrop-blur-md">
+            <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col items-center justify-center transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1 relative overflow-hidden h-full">
+              <div className="bg-amber-50 text-amber-500 p-4 rounded-full mb-4 group-hover:scale-110 transition-transform duration-300">
                 <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="m9 16 2 2 4-4"/></svg>
               </div>
-              <h2 className="text-xl font-bold text-white mb-1.5 text-center">ตารางสอนของห้อง 3</h2>
-              <p className="text-amber-100 text-xs text-center mb-3">ดูตารางเรียน คาบ 1-8 (ม.2/3)</p>
-              <div className="bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full border border-white/30">
-                <p className="text-white text-xs font-semibold tracking-wide flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-amber-300 animate-ping"></span>
-                  เช็คคาบเรียนสด & ตารางรวม
-                </p>
-              </div>
+              <h2 className="text-xl font-bold text-slate-800 mb-1 text-center">ตารางสอนของห้อง 3</h2>
+              <p className="text-slate-500 text-center text-sm">ตารางเรียน ม.2/3 คาบ 1-8</p>
             </div>,
             "group flex-1 min-h-[160px] flex flex-col w-full"
           )}
