@@ -220,77 +220,21 @@ export default function ScheduleViewer({
           </div>
         </div>
 
-        {/* Hero Section (Matching Summaries Clean Gradient Banner) */}
+        {/* Hero Section */}
         <div className="bg-gradient-to-br from-amber-500 via-amber-600 to-orange-500 rounded-[2.5rem] p-8 md:p-14 shadow-2xl relative overflow-hidden ring-1 ring-white/20">
           <div className="absolute top-0 right-0 -mt-20 -mr-20 w-80 h-80 bg-white opacity-10 rounded-full blur-3xl pointer-events-none"></div>
           <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-80 h-80 bg-yellow-300 opacity-20 rounded-full blur-3xl pointer-events-none"></div>
 
-          <div className="relative z-10 flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
-            <div className="flex-1 text-center lg:text-left">
-              <div className="inline-flex bg-white/20 text-white p-4 rounded-2xl mb-6 backdrop-blur-md shadow-inner shadow-white/20 ring-1 ring-white/30">
-                <Calendar size={48} strokeWidth={1.5} />
-              </div>
-              <h1 className="text-4xl md:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-amber-100 mb-4 drop-shadow-sm leading-tight">
-                ตารางสอนของห้อง 3
-              </h1>
-              <p className="text-amber-100 text-lg md:text-xl max-w-2xl mx-auto lg:mx-0 font-medium leading-relaxed">
-                ตารางเรียนประจำสัปดาห์ ม.2/3 คาบที่ 1 - 8 ซิงค์ข้อมูลสดแบบเรียลไทม์
-              </p>
+          <div className="relative z-10 flex flex-col items-center sm:items-start text-center sm:text-left">
+            <div className="inline-flex bg-white/20 text-white p-4 rounded-2xl mb-6 backdrop-blur-md shadow-inner shadow-white/20 ring-1 ring-white/30">
+              <Calendar size={48} strokeWidth={1.5} />
             </div>
-
-            {/* Live Clock Status Box */}
-            <div className="bg-white/10 backdrop-blur-xl p-8 rounded-3xl border border-white/20 flex flex-col items-center w-full max-w-sm shrink-0 shadow-[0_8px_32px_0_rgba(31,38,135,0.2)]">
-              <div className="bg-amber-400/40 p-3 rounded-full mb-3 text-white">
-                <Clock size={28} />
-              </div>
-              <h2 className="font-semibold text-lg text-amber-100 mb-1 text-center">
-                {liveStatus.isWeekend 
-                  ? 'วันหยุดสุดสัปดาห์' 
-                  : (DAYS_CONFIG.find(d => d.val === liveStatus.dayOfWeek)?.fullName || 'วันเรียน')}
-              </h2>
-              <div className="text-3xl md:text-4xl font-bold text-white tracking-widest drop-shadow-md font-mono">
-                {liveStatus.timeFormatted} น.
-              </div>
-
-              <div className="mt-4 pt-3 border-t border-white/20 w-full text-center">
-                {liveStatus.isWeekend ? (
-                  <p className="text-sm font-semibold text-amber-100">
-                    🎉 วันหยุด ไม่มีคาบเรียนจ้า
-                  </p>
-                ) : liveStatus.activePeriod === 'lunch' ? (
-                  <p className="text-sm font-bold text-yellow-200">
-                    🍜 พักกลางวัน (11:40 - 12:30 น.)
-                  </p>
-                ) : liveStatus.activePeriod !== null ? (
-                  <div>
-                    <span className="text-xs text-amber-200 block">กำลังเรียนอยู่</span>
-                    <span className="text-base font-bold text-white">
-                      คาบที่ {liveStatus.activePeriod} ({liveStatus.activePeriodTimeStr})
-                    </span>
-                    {(() => {
-                      const cur = getItem(liveStatus.dayOfWeek, liveStatus.activePeriod as number);
-                      return cur?.subject ? (
-                        <div className="mt-1 inline-block bg-white text-slate-900 font-bold text-xs px-2.5 py-0.5 rounded-md shadow-sm">
-                          {cur.subject} {cur.teacher ? `(${cur.teacher})` : ''}
-                        </div>
-                      ) : null;
-                    })()}
-                  </div>
-                ) : liveStatus.beforeSchool ? (
-                  <p className="text-sm font-medium text-amber-100">
-                    🌅 ยังไม่เริ่มคาบเรียน (เริ่ม 08:10 น.)
-                  </p>
-                ) : liveStatus.afterSchool ? (
-                  <p className="text-sm font-medium text-amber-100">
-                    ✨ หมดคาบเรียนวันนี้แล้ว
-                  </p>
-                ) : (
-                  <p className="text-sm font-medium text-amber-100">
-                    ช่วงเปลี่ยนคาบเรียน
-                  </p>
-                )}
-              </div>
-            </div>
+            <h1 className="text-4xl md:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-amber-100 mb-4 drop-shadow-sm leading-tight">
+              ตารางสอนของห้อง 3
+            </h1>
+            <p className="text-amber-100 text-lg md:text-xl max-w-2xl font-medium leading-relaxed">
+              ตารางเรียนประจำสัปดาห์ ม.2/3 คาบที่ 1 - 8 ซิงค์ข้อมูลสดแบบเรียลไทม์
+            </p>
           </div>
         </div>
 
