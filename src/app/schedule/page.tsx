@@ -1,6 +1,5 @@
 import { createClient } from '@/utils/supabase/server';
 import ScheduleViewer, { ScheduleRow } from './ScheduleViewer';
-import PageTransition from '@/components/PageTransition';
 import { Metadata } from 'next';
 
 export const revalidate = 0;
@@ -34,9 +33,5 @@ export default async function SchedulePage() {
     console.error('Error in SchedulePage server component:', err);
   }
 
-  return (
-    <PageTransition className="min-h-screen bg-slate-50 flex flex-col items-center">
-      <ScheduleViewer initialSchedule={schedule} isLoggedIn={isLoggedIn} />
-    </PageTransition>
-  );
+  return <ScheduleViewer initialSchedule={schedule} isLoggedIn={isLoggedIn} />;
 }
