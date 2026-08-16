@@ -47,6 +47,21 @@ export default function ScheduleViewer({
   // Real-time status state
   const [liveStatus, setLiveStatus] = useState(() => getCurrentScheduleStatus());
 
+  // Auto-detect mobile (< 768px) -> 'cards' (มุมมองรายวัน), desktop (>= 768px) -> 'table' (ตารางรวมทั้งสัปดาห์)
+  useEffect(() => {
+    const handleInitialView = () => {
+      if (typeof window !== 'undefined') {
+        if (window.innerWidth < 768) {
+          setViewMode('cards');
+        } else {
+          setViewMode('table');
+        }
+      }
+    };
+
+    handleInitialView();
+  }, []);
+
   // Update live status every 5 seconds
   useEffect(() => {
     const interval = setInterval(() => {
@@ -638,13 +653,20 @@ export default function ScheduleViewer({
                       <div>
                         {/* Period & Time header */}
                         <div className="flex items-center justify-between mb-2.5">
-                          <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
-                            isCurrentPeriod 
-                              ? 'bg-amber-500 text-white' 
-                              : 'bg-slate-100 text-slate-600'
-                          }`}>
-                            คาบที่ {p.period}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
+                              isCurrentPeriod 
+                                ? 'bg-amber-500 text-white' 
+                                : 'bg-slate-100 text-slate-600'
+                            }`}>
+                              คาบที่ {p.period}
+                            </span>
+                            {isCurrentPeriod && (
+                              <span className="text-[10px] font-bold bg-slate-900 text-amber-300 px-2 py-0.5 rounded-full">
+                                📍 ตอนนี้
+                              </span>
+                            )}
+                          </div>
                           <span className="text-xs font-mono text-slate-400">
                             {p.start} - {p.end} น.
                           </span>
