@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, 
   Calendar, 
@@ -15,7 +15,10 @@ import {
   Layers, 
   Coffee, 
   User,
-  Sparkles
+  X,
+  BookOpen,
+  Sparkles,
+  Info
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import toast from 'react-hot-toast';
@@ -29,6 +32,14 @@ export type ScheduleRow = {
   teacher: string | null;
 };
 
+type SelectedPeriodDetail = {
+  dayVal: number;
+  period: number | 'lunch';
+  subject?: string;
+  teacher?: string | null;
+  timeStr: string;
+};
+
 export default function ScheduleViewer({ 
   initialSchedule, 
   isLoggedIn 
@@ -40,6 +51,7 @@ export default function ScheduleViewer({
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   const [selectedDay, setSelectedDay] = useState<number>(1);
   const [manualHighlightedPeriod, setManualHighlightedPeriod] = useState<number | 'lunch' | null>(null);
+  const [selectedPeriodDetail, setSelectedPeriodDetail] = useState<SelectedPeriodDetail | null>(null);
   const [copied, setCopied] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -137,6 +149,30 @@ export default function ScheduleViewer({
     return schedule.find(s => s.day_of_week === day && s.period === period);
   };
 
+  // Open modal for a period
+  const handleOpenPeriodModal = (dayVal: number, period: number | 'lunch') => {
+    if (period === 'lunch') {
+      setSelectedPeriodDetail({
+        dayVal,
+        period: 'lunch',
+        subject: 'พักรับประทานอาหารกลางวัน',
+        teacher: null,
+        timeStr: LUNCH_PERIOD.timeStr,
+      });
+      return;
+    }
+
+    const item = getItem(dayVal, period);
+    const periodObj = CLASS_PERIODS.find(p => p.period === period);
+    setSelectedPeriodDetail({
+      dayVal,
+      period,
+      subject: item?.subject || '',
+      teacher: item?.teacher || null,
+      timeStr: periodObj ? `${periodObj.start} - ${periodObj.end} น.` : '',
+    });
+  };
+
   // Effective highlighted period
   const currentHighlightedPeriod = manualHighlightedPeriod !== null 
     ? manualHighlightedPeriod 
@@ -179,7 +215,7 @@ export default function ScheduleViewer({
     >
       <div className="max-w-6xl mx-auto space-y-6">
         
-        {/* Header & Navigation (Matching Summaries style) */}
+        {/* Header & Navigation */}
         <div className="flex items-center justify-between mb-2">
           <Link
             href="/"
@@ -233,12 +269,12 @@ export default function ScheduleViewer({
               ตารางสอนของห้อง 3
             </h1>
             <p className="text-amber-100 text-lg md:text-xl max-w-2xl font-medium leading-relaxed">
-              ตารางเรียนประจำสัปดาห์ ม.2/3 คาบที่ 1 - 8 ซิงค์ข้อมูลสดแบบเรียลไทม์
+              ตารางเรียนประจำสัปดาห์ ม.2/3 คาบที่ 1 - 8 ซิงค์ข้อมูลสดแบบเรียลไทม์ (คลิกที่คาบเพื่อดูรายละเอียด)
             </p>
           </div>
         </div>
 
-        {/* Clean Filter Controls (Matching Summaries Filter Row) */}
+        {/* Clean Filter Controls */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2 bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm w-fit">
             <button
@@ -267,7 +303,7 @@ export default function ScheduleViewer({
 
           <div className="flex items-center gap-2 text-xs text-slate-500 font-medium self-end sm:self-center bg-white px-3.5 py-2 rounded-xl border border-slate-200 shadow-sm">
             <span className="w-3 h-3 rounded bg-amber-300 border border-amber-400 inline-block shrink-0"></span>
-            <span>แถบสีเหลืองแนวตั้ง = คาบเรียนปัจจุบัน (คลิกที่หัวคาบเพื่อเลือกได้)</span>
+            <span>แถบสีเหลืองแนวตั้ง = คาบเรียนปัจจุบัน (คลิกที่คาบเพื่อดูรายละเอียด)</span>
             {manualHighlightedPeriod !== null && (
               <button
                 onClick={() => setManualHighlightedPeriod(null)}
@@ -305,7 +341,7 @@ export default function ScheduleViewer({
                               ? 'bg-amber-300 text-slate-900 font-bold border-amber-400 shadow-sm z-10'
                               : 'bg-slate-50 text-slate-700 font-semibold border-slate-200 hover:bg-slate-100'
                           }`}
-                          title={`คลิกเพื่อไฮไลท์คาบที่ ${p.period}`}
+                          title={`คลิกเพื่อเลือกคาบที่ ${p.period}`}
                         >
                           <div className="flex flex-col items-center">
                             {isColHighlighted && (
@@ -357,7 +393,7 @@ export default function ScheduleViewer({
                               ? 'bg-amber-300 text-slate-900 font-bold border-amber-400 shadow-sm z-10'
                               : 'bg-slate-50 text-slate-700 font-semibold border-slate-200 hover:bg-slate-100'
                           }`}
-                          title={`คลิกเพื่อไฮไลท์คาบที่ ${p.period}`}
+                          title={`คลิกเพื่อเลือกคาบที่ ${p.period}`}
                         >
                           <div className="flex flex-col items-center">
                             {isColHighlighted && (
@@ -410,13 +446,15 @@ export default function ScheduleViewer({
                           return (
                             <td
                               key={p.period}
-                              className={`p-2.5 border transition-all align-top h-24 min-w-[115px] max-w-[145px] ${
+                              onClick={() => handleOpenPeriodModal(day.val, p.period)}
+                              className={`p-2.5 border transition-all align-top h-24 min-w-[115px] max-w-[145px] cursor-pointer hover:shadow-md ${
                                 isExactCurrentCell
                                   ? 'bg-amber-200 text-slate-900 border-amber-300 font-bold z-10'
                                   : isColHighlighted
-                                  ? 'bg-amber-50/90 border-amber-200 text-slate-800'
-                                  : 'border-slate-200 bg-white'
+                                  ? 'bg-amber-50/90 border-amber-200 text-slate-800 hover:bg-amber-100'
+                                  : 'border-slate-200 bg-white hover:bg-slate-50'
                               }`}
+                              title="คลิกเพื่อดูรายละเอียดคาบเรียน"
                             >
                               <div className="flex flex-col h-full justify-between items-center text-center">
                                 {isExactCurrentCell && (
@@ -450,11 +488,13 @@ export default function ScheduleViewer({
 
                         {/* Lunch Column Cell */}
                         <td
-                          className={`p-2 border transition-all text-center align-middle ${
+                          onClick={() => handleOpenPeriodModal(day.val, 'lunch')}
+                          className={`p-2 border transition-all text-center align-middle cursor-pointer hover:bg-amber-100 ${
                             currentHighlightedPeriod === 'lunch'
                               ? 'bg-amber-100 border-amber-300 text-amber-900 font-semibold'
                               : 'bg-slate-50/50 border-slate-200 text-slate-400'
                           }`}
+                          title="คลิกเพื่อดูรายละเอียดช่วงพักกลางวัน"
                         >
                           <div className="flex flex-col items-center justify-center py-2 text-xs">
                             <Coffee size={14} className={currentHighlightedPeriod === 'lunch' ? 'text-amber-700' : 'text-slate-400'} />
@@ -472,15 +512,17 @@ export default function ScheduleViewer({
                           return (
                             <td
                               key={p.period}
-                              className={`p-2.5 border transition-all align-top h-24 min-w-[115px] max-w-[145px] ${
+                              onClick={() => handleOpenPeriodModal(day.val, p.period)}
+                              className={`p-2.5 border transition-all align-top h-24 min-w-[115px] max-w-[145px] cursor-pointer hover:shadow-md ${
                                 isLastCell ? 'rounded-br-2xl' : ''
                               } ${
                                 isExactCurrentCell
                                   ? 'bg-amber-200 text-slate-900 border-amber-300 font-bold z-10'
                                   : isColHighlighted
-                                  ? 'bg-amber-50/90 border-amber-200 text-slate-800'
-                                  : 'border-slate-200 bg-white'
+                                  ? 'bg-amber-50/90 border-amber-200 text-slate-800 hover:bg-amber-100'
+                                  : 'border-slate-200 bg-white hover:bg-slate-50'
                               }`}
+                              title="คลิกเพื่อดูรายละเอียดคาบเรียน"
                             >
                               <div className="flex flex-col h-full justify-between items-center text-center">
                                 {isExactCurrentCell && (
@@ -570,7 +612,10 @@ export default function ScheduleViewer({
                   <div key={p.period} className="flex flex-col">
                     {/* Lunch break card */}
                     {p.period === 5 && (
-                      <div className="col-span-full mb-4 bg-amber-50/80 border border-amber-200 rounded-2xl p-4 flex items-center justify-between text-amber-900 shadow-sm">
+                      <div 
+                        onClick={() => handleOpenPeriodModal(selectedDay, 'lunch')}
+                        className="col-span-full mb-4 bg-amber-50/80 border border-amber-200 rounded-2xl p-4 flex items-center justify-between text-amber-900 shadow-sm cursor-pointer hover:bg-amber-100 transition-colors"
+                      >
                         <div className="flex items-center gap-3">
                           <div className="bg-amber-100 text-amber-800 p-2.5 rounded-xl">
                             <Coffee size={20} />
@@ -588,7 +633,8 @@ export default function ScheduleViewer({
 
                     {/* Period Card */}
                     <div
-                      className={`rounded-2xl p-5 border transition-all duration-200 flex flex-col justify-between h-full bg-white ${
+                      onClick={() => handleOpenPeriodModal(selectedDay, p.period)}
+                      className={`rounded-2xl p-5 border transition-all duration-200 flex flex-col justify-between h-full bg-white cursor-pointer ${
                         isCurrentPeriod
                           ? 'border-amber-400 ring-2 ring-amber-300 shadow-md bg-amber-50/30'
                           : 'border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300'
@@ -640,6 +686,170 @@ export default function ScheduleViewer({
         )}
 
       </div>
+
+      {/* ========================================================================= */}
+      {/* PERIOD DETAIL MODAL (แบบหน้าพริมง่วงทวงบุญคุณ) */}
+      {/* ========================================================================= */}
+      <AnimatePresence>
+        {selectedPeriodDetail && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+              onClick={() => setSelectedPeriodDetail(null)}
+            />
+
+            {/* Modal Dialog Content */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh] z-10 relative"
+            >
+              <div className="p-6 overflow-y-auto">
+                {/* Modal Header */}
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`text-xs font-bold px-3 py-1 rounded-full ${
+                      DAYS_CONFIG.find(d => d.val === selectedPeriodDetail.dayVal)?.headerBg || 'bg-amber-500 text-white'
+                    }`}>
+                      {DAYS_CONFIG.find(d => d.val === selectedPeriodDetail.dayVal)?.fullName}
+                    </span>
+                    <span className="bg-slate-100 text-slate-700 text-xs font-bold px-3 py-1 rounded-full">
+                      {selectedPeriodDetail.period === 'lunch' 
+                        ? 'พักกลางวัน' 
+                        : `คาบที่ ${selectedPeriodDetail.period}`}
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={() => setSelectedPeriodDetail(null)}
+                    className="text-slate-400 hover:bg-slate-100 p-2 rounded-full transition-colors shrink-0"
+                    title="ปิด"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+
+                {/* Subject Title */}
+                <h3 className="text-2xl font-bold text-slate-800 mb-6">
+                  {selectedPeriodDetail.subject || 'ไม่มีคาบเรียน'}
+                </h3>
+
+                {/* Details Section (Kanban Card Style) */}
+                <div className="bg-amber-50/50 border border-amber-100 rounded-2xl p-5 mb-6">
+                  <h4 className="text-sm font-bold text-amber-900 mb-2 flex items-center gap-2">
+                    <BookOpen size={16} className="text-amber-600" />
+                    รายละเอียดคาบเรียน
+                  </h4>
+                  <p className="text-slate-700 leading-relaxed text-sm">
+                    {selectedPeriodDetail.period === 'lunch'
+                      ? 'ช่วงเวลาพักรับประทานอาหารกลางวันและพักผ่อนของนักเรียนห้อง ม.2/3'
+                      : selectedPeriodDetail.subject
+                      ? `วิชา ${selectedPeriodDetail.subject} ประจำ${DAYS_CONFIG.find(d => d.val === selectedPeriodDetail.dayVal)?.fullName || ''}`
+                      : 'คาบนี้ยังไม่มีการลงบันทึกวิชาเรียนในระบบ'}
+                  </p>
+                </div>
+
+                {/* Detail Grid (Kanban Style Grid) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                  {/* Time Card */}
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col justify-center">
+                    <span className="text-slate-500 block mb-1 font-medium text-xs uppercase tracking-wider flex items-center gap-1.5">
+                      <Clock size={14} className="text-slate-400" /> เวลาเรียน
+                    </span>
+                    <span className="font-bold text-slate-800 text-base">
+                      {selectedPeriodDetail.timeStr}
+                    </span>
+                  </div>
+
+                  {/* Teacher Card */}
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col justify-center">
+                    <span className="text-slate-500 block mb-1 font-medium text-xs uppercase tracking-wider flex items-center gap-1.5">
+                      <User size={14} className="text-slate-400" /> คุณครูผู้สอน
+                    </span>
+                    <span className="font-bold text-slate-800 text-base">
+                      {selectedPeriodDetail.teacher || (selectedPeriodDetail.period === 'lunch' ? '—' : 'ไม่ระบุชื่อครู')}
+                    </span>
+                  </div>
+
+                  {/* Day Info Card */}
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex flex-col justify-center">
+                    <span className="text-amber-700 block mb-1 font-medium text-xs uppercase tracking-wider flex items-center gap-1.5">
+                      <Calendar size={14} className="text-amber-600" /> วันเรียน
+                    </span>
+                    <span className="font-bold text-amber-900 text-base">
+                      {DAYS_CONFIG.find(d => d.val === selectedPeriodDetail.dayVal)?.fullName} (ม.2/3)
+                    </span>
+                  </div>
+
+                  {/* Status Card */}
+                  <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 flex flex-col justify-center">
+                    <span className="text-indigo-600 block mb-1 font-medium text-xs uppercase tracking-wider flex items-center gap-1.5">
+                      <Sparkles size={14} className="text-indigo-500" /> สถานะคาบ
+                    </span>
+                    <span className="font-bold text-indigo-900 text-base">
+                      {liveStatus.dayOfWeek === selectedPeriodDetail.dayVal && liveStatus.activePeriod === selectedPeriodDetail.period ? (
+                        <span className="text-emerald-600 flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                          กำลังเรียนอยู่ขณะนี้
+                        </span>
+                      ) : liveStatus.dayOfWeek === selectedPeriodDetail.dayVal ? (
+                        'คาบเรียนของวันนี้'
+                      ) : (
+                        'ตามตารางสอนปกติ'
+                      )}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="border-t border-slate-100 p-4 bg-slate-50 flex justify-between items-center gap-3 shrink-0">
+                {isLoggedIn ? (
+                  <Link
+                    href="/settings/schedule"
+                    className="px-5 py-2.5 bg-white border border-indigo-200 text-indigo-700 font-medium rounded-xl hover:bg-indigo-50 transition-colors shadow-sm flex items-center gap-2 text-sm"
+                  >
+                    <Edit3 size={16} />
+                    แก้ไขตาราง
+                  </Link>
+                ) : <div />}
+
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => {
+                      const dayName = DAYS_CONFIG.find(d => d.val === selectedPeriodDetail.dayVal)?.fullName || '';
+                      const subj = selectedPeriodDetail.subject || 'ไม่มีวิชา';
+                      const teach = selectedPeriodDetail.teacher ? ` (${selectedPeriodDetail.teacher})` : '';
+                      const periodText = selectedPeriodDetail.period === 'lunch' ? 'พักกลางวัน' : `คาบ ${selectedPeriodDetail.period}`;
+                      const text = `📅 ${dayName} | ${periodText} [${selectedPeriodDetail.timeStr}]: ${subj}${teach}`;
+                      navigator.clipboard.writeText(text);
+                      toast.success('คัดลอกข้อมูลคาบเรียนแล้ว');
+                    }}
+                    className="px-5 py-2.5 bg-white border border-slate-300 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors shadow-sm flex items-center gap-2 text-sm cursor-pointer"
+                  >
+                    <Copy size={16} />
+                    คัดลอก
+                  </button>
+                  <button
+                    onClick={() => setSelectedPeriodDetail(null)}
+                    className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-medium rounded-xl transition-colors shadow-sm text-sm cursor-pointer"
+                  >
+                    ปิดหน้าต่าง
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </motion.main>
   );
 }
