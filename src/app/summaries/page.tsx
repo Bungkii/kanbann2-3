@@ -23,6 +23,7 @@ type SummaryData = {
   uploader_name?: string;
   attachment_type?: string;
   link_url?: string;
+  term?: string;
   created_at: string;
 };
 
@@ -198,10 +199,10 @@ export default function SummariesPage() {
                 <BookOpen size={48} strokeWidth={1.5} />
               </div>
               <h1 className="text-4xl md:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-rose-100 mb-6 drop-shadow-sm leading-tight">
-                คลังสรุปสอบ<br className="hidden md:block" />กลางภาค 1/69
+                คลังสรุปสอบ<br className="hidden md:block" />ปลายภาค 1/69
               </h1>
               <p className="text-rose-100 text-lg md:text-xl max-w-2xl mx-auto lg:mx-0 mb-8 font-medium leading-relaxed">
-                จุดรวมสรุปเนื้อหาสอบกลางภาค อ่านฟรี โหลดฟรี เพื่อห้อง 3 ทุกท่าน แชร์สรุปของคุณเพื่อช่วยเพื่อนๆ ได้เลย!
+                จุดรวมสรุปเนื้อหาสอบปลายภาค อ่านฟรี โหลดฟรี เพื่อห้อง 3 ทุกท่าน แชร์สรุปของคุณเพื่อช่วยเพื่อนๆ ได้เลย!
               </p>
             </div>
 
@@ -211,7 +212,7 @@ export default function SummariesPage() {
               </div>
               <h2 className="font-semibold text-xl text-rose-100 mb-3 text-center">นับถอยหลังวันสอบ</h2>
               <div className="text-3xl md:text-4xl font-bold text-white tracking-widest drop-shadow-md">
-                <Countdown date="2026-07-13T00:00:00+07:00" />
+                <Countdown date="2026-09-22T00:00:00+07:00" />
               </div>
             </div>
           </div>
@@ -355,7 +356,7 @@ export default function SummariesPage() {
                           {normalizeSubject(summary.subject)}
                         </span>
                         <span className="bg-sky-50 text-sky-600 text-xs font-semibold px-2.5 py-1 rounded-full">
-                          กลางภาค เทอม 1
+                          เทอม {summary.term || '1/69'}
                         </span>
                         {summary.uploader_name && (
                           <span className="bg-indigo-50 text-indigo-600 text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1">

@@ -141,6 +141,49 @@ export async function setFundsBalanceAdjustment(amount: number) {
   return { success: true }
 }
 
+export async function getFundsSettings() {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('system_settings')
+    .select('key, value')
+    .in('key', ['funds_start_date', 'funds_end_date'])
+    
+  let startDate = null
+  let endDate = null
+  
+  data?.forEach(item => {
+    if (item.key === 'funds_start_date') startDate = item.value
+    if (item.key === 'funds_end_date') endDate = item.value
+  })
+  
+  return { startDate, endDate }
+}
+
+export async function setFundsSettings(startDate: string, endDate: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'กรุณาล็อกอินก่อน' }
+  
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+  const { createClient: createSupabaseClient } = await import('@supabase/supabase-js')
+  const adminSupabase = createSupabaseClient(supabaseUrl, supabaseKey)
+  
+  const updates = [
+    { key: 'funds_start_date', value: startDate },
+    { key: 'funds_end_date', value: endDate }
+  ]
+  
+  const { error } = await adminSupabase
+    .from('system_settings')
+    .upsert(updates)
+    
+  if (error) return { error: error.message }
+  
+  revalidatePath('/funds')
+  return { success: true }
+}
+
 export async function toggleFundStatus(weekStartDate: string, studentNumber: number, isPaid: boolean, amount: number = 20) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

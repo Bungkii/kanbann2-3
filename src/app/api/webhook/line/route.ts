@@ -337,6 +337,14 @@ export async function POST(request: Request) {
           await replyToLine(event.replyToken, [flexMsg], lineToken);
           continue;
         }
+        if (text === 'คู่มือตาลทวงยับ') {
+          const { createTarnManualFlexMessage } = await import('@/utils/line/flex');
+          const pdfUrl = 'https://kanbann.bungkii.vercel.app/manual-tarn.pdf'; // Placeholder URL
+          const flexMsg = createTarnManualFlexMessage(pdfUrl);
+          await replyToLine(event.replyToken, [flexMsg], lineToken);
+          continue;
+        }
+
         if (text === 'ตาล ทวงเงิน' || text === 'ตาลจ๋า ทวงเงิน' || text === 'ตาลทวงทำไม' || text === 'ตาลทวงยับ') {
           const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
           const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder';
@@ -370,7 +378,21 @@ export async function POST(request: Request) {
             .select('amount')
             .eq('is_paid', true);
           
-          const totalFunds = (allFundsData || []).reduce((acc: number, f: any) => acc + Number(f.amount), 0);
+          const sumPaid = (allFundsData || []).reduce((acc: number, f: any) => acc + Number(f.amount), 0);
+
+          const { data: adjData } = await supabase
+            .from('system_settings')
+            .select('value')
+            .eq('key', 'funds_balance_adjustment')
+            .single();
+          const adjustment = Number(adjData?.value) || 0;
+
+          const { data: expensesData } = await supabase
+            .from('class_expenses')
+            .select('amount');
+          const sumExpenses = (expensesData || []).reduce((acc: number, item: any) => acc + Number(item.amount), 0);
+
+          const totalFunds = sumPaid + adjustment - sumExpenses;
 
           const { createFundsFlexMessage } = await import('@/utils/line/flex');
           const weekLabel = new Date(weekStart).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });

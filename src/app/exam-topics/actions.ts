@@ -10,6 +10,7 @@ export type ExamTopic = {
   topics: string[];
   mcq_count: number;
   essay_count: number;
+  term?: string;
   created_at?: string;
   updated_at?: string;
 };
@@ -42,6 +43,7 @@ export async function addExamTopic(formData: FormData) {
   const topicsString = formData.get('topics') as string;
   const mcqCountStr = formData.get('mcq_count') as string;
   const essayCountStr = formData.get('essay_count') as string;
+  const term = formData.get('term') as string;
 
   if (!subject || !teacher || !topicsString) {
     return { success: false, error: 'กรุณากรอกข้อมูลให้ครบถ้วน' };
@@ -59,7 +61,8 @@ export async function addExamTopic(formData: FormData) {
       teacher,
       topics,
       mcq_count,
-      essay_count
+      essay_count,
+      term: term || '1/69'
     });
 
   if (error) {
@@ -85,6 +88,7 @@ export async function updateExamTopic(id: string, formData: FormData) {
   const topicsString = formData.get('topics') as string;
   const mcqCountStr = formData.get('mcq_count') as string;
   const essayCountStr = formData.get('essay_count') as string;
+  const term = formData.get('term') as string;
 
   if (!subject || !teacher || !topicsString) {
     return { success: false, error: 'กรุณากรอกข้อมูลให้ครบถ้วน' };
@@ -103,6 +107,7 @@ export async function updateExamTopic(id: string, formData: FormData) {
       topics,
       mcq_count,
       essay_count,
+      term: term || '1/69',
       updated_at: new Date().toISOString()
     })
     .eq('id', id);

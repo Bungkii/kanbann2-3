@@ -1223,3 +1223,77 @@ export function createRandomQuestionFlexMessage(questionNo: number, questionText
     },
   };
 }
+
+export function createTarnManualFlexMessage(pdfUrl: string) {
+  return {
+    type: "flex" as const,
+    altText: "คู่มือตาลทวงยับ",
+    contents: {
+      type: "bubble",
+      size: "mega",
+      header: {
+        type: "box",
+        layout: "vertical",
+        backgroundColor: "#DC2626", // Red
+        contents: [
+          {
+            type: "text",
+            text: "🤬 คู่มือตาลทวงยับ",
+            weight: "bold",
+            size: "xl",
+            color: "#FFFFFF",
+          },
+          {
+            type: "text",
+            text: "ทำความรู้จักกับระบบทวงเงินสุดโหด",
+            color: "#FEE2E2",
+            size: "sm",
+            margin: "sm",
+          },
+        ],
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        spacing: "md",
+        paddingAll: "xl",
+        contents: [
+          {
+            type: "text",
+            text: "ระบบนี้สร้างขึ้นมาเพื่อช่วย ตาล ทวงเงินเพื่อนๆ ที่ชอบลืมจ่ายเงินห้อง",
+            weight: "bold",
+            size: "md",
+            wrap: true,
+            color: "#1F2937",
+          },
+          {
+            type: "text",
+            text: "ใครยังไม่จ่ายเตรียมตัวโดนทวงยับได้เลย 💸🔥",
+            size: "sm",
+            wrap: true,
+            color: "#4B5563",
+            margin: "md",
+          },
+        ],
+      },
+      footer: {
+        type: "box",
+        layout: "vertical",
+        paddingAll: "md",
+        contents: [
+          {
+            type: "button",
+            style: "primary",
+            color: "#DC2626",
+            height: "sm",
+            action: {
+              type: "uri",
+              label: "📖 เปิดอ่านคู่มือ (PDF)",
+              uri: pdfUrl,
+            },
+          },
+        ],
+      },
+    },
+  };
+}

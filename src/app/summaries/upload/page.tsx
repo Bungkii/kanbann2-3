@@ -28,6 +28,7 @@ export default function UploadSummaryPage() {
   const [title, setTitle] = useState('');
   const [subject, setSubject] = useState('');
   const [customSubject, setCustomSubject] = useState('');
+  const [term, setTerm] = useState('1/69');
   const [uploaderName, setUploaderName] = useState('');
   const [description, setDescription] = useState('');
   const [attachmentType, setAttachmentType] = useState<'file' | 'link'>('file');
@@ -175,18 +176,19 @@ export default function UploadSummaryPage() {
           uploadedUrls.push(publicUrl);
         }
 
-        const { error: dbError } = await supabase
-          .from('exam_summaries')
-          .insert({
-            title: title.trim(),
-            subject: subjectValue,
-            description: description.trim(),
-            file_url: uploadedUrls[0] || '',
-            file_urls: uploadedUrls,
-            uploader_id: user.id,
-            uploader_name: uploaderName.trim() || null,
-            attachment_type: 'file',
-          });
+          const { error: dbError } = await supabase
+            .from('exam_summaries')
+            .insert({
+              title: title.trim(),
+              subject: subjectValue,
+              description: description.trim(),
+              file_url: uploadedUrls[0] || '',
+              file_urls: uploadedUrls,
+              uploader_id: user.id,
+              uploader_name: uploaderName.trim() || null,
+              attachment_type: 'file',
+              term: term,
+            });
 
         if (dbError) throw dbError;
       } else {
@@ -203,6 +205,7 @@ export default function UploadSummaryPage() {
             uploader_name: uploaderName.trim() || null,
             attachment_type: 'link',
             link_url: linkUrl.trim(),
+            term: term,
           });
 
         if (dbError) throw dbError;
@@ -290,6 +293,28 @@ export default function UploadSummaryPage() {
                   required
                 />
               )}
+            </div>
+
+            {/* Term Dropdown */}
+            <div>
+              <label htmlFor="term" className="block text-sm font-medium text-slate-700 mb-2">
+                เทอม/ภาคเรียน <span className="text-rose-500">*</span>
+              </label>
+              <div className="relative">
+                <select
+                  id="term"
+                  value={term}
+                  onChange={(e) => setTerm(e.target.value)}
+                  className="w-full appearance-none px-4 py-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all pr-10 cursor-pointer bg-white"
+                  required
+                >
+                  <option value="1/69">1/69</option>
+                  <option value="2/69">2/69</option>
+                  <option value="1/70">1/70</option>
+                  <option value="2/70">2/70</option>
+                </select>
+                <ChevronDown size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              </div>
             </div>
 
             {/* By (Uploader Name) */}

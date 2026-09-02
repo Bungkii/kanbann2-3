@@ -28,7 +28,8 @@ export default function ManageClient({ initialTopics }: { initialTopics: ExamTop
     teacher: '',
     topicsStr: '',
     mcqCount: 0,
-    essayCount: 0
+    essayCount: 0,
+    term: '1/69'
   });
 
   const handleEdit = (topic: ExamTopic) => {
@@ -46,14 +47,15 @@ export default function ManageClient({ initialTopics }: { initialTopics: ExamTop
       teacher: topic.teacher,
       topicsStr,
       mcqCount: topic.mcq_count || 0,
-      essayCount: topic.essay_count || 0
+      essayCount: topic.essay_count || 0,
+      term: topic.term || '1/69'
     });
     setErrorMsg('');
     setIsEditing(topic.id);
   };
 
   const handleAddNew = () => {
-    setFormData({ subject: '', teacher: '', topicsStr: '', mcqCount: 0, essayCount: 0 });
+    setFormData({ subject: '', teacher: '', topicsStr: '', mcqCount: 0, essayCount: 0, term: '1/69' });
     setErrorMsg('');
     setIsEditing('new');
   };
@@ -74,6 +76,7 @@ export default function ManageClient({ initialTopics }: { initialTopics: ExamTop
     fd.append('topics', formData.topicsStr);
     fd.append('mcq_count', formData.mcqCount.toString());
     fd.append('essay_count', formData.essayCount.toString());
+    fd.append('term', formData.term);
 
     let res;
     if (isEditing === 'new') {
@@ -174,6 +177,21 @@ export default function ManageClient({ initialTopics }: { initialTopics: ExamTop
                   placeholder="เช่น มิสเสาวลักษณ์"
                 />
               </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">เทอม/ภาคเรียน</label>
+                <select
+                  required
+                  value={formData.term}
+                  onChange={(e) => setFormData({...formData, term: e.target.value})}
+                  className="w-full appearance-none bg-slate-50/50 border border-slate-200 rounded-2xl px-5 py-3 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-medium cursor-pointer"
+                >
+                  <option value="1/69">1/69</option>
+                  <option value="2/69">2/69</option>
+                  <option value="1/70">1/70</option>
+                  <option value="2/70">2/70</option>
+                </select>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -268,6 +286,9 @@ export default function ManageClient({ initialTopics }: { initialTopics: ExamTop
                     <h3 className="font-bold text-xl text-slate-800 group-hover:text-indigo-700 transition-colors">{topic.subject}</h3>
                     <span className="text-sm bg-indigo-50 border border-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-semibold">
                       ครูผู้สอน: {topic.teacher}
+                    </span>
+                    <span className="text-sm bg-purple-50 border border-purple-100 text-purple-700 px-3 py-1 rounded-full font-semibold">
+                      เทอม: {topic.term || '1/69'}
                     </span>
                     {((topic.mcq_count ?? 0) > 0 || (topic.essay_count ?? 0) > 0) ? (
                       <div className="flex gap-2">

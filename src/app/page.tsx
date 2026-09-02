@@ -144,10 +144,10 @@ export default async function Home() {
               <div className="bg-white/20 text-white p-4 rounded-full mb-4 group-hover:scale-110 transition-transform backdrop-blur-md">
                 <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
               </div>
-              <h2 className="text-xl font-bold text-white mb-2 text-center">แจกสรุปสอบกลางภาค 1/69</h2>
+              <h2 className="text-xl font-bold text-white mb-2 text-center">แจกสรุปสอบปลายภาค 1/69</h2>
               <div className="bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full mt-2 border border-white/30">
                 <p className="text-white text-xs font-medium tracking-wide">
-                  <Countdown date="2026-07-13T00:00:00+07:00" />
+                  <Countdown date="2026-09-22T00:00:00+07:00" />
                 </p>
               </div>
             </div>,
@@ -165,7 +165,7 @@ export default async function Home() {
               <div className="bg-white/20 text-white p-4 rounded-full mb-4 group-hover:scale-110 transition-transform backdrop-blur-md">
                 <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M8 7h6"/><path d="M8 11h8"/></svg>
               </div>
-              <h2 className="text-xl font-bold text-white mb-2 text-center">เนื้อหาออกสอบกลางภาค 1/69</h2>
+              <h2 className="text-xl font-bold text-white mb-2 text-center">เนื้อหาออกสอบปลายภาค 1/69</h2>
               <div className="bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full mt-2 border border-white/30">
                 <p className="text-white text-xs font-medium tracking-wide">
                   ดูหัวข้อสอบทั้งหมด

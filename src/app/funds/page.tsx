@@ -1,5 +1,5 @@
 import FundsClient from './FundsClient'
-import { getFundsForWeek, getFundsData, getExpenses } from './actions'
+import { getFundsForWeek, getFundsData, getExpenses, getFundsSettings } from './actions'
 import { createClient } from '@/utils/supabase/server'
 import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
@@ -27,6 +27,7 @@ export default async function FundsPage(props: { searchParams: Promise<{ week?: 
   const fundsData = await getFundsForWeek(weekStart)
 
   const expenses = await getExpenses()
+  const settings = await getFundsSettings()
 
   return (
     <div className="min-h-screen bg-slate-50 relative">
@@ -45,6 +46,7 @@ export default async function FundsPage(props: { searchParams: Promise<{ week?: 
         currentWeekStart={currentWeekStart}
         fundsData={fundsData}
         expenses={expenses}
+        settings={settings}
       />
     </div>
   )

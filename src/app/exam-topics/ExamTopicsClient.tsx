@@ -39,6 +39,7 @@ export default function ExamTopicsClient({ topics: initialTopics, isLoggedIn }: 
     topicsStr: '',
     mcqCount: 0,
     essayCount: 0,
+    term: '1/69',
   });
 
   // Lock body scroll when drawer is open
@@ -52,7 +53,7 @@ export default function ExamTopicsClient({ topics: initialTopics, isLoggedIn }: 
   }, [drawerOpen]);
 
   const openAddNew = () => {
-    setFormData({ subject: '', teacher: '', topicsStr: '', mcqCount: 0, essayCount: 0 });
+    setFormData({ subject: '', teacher: '', topicsStr: '', mcqCount: 0, essayCount: 0, term: '1/69' });
     setErrorMsg('');
     setEditingId('new');
     setDrawerOpen(true);
@@ -73,6 +74,7 @@ export default function ExamTopicsClient({ topics: initialTopics, isLoggedIn }: 
       topicsStr,
       mcqCount: topic.mcq_count || 0,
       essayCount: topic.essay_count || 0,
+      term: topic.term || '1/69',
     });
     setErrorMsg('');
     setEditingId(topic.id);
@@ -98,6 +100,7 @@ export default function ExamTopicsClient({ topics: initialTopics, isLoggedIn }: 
     fd.append('topics', formData.topicsStr);
     fd.append('mcq_count', formData.mcqCount.toString());
     fd.append('essay_count', formData.essayCount.toString());
+    fd.append('term', formData.term);
 
     let res;
     if (editingId === 'new') {
@@ -160,10 +163,10 @@ export default function ExamTopicsClient({ topics: initialTopics, isLoggedIn }: 
                 <GraduationCap size={48} strokeWidth={1.5} />
               </div>
               <h1 className="text-4xl md:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-indigo-100 mb-6 drop-shadow-sm leading-tight">
-                เนื้อหาออกสอบ<br className="hidden md:block" />กลางภาค 1/69
+                เนื้อหาออกสอบ<br className="hidden md:block" />ปลายภาค 1/69
               </h1>
               <p className="text-indigo-100 text-lg md:text-xl max-w-2xl mx-auto lg:mx-0 mb-8 font-medium leading-relaxed">
-                รวมหัวข้อสำคัญที่ต้องอ่านเตรียมสอบ ครบทุกวิชา ให้คุณพร้อมสู้ศึกกลางภาคได้อย่างมั่นใจ
+                รวมหัวข้อสำคัญที่ต้องอ่านเตรียมสอบ ครบทุกวิชา ให้คุณพร้อมสู้ศึกปลายภาคได้อย่างมั่นใจ
               </p>
             </div>
 
@@ -173,7 +176,7 @@ export default function ExamTopicsClient({ topics: initialTopics, isLoggedIn }: 
               </div>
               <h2 className="font-semibold text-xl text-indigo-100 mb-3 text-center">นับถอยหลังวันสอบ</h2>
               <div className="text-3xl md:text-4xl font-bold text-white tracking-widest drop-shadow-md">
-                <Countdown date="2026-07-13T00:00:00+07:00" />
+                <Countdown date="2026-09-22T00:00:00+07:00" />
               </div>
             </div>
           </div>
@@ -221,7 +224,10 @@ export default function ExamTopicsClient({ topics: initialTopics, isLoggedIn }: 
                     <h3 className="text-2xl font-extrabold text-slate-800 group-hover:text-indigo-600 transition-colors mb-2">
                       {item.subject}
                     </h3>
-                    <p className="text-sm font-semibold text-slate-500 bg-slate-100 px-3 py-1 rounded-full inline-block">ครูผู้สอน: {item.teacher}</p>
+                    <div className="flex gap-2 flex-wrap">
+                      <p className="text-sm font-semibold text-slate-500 bg-slate-100 px-3 py-1 rounded-full inline-block">ครูผู้สอน: {item.teacher}</p>
+                      <p className="text-sm font-semibold text-purple-600 bg-purple-50 px-3 py-1 rounded-full inline-block">เทอม: {item.term || '1/69'}</p>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     {isLoggedIn && (
@@ -366,17 +372,33 @@ export default function ExamTopicsClient({ topics: initialTopics, isLoggedIn }: 
                 )}
               </div>
 
-              {/* Teacher */}
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">ครูผู้สอน</label>
-                <input 
-                  type="text" 
-                  required 
-                  value={formData.teacher}
-                  onChange={(e) => setFormData({...formData, teacher: e.target.value})}
-                  className="w-full bg-slate-50/50 border border-slate-200 rounded-2xl px-5 py-3 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-medium"
-                  placeholder="เช่น มิสเสาวลักษณ์"
-                />
+              {/* Teacher and Term */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">ครูผู้สอน</label>
+                  <input 
+                    type="text" 
+                    required 
+                    value={formData.teacher}
+                    onChange={(e) => setFormData({...formData, teacher: e.target.value})}
+                    className="w-full bg-slate-50/50 border border-slate-200 rounded-2xl px-5 py-3 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-medium"
+                    placeholder="เช่น มิสเสาวลักษณ์"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">เทอม/ภาคเรียน</label>
+                  <select
+                    required
+                    value={formData.term}
+                    onChange={(e) => setFormData({...formData, term: e.target.value})}
+                    className="w-full appearance-none bg-slate-50/50 border border-slate-200 rounded-2xl px-5 py-3 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-medium cursor-pointer"
+                  >
+                    <option value="1/69">1/69</option>
+                    <option value="2/69">2/69</option>
+                    <option value="1/70">1/70</option>
+                    <option value="2/70">2/70</option>
+                  </select>
+                </div>
               </div>
 
               {/* MCQ & Essay counts */}

@@ -5,10 +5,10 @@ import { motion } from 'framer-motion'
 import { Banknote, ChevronLeft, ChevronRight, CheckCircle2, Circle, RefreshCw, HandCoins, Settings, X, Plus, Minus, Equal, RotateCcw, Receipt, Trash2, Camera, Image as ImageIcon, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
-import { toggleFundStatus, setFundsBalanceAdjustment, addExpense, deleteExpense } from './actions'
+import { toggleFundStatus, setFundsBalanceAdjustment, addExpense, deleteExpense, getFundsForWeek, setFundsSettings } from './actions'
 import { createClient } from '@/utils/supabase/client'
-import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useEffect, useMemo } from 'react'
 
 type FundRecord = {
   student_number: number;
@@ -38,28 +38,34 @@ type FundsClientProps = {
   currentWeekStart: string;
   fundsData: FundRecord[];
   expenses: ExpenseRecord[];
+  settings: { startDate: string | null; endDate: string | null; };
 }
 
-export default function FundsClient({ isLoggedIn, fundsStats: initialFundsStats, currentWeekStart, fundsData: initialFundsData, expenses: initialExpenses }: FundsClientProps) {
+export default function FundsClient({ isLoggedIn, fundsStats: initialFundsStats, currentWeekStart, fundsData: initialFundsData, expenses: initialExpenses, settings: initialSettings }: FundsClientProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   
   // Local state for instant updates (Optimistic UI)
   const [localFundsData, setLocalFundsData] = useState(initialFundsData)
   const [localFundsStats, setLocalFundsStats] = useState(initialFundsStats)
   const [localExpenses, setLocalExpenses] = useState(initialExpenses)
+  const [localSettings, setLocalSettings] = useState(initialSettings)
 
   // Sync with props if they change from server
   useEffect(() => {
     setLocalFundsData(initialFundsData)
     setLocalFundsStats(initialFundsStats)
     setLocalExpenses(initialExpenses)
-  }, [initialFundsData, initialFundsStats, initialExpenses])
+    setLocalSettings(initialSettings)
+  }, [initialFundsData, initialFundsStats, initialExpenses, initialSettings])
 
-  const [weekStart, setWeekStart] = useState<string>(currentWeekStart)
+  const [weekStart, setWeekStart] = useState<string>(searchParams.get('week') || currentWeekStart)
   const [loading, setLoading] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [adjType, setAdjType] = useState<'add' | 'sub' | 'set'>('set')
   const [adjAmount, setAdjAmount] = useState('')
+  const [settingStartDate, setSettingStartDate] = useState(localSettings.startDate || '')
+  const [settingEndDate, setSettingEndDate] = useState(localSettings.endDate || '')
   
   // Edit Student Amount State
   const [editingStudent, setEditingStudent] = useState<{ num: number, amount: number, isPaid: boolean } | null>(null)
@@ -87,10 +93,49 @@ export default function FundsClient({ isLoggedIn, fundsStats: initialFundsStats,
     return d.toISOString().split('T')[0]
   }
 
-  const changeWeek = (direction: 'prev' | 'next') => {
-    const newDate = new Date(weekDate)
-    newDate.setDate(newDate.getDate() + (direction === 'next' ? 7 : -7))
-    router.push(`/funds?week=${newDate.toISOString().split('T')[0]}`)
+  const weeksList = useMemo(() => {
+    const list = []
+    const start = localSettings.startDate ? new Date(localSettings.startDate) : new Date('2024-05-01')
+    // Find the first Monday
+    start.setDate(start.getDate() - start.getDay() + (start.getDay() === 0 ? -6 : 1))
+    
+    const end = localSettings.endDate ? new Date(localSettings.endDate) : new Date(currentWeekStart)
+    end.setDate(end.getDate() - end.getDay() + (end.getDay() === 0 ? -6 : 1))
+    
+    let current = new Date(start)
+    while (current <= end) {
+      list.push(current.toISOString().split('T')[0])
+      current.setDate(current.getDate() + 7)
+    }
+    
+    // Make sure currentWeekStart is always in the list if no end date
+    if (!localSettings.endDate && !list.includes(currentWeekStart)) {
+      list.push(currentWeekStart)
+    }
+    
+    return list.reverse() // Newest first
+  }, [localSettings, currentWeekStart])
+
+  const changeWeek = async (direction: 'prev' | 'next' | string) => {
+    let targetDateStr = direction
+    if (direction === 'prev' || direction === 'next') {
+      const newDate = new Date(weekDate)
+      newDate.setDate(newDate.getDate() + (direction === 'next' ? 7 : -7))
+      targetDateStr = newDate.toISOString().split('T')[0]
+    }
+    
+    setLoading(true)
+    setWeekStart(targetDateStr)
+    window.history.pushState(null, '', `/funds?week=${targetDateStr}`)
+    
+    try {
+      const data = await getFundsForWeek(targetDateStr)
+      setLocalFundsData(data)
+    } catch (e) {
+      toast.error('ไม่สามารถดึงข้อมูลสัปดาห์นี้ได้')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const submitAdjustment = async () => {
@@ -142,6 +187,18 @@ export default function FundsClient({ isLoggedIn, fundsStats: initialFundsStats,
     }
   }
 
+  const submitSettings = async () => {
+    const toastId = toast.loading('กำลังบันทึกการตั้งค่า...')
+    const res = await setFundsSettings(settingStartDate, settingEndDate)
+    if (res.success) {
+      toast.success('บันทึกการตั้งค่าสำเร็จ!', { id: toastId })
+      setLocalSettings({ startDate: settingStartDate, endDate: settingEndDate })
+      // Don't close modal so they can continue adjusting funds if needed, or close it, it's fine.
+    } else {
+      toast.error(res.error || 'เกิดข้อผิดพลาด', { id: toastId })
+    }
+  }
+
   const submitExpense = async () => {
     if (!expAmount || !expDesc) return toast.error('กรุณากรอกข้อมูลให้ครบถ้วน')
     const num = Number(expAmount)
@@ -152,21 +209,21 @@ export default function FundsClient({ isLoggedIn, fundsStats: initialFundsStats,
 
     try {
       if (expFile) {
-        toast.loading('กำลังอัปโหลดใบเสร็จ...', { id: toastId })
-        const fileExt = expFile.name.split('.').pop()
-        const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`
+        toast.loading('กำลังอัปโหลดใบเสร็จ (ImgBB)...', { id: toastId })
+        const formData = new FormData()
+        formData.append('image', expFile)
         
-        const { error: uploadError } = await supabase.storage
-          .from('expense-receipts')
-          .upload(fileName, expFile)
-
-        if (uploadError) throw uploadError
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('expense-receipts')
-          .getPublicUrl(fileName)
+        const imgbbResponse = await fetch('https://api.imgbb.com/1/upload?key=1596fbd05841877b8aaed415ed93e575', {
+          method: 'POST',
+          body: formData
+        })
+        const result = await imgbbResponse.json()
         
-        receiptUrl = publicUrl
+        if (!result.success) {
+          throw new Error(result.error?.message || 'ImgBB upload failed')
+        }
+        
+        receiptUrl = result.data.url
       }
 
       toast.loading('กำลังบันทึกข้อมูล...', { id: toastId })
@@ -232,28 +289,31 @@ export default function FundsClient({ isLoggedIn, fundsStats: initialFundsStats,
       return
     }
 
-    const amountChanged = 20
     const newIsPaid = !currentlyPaid
+    const oldRecord = localFundsData.find(f => f.student_number === studentNo)
+    const oldAmount = oldRecord?.is_paid ? (oldRecord.amount || 20) : 0
+    const newAmount = 20
+    const difference = newIsPaid ? newAmount : -oldAmount
 
     // Optimistic UI Update
     setLocalFundsData(prev => {
       const exists = prev.find(p => p.student_number === studentNo)
       if (exists) {
-        return prev.map(p => p.student_number === studentNo ? { ...p, is_paid: newIsPaid } : p)
+        return prev.map(p => p.student_number === studentNo ? { ...p, is_paid: newIsPaid, amount: newIsPaid ? newAmount : exists.amount } : p)
       } else {
-        return [...prev, { student_number: studentNo, is_paid: newIsPaid, amount: amountChanged }]
+        return [...prev, { student_number: studentNo, is_paid: newIsPaid, amount: newAmount }]
       }
     })
 
     setLocalFundsStats(prev => ({
       ...prev,
-      sumPaid: prev.sumPaid + (newIsPaid ? amountChanged : -amountChanged),
-      totalFunds: prev.totalFunds + (newIsPaid ? amountChanged : -amountChanged)
+      sumPaid: prev.sumPaid + difference,
+      totalFunds: prev.totalFunds + difference
     }))
 
     // Server request in background
     try {
-      const res = await toggleFundStatus(weekStart, studentNo, newIsPaid, amountChanged)
+      const res = await toggleFundStatus(weekStart, studentNo, newIsPaid, newIsPaid ? newAmount : (oldRecord?.amount || 20))
       if (res.error) {
         toast.error(res.error)
         router.refresh() // revert on error
@@ -417,9 +477,20 @@ export default function FundsClient({ isLoggedIn, fundsStats: initialFundsStats,
             <ChevronLeft size={20} />
           </button>
           
-          <div className="text-center">
-            <h2 className="text-xl font-bold text-slate-800">
-              สัปดาห์ที่เริ่ม {weekDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}
+          <div className="text-center flex-1 mx-4">
+            <h2 className="text-xl font-bold text-slate-800 flex items-center justify-center gap-2">
+              สัปดาห์ 
+              <select
+                value={weekStart}
+                onChange={(e) => changeWeek(e.target.value)}
+                className="bg-transparent border-b-2 border-slate-300 font-bold focus:outline-none focus:border-indigo-500 pb-1 text-center"
+              >
+                {weeksList.map(w => (
+                  <option key={w} value={w}>
+                    {new Date(w).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}
+                  </option>
+                ))}
+              </select>
             </h2>
             <p className="text-sm text-slate-500 mt-1">
               {paidCount} คนจ่ายแล้ว • {unpaidCount} คนยังไม่จ่าย
@@ -745,7 +816,7 @@ export default function FundsClient({ isLoggedIn, fundsStats: initialFundsStats,
                 </div>
               </div>
 
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-3 pt-2 pb-4 border-b border-slate-100">
                 <button
                   onClick={resetAdjustment}
                   className="flex-1 py-3 px-4 bg-slate-100 text-slate-600 rounded-xl font-medium hover:bg-slate-200 transition-colors flex items-center justify-center gap-2"
@@ -758,6 +829,32 @@ export default function FundsClient({ isLoggedIn, fundsStats: initialFundsStats,
                   className="flex-[2] py-3 px-4 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-sm"
                 >
                   บันทึกยอดเงิน
+                </button>
+              </div>
+
+              {/* Start/End Date Settings */}
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-3">ตั้งค่ารอบเก็บเงินห้อง (เริ่ม-สิ้นสุด)</label>
+                <div className="flex items-center gap-2 mb-4">
+                  <input 
+                    type="date"
+                    value={settingStartDate}
+                    onChange={(e) => setSettingStartDate(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                  />
+                  <span className="text-slate-400">ถึง</span>
+                  <input 
+                    type="date"
+                    value={settingEndDate}
+                    onChange={(e) => setSettingEndDate(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                  />
+                </div>
+                <button
+                  onClick={submitSettings}
+                  className="w-full py-3 px-4 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 transition-colors shadow-sm flex justify-center items-center gap-2"
+                >
+                  บันทึกรอบเก็บเงิน
                 </button>
               </div>
             </div>
