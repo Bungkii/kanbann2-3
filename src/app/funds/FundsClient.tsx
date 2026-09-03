@@ -451,28 +451,27 @@ export default function FundsClient({ isLoggedIn, fundsStats: initialFundsStats,
           <p className="text-slate-500 mt-2">สัปดาห์ละ 20 บาท สำหรับกิจกรรมและของใช้ส่วนรวม</p>
         </div>
 
-        <div className="flex flex-col items-end gap-2">
-          <div className="bg-white px-6 py-4 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
-            <div className="p-3 bg-amber-100 text-amber-600 rounded-xl">
-              <Banknote size={24} />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-slate-500">ยอดเงินคงเหลือห้อง</p>
+          <div className="flex flex-col items-end gap-2">
+            <div className="bg-white px-6 py-4 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
+              <div className="p-3 bg-amber-100 text-amber-600 rounded-xl">
+                <Banknote size={24} />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-slate-500">ยอดเงินคงเหลือห้อง</p>
                 <p className="text-2xl font-bold text-slate-800">{localFundsStats.totalFunds.toLocaleString()} ฿</p>
               </div>
             </div>
+            {isLoggedIn && (
+              <button 
+                onClick={() => setIsModalOpen(true)} 
+                className="mt-3 w-full bg-slate-800 hover:bg-slate-900 text-white font-medium py-2 px-4 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2"
+                title="ตั้งค่าระบบและยอดเงิน"
+              >
+                <Settings size={16} />
+                ตั้งค่าระบบ
+              </button>
+            )}
           </div>
-          {isLoggedIn && (
-            <button 
-              onClick={() => setIsModalOpen(true)} 
-              className="mt-3 w-full bg-slate-800 hover:bg-slate-900 text-white font-medium py-2 px-4 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2"
-              title="ตั้งค่าระบบและยอดเงิน"
-            >
-              <Settings size={16} />
-              ตั้งค่าระบบ
-            </button>
-          )}
-        </div>
         </div>
       </div>
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 mb-8">
