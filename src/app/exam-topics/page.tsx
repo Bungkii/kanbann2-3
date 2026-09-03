@@ -1,6 +1,7 @@
 import { getExamTopics } from './actions';
 import { createClient } from '@/utils/supabase/server';
 import ExamTopicsClient from './ExamTopicsClient';
+import { getSystemSettings } from '@/app/settings/system/actions';
 
 export const revalidate = 0;
 
@@ -39,5 +40,10 @@ export default async function ExamTopicsPage() {
     };
   });
 
-  return <ExamTopicsClient topics={safeTops} isLoggedIn={isLoggedIn} />;
+
+
+  const settings = await getSystemSettings();
+  const finalExamDate = settings.final_exam_date ? `${settings.final_exam_date}T00:00:00+07:00` : "2026-09-22T00:00:00+07:00";
+
+  return <ExamTopicsClient topics={safeTops} isLoggedIn={isLoggedIn} finalExamDate={finalExamDate} />;
 }

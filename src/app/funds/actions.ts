@@ -146,20 +146,22 @@ export async function getFundsSettings() {
   const { data } = await supabase
     .from('system_settings')
     .select('key, value')
-    .in('key', ['funds_start_date', 'funds_end_date'])
+    .in('key', ['funds_start_date', 'funds_end_date', 'final_exam_date'])
     
   let startDate = null
   let endDate = null
+  let finalExamDate = null
   
   data?.forEach(item => {
     if (item.key === 'funds_start_date') startDate = item.value
     if (item.key === 'funds_end_date') endDate = item.value
+    if (item.key === 'final_exam_date') finalExamDate = item.value
   })
   
-  return { startDate, endDate }
+  return { startDate, endDate, finalExamDate }
 }
 
-export async function setFundsSettings(startDate: string, endDate: string) {
+export async function setFundsSettings(startDate: string, endDate: string, finalExamDate: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'กรุณาล็อกอินก่อน' }
@@ -171,7 +173,8 @@ export async function setFundsSettings(startDate: string, endDate: string) {
   
   const updates = [
     { key: 'funds_start_date', value: startDate },
-    { key: 'funds_end_date', value: endDate }
+    { key: 'funds_end_date', value: endDate },
+    { key: 'final_exam_date', value: finalExamDate }
   ]
   
   const { error } = await adminSupabase

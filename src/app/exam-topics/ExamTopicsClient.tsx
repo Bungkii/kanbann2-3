@@ -26,7 +26,7 @@ const SUBJECT_LIST = [
 
 type SanitizedExamTopic = ExamTopic & { sanitizedHtml: string | null };
 
-export default function ExamTopicsClient({ topics: initialTopics, isLoggedIn }: { topics: SanitizedExamTopic[], isLoggedIn: boolean }) {
+export default function ExamTopicsClient({ topics: initialTopics, isLoggedIn, finalExamDate }: { topics: SanitizedExamTopic[], isLoggedIn: boolean, finalExamDate: string }) {
   const [topics, setTopics] = useState(initialTopics);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | 'new' | null>(null);
@@ -174,9 +174,9 @@ export default function ExamTopicsClient({ topics: initialTopics, isLoggedIn }: 
               <div className="bg-indigo-500/50 p-3 rounded-full mb-4">
                 <Calendar size={28} className="text-white" />
               </div>
-              <h2 className="font-semibold text-xl text-indigo-100 mb-3 text-center">นับถอยหลังวันสอบ</h2>
+              <h2 className="font-semibold text-xl text-rose-100 mb-3 text-center">นับถอยหลังวันสอบ</h2>
               <div className="text-3xl md:text-4xl font-bold text-white tracking-widest drop-shadow-md">
-                <Countdown date="2026-09-22T00:00:00+07:00" />
+                <Countdown date={finalExamDate} />
               </div>
             </div>
           </div>

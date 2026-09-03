@@ -147,7 +147,7 @@ export default async function Home() {
               <h2 className="text-xl font-bold text-white mb-2 text-center">แจกสรุปสอบปลายภาค 1/69</h2>
               <div className="bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full mt-2 border border-white/30">
                 <p className="text-white text-xs font-medium tracking-wide">
-                  <Countdown date="2026-09-22T00:00:00+07:00" />
+                  <Countdown date={settings.final_exam_date ? `${settings.final_exam_date}T00:00:00+07:00` : "2026-09-22T00:00:00+07:00"} />
                 </p>
               </div>
             </div>,

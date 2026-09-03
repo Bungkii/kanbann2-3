@@ -71,6 +71,7 @@ export default function SummariesPage() {
   const [lightboxImgs, setLightboxImgs] = useState<string[]>([]);
   const [lightboxIdx, setLightboxIdx] = useState(0);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [finalExamDate, setFinalExamDate] = useState("2026-09-22T00:00:00+07:00");
 
   const supabase = createClient();
 
@@ -79,7 +80,12 @@ export default function SummariesPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) setCurrentUserId(user.id);
     };
+    const fetchSettings = async () => {
+      const { data } = await supabase.from('system_settings').select('value').eq('key', 'final_exam_date').single();
+      if (data?.value) setFinalExamDate(`${data.value}T00:00:00+07:00`);
+    };
     fetchUser();
+    fetchSettings();
     fetchSummaries();
   }, [supabase.auth]);
 
@@ -212,7 +218,7 @@ export default function SummariesPage() {
               </div>
               <h2 className="font-semibold text-xl text-rose-100 mb-3 text-center">นับถอยหลังวันสอบ</h2>
               <div className="text-3xl md:text-4xl font-bold text-white tracking-widest drop-shadow-md">
-                <Countdown date="2026-09-22T00:00:00+07:00" />
+                <Countdown date={finalExamDate} />
               </div>
             </div>
           </div>

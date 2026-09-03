@@ -38,7 +38,7 @@ type FundsClientProps = {
   currentWeekStart: string;
   fundsData: FundRecord[];
   expenses: ExpenseRecord[];
-  settings: { startDate: string | null; endDate: string | null; };
+  settings: { startDate: string | null; endDate: string | null; finalExamDate: string | null; };
 }
 
 export default function FundsClient({ isLoggedIn, fundsStats: initialFundsStats, currentWeekStart, fundsData: initialFundsData, expenses: initialExpenses, settings: initialSettings }: FundsClientProps) {
@@ -66,6 +66,7 @@ export default function FundsClient({ isLoggedIn, fundsStats: initialFundsStats,
   const [adjAmount, setAdjAmount] = useState('')
   const [settingStartDate, setSettingStartDate] = useState(localSettings.startDate || '')
   const [settingEndDate, setSettingEndDate] = useState(localSettings.endDate || '')
+  const [settingExamDate, setSettingExamDate] = useState(localSettings.finalExamDate || '')
   
   // Edit Student Amount State
   const [editingStudent, setEditingStudent] = useState<{ num: number, amount: number, isPaid: boolean } | null>(null)
@@ -188,14 +189,16 @@ export default function FundsClient({ isLoggedIn, fundsStats: initialFundsStats,
   }
 
   const submitSettings = async () => {
-    const toastId = toast.loading('กำลังบันทึกการตั้งค่า...')
-    const res = await setFundsSettings(settingStartDate, settingEndDate)
-    if (res.success) {
-      toast.success('บันทึกการตั้งค่าสำเร็จ!', { id: toastId })
-      setLocalSettings({ startDate: settingStartDate, endDate: settingEndDate })
-      // Don't close modal so they can continue adjusting funds if needed, or close it, it's fine.
+    setLoading(true)
+    const result = await setFundsSettings(settingStartDate, settingEndDate, settingExamDate)
+    setLoading(false)
+    if (result.error) {
+      toast.error(result.error)
     } else {
-      toast.error(res.error || 'เกิดข้อผิดพลาด', { id: toastId })
+      toast.success('บันทึกการตั้งค่าระบบเรียบร้อย')
+      setIsModalOpen(false)
+      // refresh week options
+      window.location.reload()
     }
   }
 
@@ -455,16 +458,20 @@ export default function FundsClient({ isLoggedIn, fundsStats: initialFundsStats,
             </div>
             <div>
               <p className="text-sm font-semibold text-slate-500">ยอดเงินคงเหลือห้อง</p>
-              <div className="flex items-center gap-2">
                 <p className="text-2xl font-bold text-slate-800">{localFundsStats.totalFunds.toLocaleString()} ฿</p>
-                {isLoggedIn && (
-                  <button onClick={() => setIsModalOpen(true)} className="text-slate-400 hover:text-slate-600 transition-colors bg-slate-50 p-2 rounded-full hover:bg-slate-100" title="ตั้งค่า/ปรับยอดเงิน">
-                    <Settings size={18} />
-                  </button>
-                )}
               </div>
             </div>
           </div>
+          {isLoggedIn && (
+            <button 
+              onClick={() => setIsModalOpen(true)} 
+              className="mt-3 w-full bg-slate-800 hover:bg-slate-900 text-white font-medium py-2 px-4 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2"
+              title="ตั้งค่าระบบและยอดเงิน"
+            >
+              <Settings size={16} />
+              ตั้งค่าระบบ
+            </button>
+          )}
         </div>
         </div>
       </div>
@@ -850,11 +857,22 @@ export default function FundsClient({ isLoggedIn, fundsStats: initialFundsStats,
                     className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                   />
                 </div>
+                
+                <label className="block text-sm font-semibold text-slate-700 mb-3 mt-4">วันสอบปลายภาค (เพื่อใช้นับถอยหลัง)</label>
+                <div className="flex items-center gap-2 mb-4">
+                  <input 
+                    type="date"
+                    value={settingExamDate}
+                    onChange={(e) => setSettingExamDate(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                  />
+                </div>
+
                 <button
                   onClick={submitSettings}
                   className="w-full py-3 px-4 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 transition-colors shadow-sm flex justify-center items-center gap-2"
                 >
-                  บันทึกรอบเก็บเงิน
+                  บันทึกการตั้งค่า
                 </button>
               </div>
             </div>
