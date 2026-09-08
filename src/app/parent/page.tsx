@@ -4,7 +4,6 @@ import { headers } from 'next/headers';
 import Countdown from '@/components/Countdown';
 import { getSystemSettings } from '@/app/settings/system/actions';
 import PageTransition from '@/components/PageTransition';
-import ParentLogo from './components/ParentLogo';
 
 export const dynamic = 'force-dynamic';
 
@@ -64,20 +63,7 @@ export default async function ParentHomePage() {
   };
 
   return (
-    <PageTransition className="flex-1 flex flex-col items-center justify-center min-h-[calc(100vh-140px)] py-4 sm:py-6">
-      {/* Hero Welcome Banner with Lucide SVG Logo */}
-      <div className="max-w-4xl w-full mb-8 text-center flex flex-col items-center">
-        <div className="mb-4 group">
-          <ParentLogo size="lg" className="group-hover:scale-105 transition-transform duration-300" />
-        </div>
-
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight">
-          ระบบติดตามงานห้อง ม.2/3
-        </h1>
-        <p className="text-sm sm:text-base text-slate-500 mt-1.5 max-w-lg font-medium">
-          ชั้นมัธยมศึกษาปีที่ 2/3 โรงเรียนอัสสัมชัญธนบุรี (สำหรับผู้ปกครอง)
-        </p>
-      </div>
+    <PageTransition className="flex-1 flex flex-col items-center justify-center min-h-[calc(100vh-140px)] py-4 sm:py-8">
       {/* 2-Column Grid (Only Parent-Relevant Cards) */}
       <div className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch justify-center">
         {/* Left Section */}

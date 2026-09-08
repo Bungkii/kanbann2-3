@@ -5,10 +5,6 @@ import ParentNavbar from './components/ParentNavbar';
 export const metadata: Metadata = {
   title: 'ระบบติดตามงานห้อง ม.2/3 | สำหรับผู้ปกครอง',
   description: 'ติดตามการบ้าน งานค้าง และเตรียมตัวสอบของนักเรียนชั้น ม.2/3 (โหมดอ่านอย่างเดียวสำหรับผู้ปกครอง)',
-  icons: {
-    icon: '/parent-logo.png',
-    apple: '/parent-logo.png',
-  },
 };
 
 export default function ParentLayout({
