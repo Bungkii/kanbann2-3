@@ -12,6 +12,8 @@ export default async function ParentHomePage() {
   const headersList = await headers();
   const host = headersList.get('x-forwarded-host') || headersList.get('host') || '';
   const isParentDomain =
+    process.env.APP_MODE === 'parent' ||
+    process.env.NEXT_PUBLIC_APP_MODE === 'parent' ||
     host.startsWith('kanbann.bungkii.app') ||
     (host.startsWith('kanbann.') && !host.includes('vercel.app'));
 

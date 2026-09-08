@@ -7,6 +7,8 @@ export async function updateSession(request: NextRequest) {
 
   // Subdomain routing: kanbann.bungkii.app -> Parent Portal (Rooted at src/app/parent)
   const isParentDomain =
+    process.env.APP_MODE === 'parent' ||
+    process.env.NEXT_PUBLIC_APP_MODE === 'parent' ||
     host.startsWith('kanbann.bungkii.app') ||
     (host.startsWith('kanbann.') && !host.includes('vercel.app'))
 
