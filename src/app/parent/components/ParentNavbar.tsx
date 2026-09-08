@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { ArrowUpRight } from 'lucide-react';
 
@@ -38,11 +39,27 @@ export default function ParentNavbar() {
       <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200/70 px-4 sm:px-8 py-3 transition-all">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           {/* Logo / Title */}
-          <Link href={basePath || '/'} className="flex items-center gap-2.5 group">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#eb6885]" />
-            <span className="text-lg font-bold text-slate-800 tracking-tight group-hover:text-slate-900 transition-colors">
-              ระบบติดตามงานห้อง ม.2/3
-            </span>
+          <Link href={basePath || '/'} className="flex items-center gap-3 group">
+            <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl overflow-hidden shadow-sm shadow-indigo-500/20 ring-1 ring-slate-900/5 group-hover:scale-105 transition-all duration-200 bg-indigo-600 flex-shrink-0">
+              <Image
+                src="/parent-logo.png"
+                alt="Logo"
+                width={40}
+                height={40}
+                className="w-full h-full object-cover"
+                priority
+              />
+            </div>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <span className="text-base sm:text-lg font-bold text-slate-800 tracking-tight group-hover:text-slate-900 transition-colors">
+                  ระบบติดตามงานห้อง ม.2/3
+                </span>
+                <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/60">
+                  สำหรับผู้ปกครอง
+                </span>
+              </div>
+            </div>
           </Link>
 
           {/* Floating Pill Nav Capsule (Exact match to reference design) */}

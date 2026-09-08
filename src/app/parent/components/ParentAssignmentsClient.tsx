@@ -115,10 +115,16 @@ export default function ParentAssignmentsClient({ initialTasks }: { initialTasks
 
   return (
     <div className="flex flex-col h-full">
-      {/* Top Header & View Switcher identical to Student Kanban */}
-      <div className="flex justify-between items-end mb-6">
-        <h2 className="text-xl font-bold text-slate-800">สรุปภาพรวมงาน</h2>
-        <div className="bg-slate-200 p-1 rounded-xl flex gap-0.5">
+      {/* Top Header & View Switcher */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-6">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">กระดานการบ้านและชิ้นงาน</h1>
+            <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200/60 shadow-2xs">ม.2/3</span>
+          </div>
+          <p className="text-sm text-slate-500">ติดตามสถานะงาน กำหนดส่ง และการบ้านทั้งหมดของห้องเรียน</p>
+        </div>
+        <div className="bg-slate-200/70 p-1 rounded-xl flex gap-0.5 border border-slate-200/60">
           <button
             onClick={() => setViewMode('board')}
             className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${

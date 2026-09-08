@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { headers } from 'next/headers';
 import Countdown from '@/components/Countdown';
 import { getSystemSettings } from '@/app/settings/system/actions';
@@ -61,7 +62,36 @@ export default async function ParentHomePage() {
   };
 
   return (
-    <PageTransition className="flex-1 flex flex-col items-center justify-center min-h-[calc(100vh-140px)] py-4">
+    <PageTransition className="flex-1 flex flex-col items-center justify-center min-h-[calc(100vh-140px)] py-4 sm:py-6">
+      {/* Hero Welcome Banner with Logo */}
+      <div className="max-w-4xl w-full mb-8 text-center flex flex-col items-center">
+        {/* Glow Logo Squircle */}
+        <div className="relative mb-4 group">
+          <div className="absolute -inset-1.5 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-3xl blur-md opacity-30 group-hover:opacity-50 transition duration-300"></div>
+          <div className="relative w-18 h-18 sm:w-20 sm:h-20 rounded-2xl overflow-hidden shadow-xl shadow-indigo-500/20 ring-4 ring-white bg-indigo-600">
+            <Image
+              src="/parent-logo.png"
+              alt="ระบบติดตามงานห้อง ม.2/3"
+              width={80}
+              height={80}
+              className="w-full h-full object-cover"
+              priority
+            />
+          </div>
+        </div>
+
+        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-semibold border border-indigo-200/70 mb-3 shadow-2xs">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse inline-block"></span>
+          <span>ซิงค์ข้อมูลเรียลไทม์ • พริมทวงยิก ม.2/3</span>
+        </div>
+
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight">
+          ระบบติดตามงานห้อง ม.2/3
+        </h1>
+        <p className="text-sm sm:text-base text-slate-500 mt-1.5 max-w-lg font-medium">
+          ชั้นมัธยมศึกษาปีที่ 2/3 โรงเรียนอัสสัมชัญธนบุรี (สำหรับผู้ปกครอง)
+        </p>
+      </div>
       {/* 2-Column Grid (Only Parent-Relevant Cards) */}
       <div className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch justify-center">
         {/* Left Section */}
