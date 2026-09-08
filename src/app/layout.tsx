@@ -13,7 +13,7 @@ const ibmPlexSansThai = IBM_Plex_Sans_Thai({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://kanbann.bungkii.vercel.app'), // Use your actual URL here
+  metadataBase: new URL('https://primjaa.bungkii.app'),
   title: {
     default: "พริมทวงยิก ม.2/3 | ระบบกระดานจัดการงานออนไลน์",
     template: "%s | พริมทวงยิก ม.2/3"
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "th_TH",
-    url: "https://kanbann.bungkii.vercel.app",
+    url: "https://primjaa.bungkii.app",
     title: "พริมทวงยิก ม.2/3 | ระบบกระดานจัดการงานออนไลน์",
     description: "ระบบจดงาน จัดการเวรทำความสะอาด และกระดานแจ้งเตือนสำหรับนักเรียนห้อง 2/3",
     siteName: "พริมทวงยิก ม.2/3"

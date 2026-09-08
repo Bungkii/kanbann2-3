@@ -118,7 +118,7 @@ export function createMorningFlexMessage(tasks: Task[]) {
         action: {
           type: "uri",
           label: "ดูงานทั้งหมด",
-          uri: "https://kanbann.bungkii.vercel.app/kanban", // TODO: Replace with actual domain
+          uri: "https://primjaa.bungkii.app/kanban",
         },
       },
     ],
@@ -243,7 +243,7 @@ export function createTodayAddedFlexMessage(tasks: Task[]) {
         action: {
           type: "uri",
           label: "ดูรายละเอียด",
-          uri: "https://kanbann.bungkii.vercel.app/kanban",
+          uri: "https://primjaa.bungkii.app/kanban",
         },
       },
     ],
@@ -372,7 +372,7 @@ export function createEveningFlexMessage(tasks: Task[]) {
         action: {
           type: "uri",
           label: "รายละเอียดเพิ่มเติม",
-          uri: "https://kanbann.bungkii.vercel.app/kanban", // TODO: Replace with actual domain
+          uri: "https://primjaa.bungkii.app/kanban",
         },
       },
     ],
@@ -432,7 +432,7 @@ export function createMenuFlexMessage() {
             action: {
               type: "uri",
               label: "เพิ่ม/ลบ งานใหม่",
-              uri: "https://kanbann.bungkii.vercel.app/add",
+              uri: "https://primjaa.bungkii.app/add",
             },
           },
           {
@@ -442,8 +442,19 @@ export function createMenuFlexMessage() {
             margin: "sm",
             action: {
               type: "uri",
-              label: "ตรวจสอบงาน",
-              uri: "https://kanbann.bungkii.vercel.app/kanban",
+              label: "ตรวจสอบงาน (นักเรียน)",
+              uri: "https://primjaa.bungkii.app/kanban",
+            },
+          },
+          {
+            type: "button",
+            style: "primary",
+            color: "#eb6885",
+            margin: "sm",
+            action: {
+              type: "uri",
+              label: "สำหรับผู้ปกครอง",
+              uri: "https://kanbann.bungkii.app",
             },
           },
           {
@@ -463,7 +474,7 @@ export function createMenuFlexMessage() {
             action: {
               type: "uri",
               label: "เข้าสู่ระบบ / สมัครสมาชิก",
-              uri: "https://kanbann.bungkii.vercel.app/login",
+              uri: "https://primjaa.bungkii.app/login",
             },
           },
         ],
@@ -1042,7 +1053,7 @@ export function createFundsFlexMessage(paidCount: number, unpaidStudents: number
             action: {
               type: 'uri',
               label: 'ดูรายละเอียด/จัดการ',
-              uri: 'https://kanbann.bungkii.vercel.app/funds'
+              uri: 'https://primjaa.bungkii.app/funds'
             },
             style: 'primary',
             color: '#059669'
@@ -1140,7 +1151,7 @@ export function createExamTopicFlexMessage(subject: string, teacher: string, top
             action: {
               type: "uri",
               label: "ดูเนื้อหาเต็ม",
-              uri: "https://kanbann.bungkii.vercel.app/exam-topics",
+              uri: "https://primjaa.bungkii.app/exam-topics",
             },
           },
         ],

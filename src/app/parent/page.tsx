@@ -1,28 +1,27 @@
+import React from 'react';
 import Link from 'next/link';
-import { createClient } from '@/utils/supabase/server';
 import Countdown from '@/components/Countdown';
 import { getSystemSettings } from '@/app/settings/system/actions';
-import { ElementType } from 'react';
 import PageTransition from '@/components/PageTransition';
 
-export const revalidate = 0;
+export const dynamic = 'force-dynamic';
 
-export default async function Home() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
+export default async function ParentHomePage() {
   const settings = await getSystemSettings();
-  const isAddWorkEnabled = settings.add_work_enabled !== false;
   const kanbanEnabled = settings.kanban_enabled !== false;
   const summariesEnabled = settings.summaries_enabled !== false;
   const electionEnabled = settings.election_enabled !== false;
   const bossEvaluationEnabled = settings.boss_evaluation_enabled !== false;
 
+  const finalExamDate = settings.final_exam_date
+    ? `${settings.final_exam_date}T00:00:00+07:00`
+    : '2026-09-22T00:00:00+07:00';
+
   const renderCard = (
     isEnabled: boolean,
     href: string,
     children: React.ReactNode,
-    className: string = "group flex-1 flex flex-col"
+    className: string = 'group flex-1 flex flex-col'
   ) => {
     const innerContent = (
       <div className="relative flex-1 flex flex-col w-full">
@@ -54,24 +53,27 @@ export default async function Home() {
   };
 
   return (
-    <PageTransition className="flex-1 flex flex-col items-center justify-center min-h-screen p-8 bg-slate-50">
+    <PageTransition className="flex-1 flex flex-col items-center justify-center min-h-[calc(100vh-140px)] py-4">
 
+
+      {/* 3-Column Grid Identical to Student Homepage */}
       <div className="max-w-6xl w-full grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch justify-center">
         {/* Left Section */}
         <div className="flex flex-col gap-6 w-full h-full">
+          {/* Card 1: กระดานการบ้านและงานค้าง (Matching student "หน้าสำหรับคนจดงาน" design & style) */}
           {renderCard(
-            isAddWorkEnabled,
-            user ? "/add" : "/login",
-            <div className={`bg-white rounded-3xl p-10 h-full min-h-[300px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 flex flex-col items-center justify-center transition-all duration-300 ${isAddWorkEnabled ? 'hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1' : ''}`}>
+            true,
+            "/parent/assignments",
+            <div className="bg-white rounded-3xl p-10 h-full min-h-[300px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 flex flex-col items-center justify-center transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1">
               <div className="bg-indigo-50 text-indigo-600 p-4 rounded-full mb-6 group-hover:scale-110 transition-transform duration-300">
                 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
               </div>
-              <h2 className="text-2xl font-bold text-slate-800 mb-2 text-center">หน้าสำหรับคนจดงาน</h2>
-              <p className="text-slate-500 text-center">{user ? 'กดเพื่อจดงานใหม่ได้เลยจ้า' : 'ล็อกอินก่อนเข้าใช้งานนะจ้ะ'}</p>
+              <h2 className="text-2xl font-bold text-slate-800 mb-2 text-center">กระดานการบ้าน</h2>
+              <p className="text-slate-500 text-center">ดูงานค้างและกำหนดส่งของห้อง 3</p>
             </div>
           )}
 
-          {/* ตารางสอนของห้อง 3 */}
+          {/* ตารางสอนของห้อง 3 (Identical to student homepage) */}
           {renderCard(
             true,
             "/schedule",
@@ -86,40 +88,21 @@ export default async function Home() {
           )}
 
           <div className="flex flex-col gap-4 items-center mt-auto h-[104px] justify-end">
-            {!user ? (
-              <Link
-                href="/login"
-                className="text-slate-600 hover:text-slate-900 font-medium transition-colors border border-slate-300 rounded-full px-6 py-2 shadow-sm bg-white hover:bg-slate-100 w-full text-center"
-              >
-                เข้าสู่ระบบชามนพิ
-              </Link>
-            ) : (
-              <>
-                <form action="/auth/signout" method="post" className="w-full">
-                  <button className="w-full text-slate-600 hover:text-slate-900 font-medium transition-colors border border-slate-300 rounded-full px-6 py-2 shadow-sm bg-white hover:bg-slate-100">
-                    ออกจากระบบพิชามน
-                  </button>
-                </form>
-
-                <Link
-                  href="/line"
-                  className="text-emerald-600 hover:text-emerald-700 font-medium transition-colors text-sm flex items-center justify-center gap-1.5 w-full"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                  </svg>
-                  จัดการข้อความ LINE
-                </Link>
-              </>
-            )}
+            <Link
+              href="https://primjaa.bungkii.app"
+              className="text-slate-600 hover:text-slate-900 font-medium transition-colors border border-slate-300 rounded-full px-6 py-2 shadow-sm bg-white hover:bg-slate-100 w-full text-center text-sm"
+            >
+              สลับไปยังระบบนักเรียน ↗
+            </Link>
           </div>
         </div>
 
         {/* Middle Section */}
         <div className="w-full h-full flex flex-col gap-6">
+          {/* พริมง่วงทวงบุญคุณ 🔔 (Identical to student homepage, links to parent assignments) */}
           {renderCard(
             kanbanEnabled,
-            "/kanban",
+            "/parent/assignments",
             <div className={`bg-white rounded-3xl p-10 h-full min-h-[300px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 flex flex-col items-center justify-center transition-all duration-300 ${kanbanEnabled ? 'hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1' : ''}`}>
               <div className="bg-blue-50 text-blue-600 p-4 rounded-full mb-6 group-hover:scale-110 transition-transform duration-300">
                 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" /><path d="M8 7v7" /><path d="M12 7v4" /><path d="M16 7v9" /></svg>
@@ -134,10 +117,10 @@ export default async function Home() {
             </div>
           )}
 
-          {/* Exam Summaries */}
+          {/* แจกสรุปสอบปลายภาค 1/69 (Rose gradient with Countdown, links to parent exams) */}
           {renderCard(
             summariesEnabled,
-            "/summaries",
+            "/parent/exams",
             <div className={`bg-gradient-to-br from-rose-500 to-pink-600 rounded-3xl p-8 border border-rose-100 flex flex-col items-center justify-center transition-all duration-300 ${summariesEnabled ? 'hover:shadow-[0_8px_30px_rgb(225,29,72,0.2)] hover:-translate-y-1' : ''} relative overflow-hidden h-full`}>
               <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white opacity-10 rounded-full blur-2xl"></div>
               <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-24 h-24 bg-white opacity-10 rounded-full blur-2xl"></div>
@@ -148,18 +131,18 @@ export default async function Home() {
               <h2 className="text-xl font-bold text-white mb-2 text-center">แจกสรุปสอบปลายภาค 1/69</h2>
               <div className="bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full mt-2 border border-white/30">
                 <p className="text-white text-xs font-medium tracking-wide">
-                  <Countdown date={settings.final_exam_date ? `${settings.final_exam_date}T00:00:00+07:00` : "2026-09-22T00:00:00+07:00"} />
+                  <Countdown date={finalExamDate} />
                 </p>
               </div>
             </div>,
             "group flex-1 min-h-[160px] flex flex-col w-full"
           )}
 
-          {/* Exam Topics */}
+          {/* เนื้อหาออกสอบปลายภาค 1/69 (Indigo gradient, links to parent exams) */}
           {renderCard(
-            true, // Assuming we want this enabled
-            "/exam-topics",
-            <div className={`bg-gradient-to-br from-indigo-500 to-violet-600 rounded-3xl p-8 border border-indigo-100 flex flex-col items-center justify-center transition-all duration-300 hover:shadow-[0_8px_30px_rgb(99,102,241,0.2)] hover:-translate-y-1 relative overflow-hidden h-full`}>
+            true,
+            "/parent/exams",
+            <div className="bg-gradient-to-br from-indigo-500 to-violet-600 rounded-3xl p-8 border border-indigo-100 flex flex-col items-center justify-center transition-all duration-300 hover:shadow-[0_8px_30px_rgb(99,102,241,0.2)] hover:-translate-y-1 relative overflow-hidden h-full">
               <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white opacity-10 rounded-full blur-2xl"></div>
               <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-24 h-24 bg-white opacity-10 rounded-full blur-2xl"></div>
               
@@ -177,8 +160,9 @@ export default async function Home() {
           )}
         </div>
 
-        {/* Right Section (Election) */}
+        {/* Right Section */}
         <div className="w-full h-full flex flex-col gap-6">
+          {/* ผลการเลือกตั้งปี 2569 (Identical to student) */}
           {renderCard(
             electionEnabled,
             "/election",
@@ -191,7 +175,7 @@ export default async function Home() {
             </div>
           )}
 
-          {/* Leader Assessment */}
+          {/* ระบบประเมินหัวหน้า (Identical to student) */}
           {renderCard(
             bossEvaluationEnabled,
             "/evaluate-boss",
@@ -205,11 +189,11 @@ export default async function Home() {
             "group flex-1 min-h-[160px] flex flex-col w-full"
           )}
 
-          {/* Homework Solutions Feed */}
+          {/* ลอกงาน 🚀 (Identical to student) */}
           {renderCard(
-            true, // Always enabled or can be controlled via settings
+            true,
             "/homework-feed",
-            <div className={`bg-white rounded-3xl p-8 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col items-center justify-center transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1 relative overflow-hidden h-full`}>
+            <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col items-center justify-center transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1 relative overflow-hidden h-full">
               <div className="bg-indigo-50 text-indigo-500 p-4 rounded-full mb-4 group-hover:scale-110 transition-transform duration-300">
                 <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" className="bi bi-files" viewBox="0 0 16 16"><path d="M13 0H6a2 2 0 0 0-2 2 2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2 2 2 0 0 0 2-2V2a2 2 0 0 0-2-2m0 13V4a2 2 0 0 0-2-2H5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1M3 4a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></svg>
               </div>
@@ -220,39 +204,10 @@ export default async function Home() {
           )}
 
           <div className="flex flex-col gap-4 items-center mt-auto h-[104px] justify-start pt-4">
-            {user ? (
-              <>
-                <Link
-                  href="/election/edit"
-                  className="text-amber-600 hover:text-amber-700 font-medium transition-colors text-sm flex items-center justify-center gap-1.5 w-full"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-                  จัดการผู้สมัคร
-                </Link>
-                <Link
-                  href="/settings"
-                  className="text-indigo-600 hover:text-indigo-700 font-medium transition-colors text-sm flex items-center justify-center gap-1.5 w-full mt-2"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg>
-                  ตั้งค่าระบบพริมจ๋า
-                </Link>
-                <Link
-                  href="/funds"
-                  className="text-emerald-600 hover:text-emerald-700 font-medium transition-colors text-sm flex items-center justify-center gap-1.5 w-full mt-2"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/></svg>
-                  ระบบทวงเงินห้อง
-                </Link>
-              </>
-            ) : (
-              <Link
-                href="/login"
-                className="text-slate-400 hover:text-amber-600 font-medium transition-colors text-sm flex items-center justify-center gap-1.5 w-full"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
-                เข้าสู่ระบบเพื่อจัดการ
-              </Link>
-            )}
+            <div className="text-slate-400 font-medium text-xs flex items-center justify-center gap-1.5 w-full">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
+              <span>โหมดอ่านอย่างเดียวสำหรับผู้ปกครอง</span>
+            </div>
           </div>
         </div>
       </div>

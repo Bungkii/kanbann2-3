@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: '/',
       disallow: ['/api/'], // Protect API routes from being crawled
     },
-    sitemap: 'https://kanbann.bungkii.vercel.app/sitemap.xml',
+    sitemap: 'https://primjaa.bungkii.app/sitemap.xml',
   }
 }

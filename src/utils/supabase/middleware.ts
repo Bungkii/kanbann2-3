@@ -2,13 +2,41 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  })
+  const host = request.headers.get('host') || ''
+  const { pathname } = request.nextUrl
+
+  // Subdomain routing: kanbann.bungkii.app -> Parent Portal (/parent)
+  const isParentDomain =
+    host.startsWith('kanbann.bungkii.app') ||
+    (host.startsWith('kanbann.') && !host.includes('vercel.app'))
+
+  let rewriteUrl: URL | null = null
+  if (
+    isParentDomain &&
+    !pathname.startsWith('/api') &&
+    !pathname.startsWith('/_next') &&
+    !pathname.includes('.')
+  ) {
+    if (pathname === '/') {
+      rewriteUrl = request.nextUrl.clone()
+      rewriteUrl.pathname = '/parent'
+    } else if (!pathname.startsWith('/parent')) {
+      rewriteUrl = request.nextUrl.clone()
+      rewriteUrl.pathname = `/parent${pathname}`
+    }
+  }
+
+  let supabaseResponse = rewriteUrl
+    ? NextResponse.rewrite(rewriteUrl, { request })
+    : NextResponse.next({ request })
+
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return supabaseResponse
+  }
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: {
         getAll() {
@@ -16,9 +44,9 @@ export async function updateSession(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
-          })
+          supabaseResponse = rewriteUrl
+            ? NextResponse.rewrite(rewriteUrl, { request })
+            : NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           )

@@ -197,7 +197,7 @@ export default function ScheduleViewer({
     });
     
     text += `━━━━━━━━━━━━━━━━━━━━\n`;
-    text += `🔗 ดูตารางสอนสดได้ที่: https://kanbann.bungkii.vercel.app/schedule`;
+    text += `🔗 ดูตารางสอนสดได้ที่: https://primjaa.bungkii.app/schedule`;
 
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
