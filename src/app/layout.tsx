@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans_Thai } from "next/font/google";
 import ToasterProvider from "@/components/ToasterProvider";
 import Footer from "@/components/Footer";
 import AnnouncementPopup from "@/components/AnnouncementPopup";
+import PwaRegister from "@/components/PwaRegister";
 import "./globals.css";
 import { getSystemSettings } from "@/app/settings/system/actions";
 
@@ -46,7 +47,30 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'พริมทวงยิก',
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  icons: {
+    apple: '/icons/icon-192.jpg',
+  },
 };
+
+export function generateViewport(): Viewport {
+  return {
+    themeColor: '#7C3AED',
+    width: 'device-width',
+    initialScale: 1,
+    viewportFit: 'cover',
+    userScalable: false,
+    colorScheme: 'light',
+  };
+}
 
 import { Analytics } from "@vercel/analytics/next";
 
@@ -62,6 +86,18 @@ export default async function RootLayout({
 
   return (
     <html lang="th" className={`${ibmPlexSansThai.variable} h-full antialiased`}>
+      <head>
+        {/* Preconnect for performance */}
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* Apple PWA */}
+        <link rel="apple-touch-icon" href="/icons/icon-192.jpg" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="พริมทวงยิก" />
+        {/* MS Tile */}
+        <meta name="msapplication-TileColor" content="#7C3AED" />
+        <meta name="msapplication-tap-highlight" content="no" />
+      </head>
       <body className="min-h-full flex flex-col bg-slate-50 text-slate-900 font-sans">
         {maintenanceMode ? (
           <div className="flex-1 flex flex-col items-center justify-center min-h-screen bg-slate-900 text-white p-4">
@@ -92,6 +128,7 @@ export default async function RootLayout({
           </>
         )}
         <Analytics />
+        <PwaRegister />
       </body>
     </html>
   );

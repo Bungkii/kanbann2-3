@@ -145,9 +145,12 @@ export default function LoginForm({ initialMessage }: LoginFormProps) {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="เลขประจำตัวนักเรียน"
+              placeholder="เช่น 30000"
               required
               autoComplete="username"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              enterKeyHint="next"
               className="w-full rounded-2xl px-4 py-3 bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-800 transition-all text-base placeholder:text-slate-400"
             />
           </div>
@@ -175,9 +178,10 @@ export default function LoginForm({ initialMessage }: LoginFormProps) {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="รหัสผ่าน"
+              placeholder="รหัสผ่านของคุณ"
               required
               autoComplete="current-password"
+              enterKeyHint="done"
               className="w-full rounded-2xl px-4 py-3 bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-800 transition-all text-base placeholder:text-slate-400"
             />
           </div>
