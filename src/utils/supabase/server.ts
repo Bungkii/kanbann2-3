@@ -19,29 +19,18 @@ export async function createClient() {
               cookieStore.set(name, value, options)
             })
           } catch (error) {
-            // The `set` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
+            // Can be ignored if called from a Server Component
           }
         },
       },
     }
   )
 
-  // Wrap client.auth.getUser and client.auth.getSession to recognize student sessions
-  const originalGetUser = client.auth.getUser.bind(client.auth)
-  client.auth.getUser = async (jwt?: string) => {
-    try {
-      const res = await originalGetUser(jwt)
-      if (res?.data?.user) {
-        return res
-      }
-    } catch {
-      // Supabase auth error or network error, fallback to student session
-    }
-
+  // STAGE: Evict all legacy email users. Only authenticated student sessions are allowed!
+  client.auth.getUser = async () => {
     const session = getStudentSessionFromCookies(cookieStore)
-    if (session) {
+
+    if (session && session.student_id) {
       return {
         data: {
           user: {
@@ -80,20 +69,22 @@ export async function createClient() {
       }
     }
 
-    return { data: { user: null }, error: null }
-  }
-
-  const originalGetSession = client.auth.getSession.bind(client.auth)
-  client.auth.getSession = async () => {
+    // No student session found -> forcibly delete any legacy Supabase email auth tokens!
     try {
-      const res = await originalGetSession()
-      if (res?.data?.session) {
-        return res
+      const allCookies = cookieStore.getAll()
+      for (const c of allCookies) {
+        if (c.name.startsWith('sb-') && c.name.includes('-auth-token')) {
+          cookieStore.delete(c.name)
+        }
       }
     } catch {}
 
+    return { data: { user: null }, error: null }
+  }
+
+  client.auth.getSession = async () => {
     const session = getStudentSessionFromCookies(cookieStore)
-    if (session) {
+    if (session && session.student_id) {
       const { data } = await client.auth.getUser()
       if (data?.user) {
         return {

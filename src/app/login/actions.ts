@@ -59,20 +59,13 @@ export async function login(formData: FormData) {
     )
   }
 
-  // 3. Fallback: Try Supabase Auth (for standard admin email accounts)
+  // 3. Reject email login completely
   if (username.includes('@')) {
-    const supabase = await createClient()
-    const { error } = await supabase.auth.signInWithPassword({
-      email: username,
-      password,
-    })
-
-    if (error) {
-      redirect(`/login?message=${encodeURIComponent(error.message)}`)
-    }
-
-    revalidatePath('/', 'layout')
-    redirect('/kanban')
+    redirect(
+      `/login?message=${encodeURIComponent(
+        'ระบบยกเลิกการเข้าสู่ระบบด้วยอีเมลแล้ว กรุณาเข้าสู่ระบบด้วยเลขประจำตัวนักเรียน 5 หลัก (เช่น 30000)'
+      )}`
+    )
   }
 
   // 4. Default invalid message
@@ -143,22 +136,11 @@ export async function skipFirstTimePassword() {
   redirect('/kanban')
 }
 
-export async function signup(formData: FormData) {
-  const supabase = await createClient()
-
-  const data = {
-    email: formData.get('email') as string,
-    password: formData.get('password') as string,
-  }
-
-  const { error } = await supabase.auth.signUp(data)
-
-  if (error) {
-    redirect(`/signup?message=${encodeURIComponent(error.message)}`)
-  }
-
-  revalidatePath('/', 'layout')
-  redirect('/kanban')
+export async function signup() {
+  redirect(
+    '/login?message=' +
+      encodeURIComponent('ระบบใช้งานบัญชีนักเรียนประจำห้อง ม.2/3 สามารถเข้าสู่ระบบด้วยเลขประจำตัวนักเรียนได้ทันที')
+  )
 }
 
 export async function resetForgottenPasswordAction(studentId: string, resetCode: string) {

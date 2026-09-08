@@ -1,33 +1,37 @@
-import { createClient } from '@/utils/supabase/server'
 import { clearStudentSessionCookies } from '@/utils/studentAuth'
 import { revalidatePath } from 'next/cache'
 import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 
 export async function POST(req: Request) {
-  // Clear student session cookies
+  // 1. Clear student session cookies
   try {
     await clearStudentSessionCookies()
   } catch (e) {
     console.error('Error clearing student cookies:', e)
   }
 
-  const supabase = await createClient()
-
-  // Check if a Supabase user's logged in
+  // 2. Clear all legacy Supabase auth cookies
   try {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (user && !user.id.startsWith('student_')) {
-      await supabase.auth.signOut()
+    const cookieStore = await cookies()
+    const allCookies = cookieStore.getAll()
+    for (const c of allCookies) {
+      if (c.name.startsWith('sb-') && c.name.includes('-auth-token')) {
+        cookieStore.delete(c.name)
+      }
     }
   } catch (e) {
-    console.error('Error signing out of Supabase:', e)
+    console.error('Error clearing supabase cookies:', e)
   }
 
   revalidatePath('/', 'layout')
-  return NextResponse.redirect(new URL('/', req.url), {
+  const response = NextResponse.redirect(new URL('/', req.url), {
     status: 302,
   })
+
+  // Explicitly delete cookies on outgoing response
+  response.cookies.delete('primja_session')
+  response.cookies.delete('primja_user')
+
+  return response
 }

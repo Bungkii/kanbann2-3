@@ -86,14 +86,29 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
   const hasPrimjaSession = Boolean(request.cookies.get('primja_session')?.value)
 
-  // Protect routes
-  if (!user && !hasPrimjaSession && (request.nextUrl.pathname.startsWith('/add') || request.nextUrl.pathname.startsWith('/line'))) {
+  // Evict any legacy email users: delete Supabase auth cookies if there is no valid student session
+  if (!hasPrimjaSession) {
+    request.cookies.getAll().forEach((c) => {
+      if (c.name.startsWith('sb-') && c.name.includes('-auth-token')) {
+        supabaseResponse.cookies.delete(c.name)
+      }
+    })
+  }
+
+  // Protect student/admin routes
+  const isProtected =
+    pathname.startsWith('/add') ||
+    pathname.startsWith('/line') ||
+    pathname.startsWith('/settings') ||
+    pathname.startsWith('/summaries/upload') ||
+    pathname.startsWith('/summaries/edit') ||
+    pathname.startsWith('/exam-topics/manage') ||
+    pathname.startsWith('/election/edit') ||
+    pathname.startsWith('/election/candidates')
+
+  if (!hasPrimjaSession && isProtected) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
