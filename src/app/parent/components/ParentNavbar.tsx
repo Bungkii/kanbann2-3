@@ -2,9 +2,9 @@
 
 import React from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { ArrowUpRight } from 'lucide-react';
+import ParentLogo from './ParentLogo';
 
 export default function ParentNavbar() {
   const pathname = usePathname();
@@ -40,16 +40,7 @@ export default function ParentNavbar() {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           {/* Logo / Title */}
           <Link href={basePath || '/'} className="flex items-center gap-3 group">
-            <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl overflow-hidden shadow-sm shadow-indigo-500/20 ring-1 ring-slate-900/5 group-hover:scale-105 transition-all duration-200 bg-indigo-600 flex-shrink-0">
-              <Image
-                src="/parent-logo.png"
-                alt="Logo"
-                width={40}
-                height={40}
-                className="w-full h-full object-cover"
-                priority
-              />
-            </div>
+            <ParentLogo size="sm" className="group-hover:scale-105 transition-transform duration-200" />
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
                 <span className="text-base sm:text-lg font-bold text-slate-800 tracking-tight group-hover:text-slate-900 transition-colors">
