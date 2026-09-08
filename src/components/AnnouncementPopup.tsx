@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -10,6 +11,7 @@ interface PopupImage {
 }
 
 export default function AnnouncementPopup() {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [images, setImages] = useState<PopupImage[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -17,7 +19,19 @@ export default function AnnouncementPopup() {
   const [dontShowAgain, setDontShowAgain] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Never show popup on parent portal (both on /parent path and kanbann subdomain)
+  const isParent =
+    Boolean(pathname?.startsWith('/parent')) ||
+    (typeof window !== 'undefined' &&
+      (window.location.hostname.startsWith('kanbann.') ||
+        window.location.hostname.includes('parent')));
+
   useEffect(() => {
+    if (isParent) {
+      setIsLoading(false);
+      return;
+    }
+
     const checkPopup = async () => {
       const hideUntilStr = localStorage.getItem('hide_popup_until');
       if (hideUntilStr) {
@@ -79,7 +93,7 @@ export default function AnnouncementPopup() {
     setCurrentIndex(idx);
   };
 
-  if (isLoading || !isOpen || images.length === 0) return null;
+  if (isParent || isLoading || !isOpen || images.length === 0) return null;
 
   const current = images[currentIndex];
   const hasMultiple = images.length > 1;
