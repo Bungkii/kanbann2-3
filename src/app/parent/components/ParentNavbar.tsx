@@ -114,7 +114,7 @@ export default function ParentNavbar() {
 
               {/* Pink Accent Action Pill */}
               <Link
-                href="https://primjaa.bungkii.app"
+                href="/kanban"
                 className="ml-1 inline-flex items-center gap-1.5 px-4 lg:px-5 py-1.5 rounded-full bg-[#eb6885] hover:bg-[#e05977] text-white text-sm font-medium shadow-xs transition-all duration-200 hover:shadow-sm"
                 title="สลับไปยังหน้าหลักของนักเรียน"
               >
@@ -155,7 +155,7 @@ export default function ParentNavbar() {
             </button>
 
             <Link
-              href="https://primjaa.bungkii.app"
+              href="/kanban"
               className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#eb6885] text-white text-xs font-medium shadow-xs shrink-0"
             >
               <span>นักเรียน</span>

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { motion } from 'framer-motion';
+import StudentNavbar from '@/components/StudentNavbar';
 
 type SummaryData = {
   id: string;
@@ -169,30 +170,32 @@ export default function SummariesPage() {
   };
 
   return (
-    <motion.main 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="min-h-screen bg-slate-50 p-4 md:p-8"
-    >
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header & Navigation */}
-        <div className="flex items-center justify-between mb-2">
-          <Link
-            href="/"
-            className="text-slate-500 hover:text-slate-800 transition-colors flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-slate-200"
-          >
-            <ArrowLeft size={16} />
-            กลับหน้าหลัก
-          </Link>
-          <Link
-            href="/summaries/upload"
-            className="bg-rose-500 hover:bg-rose-600 text-white font-semibold px-6 py-2.5 rounded-full shadow-md shadow-rose-500/20 transition-all flex items-center gap-2 hover:shadow-rose-500/40 hover:-translate-y-0.5"
-          >
-            <Upload size={18} />
-            แชร์สรุปสอบ
-          </Link>
-        </div>
+    <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col font-sans selection:bg-indigo-500 selection:text-white antialiased relative">
+      {/* Subtle Ambient Background Lighting */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-indigo-500/5 rounded-full blur-3xl" />
+        <div className="absolute top-1/3 -right-40 w-[400px] h-[400px] bg-purple-500/4 rounded-full blur-3xl" />
+      </div>
+
+      <StudentNavbar />
+
+      <motion.main 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="relative z-10 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 pb-28 md:pb-12"
+      >
+        <div className="w-full space-y-6">
+          {/* Header Action */}
+          <div className="flex items-center justify-end mb-2">
+            <Link
+              href="/summaries/upload"
+              className="bg-rose-500 hover:bg-rose-600 text-white font-semibold px-6 py-2.5 rounded-full shadow-md shadow-rose-500/20 transition-all flex items-center gap-2 hover:shadow-rose-500/40 hover:-translate-y-0.5"
+            >
+              <Upload size={18} />
+              แชร์สรุปสอบ
+            </Link>
+          </div>
 
         {/* Hero Section */}
         <div className="bg-gradient-to-br from-rose-600 via-pink-600 to-orange-500 rounded-[2.5rem] p-8 md:p-14 shadow-2xl relative overflow-hidden ring-1 ring-white/20">
@@ -520,6 +523,7 @@ export default function SummariesPage() {
           </div>
         </div>
       )}
-    </motion.main>
+      </motion.main>
+    </div>
   );
 }
