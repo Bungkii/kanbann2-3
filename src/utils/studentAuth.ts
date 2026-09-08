@@ -1,16 +1,29 @@
-import fs from 'fs/promises';
+// NOTE: This file is server-only. Do NOT import it from Client Components or browser bundles.
+// Session utilities (verifySessionToken, getStudentSessionFromCookies) live in ./studentSession
+// and are safe to import anywhere.
 import path from 'path';
 import crypto from 'crypto';
-import { cookies } from 'next/headers';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
+// Re-export session types & utils from the client-safe module
+export * from './studentSession';
 export * from './studentTypes';
 import { StudentRole, StudentAccount, SafeStudentAccount } from './studentTypes';
+import {
+  StudentSessionPayload,
+  createSessionToken,
+  verifySessionToken,
+} from './studentSession';
 
 const ACCOUNTS_FILE = path.join(process.cwd(), 'src', 'data', 'student_accounts.json');
 const STUDENTS_FILE = path.join(process.cwd(), 'src', 'data', 'students.json');
-const SESSION_SECRET = process.env.STUDENT_SESSION_SECRET || 'primja_super_secret_session_key_2026_m23';
 const AUTH_SALT = process.env.STUDENT_AUTH_SALT || 'primja_student_auth_salt_2026_m23';
+
+/** Lazy-loads fs/promises to avoid bundling into client-side code. */
+async function getFs() {
+  const { default: fs } = await import('fs/promises');
+  return fs;
+}
 
 /**
  * Direct Supabase client for student authentication operations (hybrid storage)
@@ -149,6 +162,7 @@ export async function getStudentAccounts(): Promise<StudentAccount[]> {
 
   // 2. Fallback to local JSON storage
   try {
+    const fs = await getFs();
     const content = await fs.readFile(ACCOUNTS_FILE, 'utf-8');
     const accounts = JSON.parse(content) as StudentAccount[];
     
@@ -193,6 +207,7 @@ export async function getSafeStudentAccounts(): Promise<SafeStudentAccount[]> {
  * Initializes accounts for all students from students.json with secure hashes.
  */
 export async function initializeStudentAccounts(): Promise<StudentAccount[]> {
+  const fs = await getFs();
   const studentsRaw = await fs.readFile(STUDENTS_FILE, 'utf-8');
   const students = JSON.parse(studentsRaw) as Array<{
     student_id: string;
@@ -228,6 +243,7 @@ export async function initializeStudentAccounts(): Promise<StudentAccount[]> {
  */
 export async function saveStudentAccounts(accounts: StudentAccount[]): Promise<void> {
   // 1. Save to local JSON file
+  const fs = await getFs();
   const dir = path.dirname(ACCOUNTS_FILE);
   await fs.mkdir(dir, { recursive: true });
   await fs.writeFile(ACCOUNTS_FILE, JSON.stringify(accounts, null, 2), 'utf-8');
@@ -468,59 +484,15 @@ export async function resetStudentPassword(
 // SESSION MANAGEMENT (Signed Cookie)
 // ==========================================
 
-export interface StudentSessionPayload {
-  student_id: string;
-  student_no: number;
-  prefix: string;
-  first_name: string;
-  last_name: string;
-  nickname: string;
-  full_name: string;
-  role: StudentRole;
-  is_first_login: boolean;
-  logged_in_at: number;
-}
-
-/**
- * Creates an HMAC signature for a string payload.
- */
-function signPayload(data: string): string {
-  return crypto.createHmac('sha256', SESSION_SECRET).update(data).digest('hex');
-}
-
-/**
- * Serializes and signs a session payload.
- */
-export function createSessionToken(payload: StudentSessionPayload): string {
-  const jsonStr = JSON.stringify(payload);
-  const base64Data = Buffer.from(jsonStr, 'utf-8').toString('base64');
-  const signature = signPayload(base64Data);
-  return `${base64Data}.${signature}`;
-}
-
-/**
- * Verifies and decodes a session token.
- */
-export function verifySessionToken(token: string): StudentSessionPayload | null {
-  try {
-    const parts = token.split('.');
-    if (parts.length !== 2) return null;
-    const [base64Data, signature] = parts;
-    const expectedSignature = signPayload(base64Data);
-    if (signature !== expectedSignature) return null;
-
-    const jsonStr = Buffer.from(base64Data, 'base64').toString('utf-8');
-    return JSON.parse(jsonStr) as StudentSessionPayload;
-  } catch {
-    return null;
-  }
-}
+// StudentSessionPayload type and createSessionToken/verifySessionToken
+// are re-exported from ./studentSession (already exported at the top).
 
 /**
  * Gets the current student session from cookies in Server Components or Server Actions.
  */
 export async function getCurrentStudentSession(): Promise<StudentSessionPayload | null> {
   try {
+    const { cookies } = await import('next/headers');
     const cookieStore = await cookies();
     const token = cookieStore.get('primja_session')?.value;
     if (!token) return null;
@@ -530,23 +502,13 @@ export async function getCurrentStudentSession(): Promise<StudentSessionPayload 
   }
 }
 
-/**
- * Gets student session from any cookie store instance (e.g. in createClient).
- */
-export function getStudentSessionFromCookies(cookieStore: any): StudentSessionPayload | null {
-  try {
-    const token = typeof cookieStore.get === 'function' ? cookieStore.get('primja_session')?.value : null;
-    if (!token) return null;
-    return verifySessionToken(token);
-  } catch {
-    return null;
-  }
-}
+// getStudentSessionFromCookies is re-exported from ./studentSession (already exported at top).
 
 /**
  * Sets student session cookies (httpOnly secure cookie + public user cookie).
  */
 export async function setStudentSessionCookies(account: StudentAccount): Promise<void> {
+  const { cookies } = await import('next/headers');
   const cookieStore = await cookies();
   const payload: StudentSessionPayload = {
     student_id: account.student_id,
@@ -596,6 +558,7 @@ export async function setStudentSessionCookies(account: StudentAccount): Promise
  * Clears student session cookies.
  */
 export async function clearStudentSessionCookies(): Promise<void> {
+  const { cookies } = await import('next/headers');
   const cookieStore = await cookies();
   cookieStore.set('primja_session', '', { path: '/', maxAge: 0 });
   cookieStore.set('primja_user', '', { path: '/', maxAge: 0 });

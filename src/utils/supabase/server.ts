@@ -1,6 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { getStudentSessionFromCookies } from '@/utils/studentAuth'
+import { getStudentSessionFromCookies } from '@/utils/studentSession'
 
 export async function createClient() {
   const cookieStore = await cookies()
