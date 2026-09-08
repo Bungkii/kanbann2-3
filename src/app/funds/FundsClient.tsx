@@ -34,6 +34,7 @@ type FundsStats = {
 
 type FundsClientProps = {
   isLoggedIn: boolean;
+  isParentMode?: boolean;
   fundsStats: FundsStats;
   currentWeekStart: string;
   fundsData: FundRecord[];
@@ -41,7 +42,7 @@ type FundsClientProps = {
   settings: { startDate: string | null; endDate: string | null; finalExamDate: string | null; };
 }
 
-export default function FundsClient({ isLoggedIn, fundsStats: initialFundsStats, currentWeekStart, fundsData: initialFundsData, expenses: initialExpenses, settings: initialSettings }: FundsClientProps) {
+export default function FundsClient({ isLoggedIn, isParentMode = false, fundsStats: initialFundsStats, currentWeekStart, fundsData: initialFundsData, expenses: initialExpenses, settings: initialSettings }: FundsClientProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   
@@ -127,7 +128,7 @@ export default function FundsClient({ isLoggedIn, fundsStats: initialFundsStats,
     
     setLoading(true)
     setWeekStart(targetDateStr)
-    window.history.pushState(null, '', `/funds?week=${targetDateStr}`)
+    window.history.pushState(null, '', `${window.location.pathname}?week=${targetDateStr}`)
     
     try {
       const data = await getFundsForWeek(targetDateStr)
@@ -446,9 +447,13 @@ export default function FundsClient({ isLoggedIn, fundsStats: initialFundsStats,
         <div>
           <h1 className="text-3xl font-bold text-slate-800 flex items-center gap-3">
             <HandCoins className="text-amber-500" size={32} />
-            ระบบทวงเงินห้อง
+            {isParentMode ? 'บัญชีเงินห้อง ม.2/3' : 'ระบบทวงเงินห้อง'}
           </h1>
-          <p className="text-slate-500 mt-2">สัปดาห์ละ 20 บาท สำหรับกิจกรรมและของใช้ส่วนรวม</p>
+          <p className="text-slate-500 mt-2">
+            {isParentMode
+              ? 'สัปดาห์ละ 20 บาท สำหรับกิจกรรมและของใช้ส่วนรวม (ตรวจสอบความโปร่งใส)'
+              : 'สัปดาห์ละ 20 บาท สำหรับกิจกรรมและของใช้ส่วนรวม'}
+          </p>
         </div>
 
           <div className="flex flex-col items-end gap-2">
@@ -521,7 +526,14 @@ export default function FundsClient({ isLoggedIn, fundsStats: initialFundsStats,
           />
         </div>
 
-        {!isLoggedIn && (
+        {isParentMode ? (
+          <div className="mb-6 p-4 bg-emerald-50 text-emerald-800 rounded-xl flex items-start gap-3 border border-emerald-200/60">
+            <div>
+              <p className="font-semibold text-emerald-900">โหมดตรวจสอบข้อมูลสำหรับผู้ปกครอง</p>
+              <p className="text-sm text-emerald-700">ผู้ปกครองสามารถตรวจสอบสถานะการชำระเงินค่าบำรุงห้องและใบเสร็จค่าใช้จ่ายทั้งหมดได้อย่างโปร่งใส</p>
+            </div>
+          </div>
+        ) : !isLoggedIn && (
           <div className="mb-6 p-4 bg-blue-50 text-blue-700 rounded-xl flex items-start gap-3 border border-blue-100">
             <div>
               <p className="font-semibold">กรุณาล็อกอินเพื่อจัดการเงินห้อง</p>

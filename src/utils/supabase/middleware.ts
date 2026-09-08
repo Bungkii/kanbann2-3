@@ -49,7 +49,8 @@ export async function updateSession(request: NextRequest) {
       rewriteUrl.pathname = '/parent'
     } else if (
       pathname.startsWith('/assignments') ||
-      pathname.startsWith('/exams')
+      pathname.startsWith('/exams') ||
+      pathname.startsWith('/funds')
     ) {
       rewriteUrl = request.nextUrl.clone()
       rewriteUrl.pathname = `/parent${pathname}`

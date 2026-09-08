@@ -18,6 +18,7 @@ export default async function ParentHomePage() {
 
   const assignmentsHref = isParentDomain ? '/assignments' : '/parent/assignments';
   const examsHref = isParentDomain ? '/exams' : '/parent/exams';
+  const fundsHref = isParentDomain ? '/funds' : '/parent/funds';
 
   const settings = await getSystemSettings();
   const kanbanEnabled = settings.kanban_enabled !== false;
@@ -107,21 +108,16 @@ export default async function ParentHomePage() {
 
         {/* Right Section */}
         <div className="w-full h-full flex flex-col gap-6">
-          {/* พริมง่วงทวงบุญคุณ 🔔 */}
+          {/* บัญชีเงินห้อง ม.2/3 */}
           {renderCard(
-            kanbanEnabled,
-            assignmentsHref,
-            <div className={`bg-white rounded-3xl p-10 h-full min-h-[300px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 flex flex-col items-center justify-center transition-all duration-300 ${kanbanEnabled ? 'hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1' : ''}`}>
-              <div className="bg-blue-50 text-blue-600 p-4 rounded-full mb-6 group-hover:scale-110 transition-transform duration-300">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" /><path d="M8 7v7" /><path d="M12 7v4" /><path d="M16 7v9" /></svg>
+            true,
+            fundsHref,
+            <div className="bg-white rounded-3xl p-10 h-full min-h-[300px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 flex flex-col items-center justify-center transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1">
+              <div className="bg-emerald-50 text-emerald-600 p-4 rounded-full mb-6 group-hover:scale-110 transition-transform duration-300">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
               </div>
-              <div className="flex flex-col items-center gap-2 mb-2">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-2xl font-bold text-slate-800 text-center">พริมง่วงทวงบุญคุณ</h2>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-500 shrink-0"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
-                </div>
-              </div>
-              <p className="text-slate-500 text-center">พริมง่วงทวงความยุติธรรม</p>
+              <h2 className="text-2xl font-bold text-slate-800 mb-2 text-center">บัญชีเงินห้อง ม.2/3</h2>
+              <p className="text-slate-500 text-center">ตรวจสอบยอดเงินห้อง และรายรับ-รายจ่าย</p>
             </div>
           )}
 

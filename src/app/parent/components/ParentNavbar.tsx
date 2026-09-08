@@ -20,6 +20,10 @@ export default function ParentNavbar() {
       href: `${basePath}/assignments`,
     },
     {
+      label: 'บัญชีเงินห้อง',
+      href: `${basePath}/funds`,
+    },
+    {
       label: 'เนื้อหา & สรุปสอบ',
       href: `${basePath}/exams`,
     },

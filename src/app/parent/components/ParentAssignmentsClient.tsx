@@ -28,9 +28,9 @@ export function getUrgency(task: Task) {
   if (isBefore(due, today) || isToday(due)) {
     return { level: 'critical', text: 'เกินกำหนดแล้ว!', color: 'text-red-700 bg-red-100 border-red-200' };
   } else if (isTomorrow(due) || differenceInDays(due, today) <= 2) {
-    return { level: 'warning', text: 'พริมเริ่มมอง...', color: 'text-amber-700 bg-amber-100 border-amber-200' };
+    return { level: 'warning', text: 'ใกล้ถึงกำหนด', color: 'text-amber-700 bg-amber-100 border-amber-200' };
   } else {
-    return { level: 'chill', text: 'พริมยังชิล', color: 'text-emerald-700 bg-emerald-100 border-emerald-200' };
+    return { level: 'chill', text: 'ยังมีเวลา', color: 'text-emerald-700 bg-emerald-100 border-emerald-200' };
   }
 }
 
