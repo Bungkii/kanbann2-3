@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import { headers } from 'next/headers';
 import Countdown from '@/components/Countdown';
 import { getSystemSettings } from '@/app/settings/system/actions';
 import PageTransition from '@/components/PageTransition';
@@ -7,6 +8,15 @@ import PageTransition from '@/components/PageTransition';
 export const dynamic = 'force-dynamic';
 
 export default async function ParentHomePage() {
+  const headersList = await headers();
+  const host = headersList.get('x-forwarded-host') || headersList.get('host') || '';
+  const isParentDomain =
+    host.startsWith('kanbann.bungkii.app') ||
+    (host.startsWith('kanbann.') && !host.includes('vercel.app'));
+
+  const assignmentsHref = isParentDomain ? '/assignments' : '/parent/assignments';
+  const examsHref = isParentDomain ? '/exams' : '/parent/exams';
+
   const settings = await getSystemSettings();
   const kanbanEnabled = settings.kanban_enabled !== false;
   const summariesEnabled = settings.summaries_enabled !== false;
@@ -59,7 +69,7 @@ export default async function ParentHomePage() {
           {/* Card 1: กระดานการบ้าน */}
           {renderCard(
             true,
-            "/parent/assignments",
+            assignmentsHref,
             <div className="bg-white rounded-3xl p-10 h-full min-h-[300px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 flex flex-col items-center justify-center transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1">
               <div className="bg-indigo-50 text-indigo-600 p-4 rounded-full mb-6 group-hover:scale-110 transition-transform duration-300">
                 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
@@ -98,7 +108,7 @@ export default async function ParentHomePage() {
           {/* พริมง่วงทวงบุญคุณ 🔔 */}
           {renderCard(
             kanbanEnabled,
-            "/parent/assignments",
+            assignmentsHref,
             <div className={`bg-white rounded-3xl p-10 h-full min-h-[300px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 flex flex-col items-center justify-center transition-all duration-300 ${kanbanEnabled ? 'hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1' : ''}`}>
               <div className="bg-blue-50 text-blue-600 p-4 rounded-full mb-6 group-hover:scale-110 transition-transform duration-300">
                 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" /><path d="M8 7v7" /><path d="M12 7v4" /><path d="M16 7v9" /></svg>
@@ -116,7 +126,7 @@ export default async function ParentHomePage() {
           {/* แจกสรุปสอบปลายภาค 1/69 */}
           {renderCard(
             summariesEnabled,
-            "/parent/exams",
+            examsHref,
             <div className={`bg-gradient-to-br from-rose-500 to-pink-600 rounded-3xl p-8 border border-rose-100 flex flex-col items-center justify-center transition-all duration-300 ${summariesEnabled ? 'hover:shadow-[0_8px_30px_rgb(225,29,72,0.2)] hover:-translate-y-1' : ''} relative overflow-hidden h-full`}>
               <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white opacity-10 rounded-full blur-2xl"></div>
               <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-24 h-24 bg-white opacity-10 rounded-full blur-2xl"></div>
@@ -137,7 +147,7 @@ export default async function ParentHomePage() {
           {/* เนื้อหาออกสอบปลายภาค 1/69 */}
           {renderCard(
             true,
-            "/parent/exams",
+            examsHref,
             <div className="bg-gradient-to-br from-indigo-500 to-violet-600 rounded-3xl p-8 border border-indigo-100 flex flex-col items-center justify-center transition-all duration-300 hover:shadow-[0_8px_30px_rgb(99,102,241,0.2)] hover:-translate-y-1 relative overflow-hidden h-full">
               <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white opacity-10 rounded-full blur-2xl"></div>
               <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-24 h-24 bg-white opacity-10 rounded-full blur-2xl"></div>

@@ -5,27 +5,29 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ArrowUpRight } from 'lucide-react';
 
-const NAV_ITEMS = [
-  {
-    label: 'หน้าหลัก',
-    href: '/parent',
-  },
-  {
-    label: 'การบ้าน',
-    href: '/parent/assignments',
-  },
-  {
-    label: 'เนื้อหา & สรุปสอบ',
-    href: '/parent/exams',
-  },
-];
-
 export default function ParentNavbar() {
   const pathname = usePathname();
+  const isUnderParent = pathname.startsWith('/parent');
+  const basePath = isUnderParent ? '/parent' : '';
+
+  const navItems = [
+    {
+      label: 'หน้าหลัก',
+      href: basePath || '/',
+    },
+    {
+      label: 'การบ้าน',
+      href: `${basePath}/assignments`,
+    },
+    {
+      label: 'เนื้อหา & สรุปสอบ',
+      href: `${basePath}/exams`,
+    },
+  ];
 
   const isActive = (href: string) => {
-    if (href === '/parent') {
-      return pathname === '/parent';
+    if (href === '/' || href === '/parent') {
+      return pathname === '/' || pathname === '/parent';
     }
     return pathname.startsWith(href);
   };
@@ -36,7 +38,7 @@ export default function ParentNavbar() {
       <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200/70 px-4 sm:px-8 py-3 transition-all">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           {/* Logo / Title */}
-          <Link href="/parent" className="flex items-center gap-2.5 group">
+          <Link href={basePath || '/'} className="flex items-center gap-2.5 group">
             <span className="w-2.5 h-2.5 rounded-full bg-[#eb6885]" />
             <span className="text-lg font-bold text-slate-800 tracking-tight group-hover:text-slate-900 transition-colors">
               ระบบติดตามงานห้อง ม.2/3
@@ -45,7 +47,7 @@ export default function ParentNavbar() {
 
           {/* Floating Pill Nav Capsule (Exact match to reference design) */}
           <nav className="hidden md:flex items-center bg-[#edf2f7] p-1.5 rounded-full border border-slate-200/60 shadow-2xs">
-            {NAV_ITEMS.map((item) => {
+            {navItems.map((item) => {
               const active = isActive(item.href);
 
               return (
@@ -90,7 +92,7 @@ export default function ParentNavbar() {
       {/* Mobile Bottom Floating Capsule Bar */}
       <div className="md:hidden fixed bottom-4 left-4 right-4 z-40 flex justify-center">
         <div className="flex items-center justify-between w-full max-w-sm bg-white/95 backdrop-blur-md p-1.5 rounded-full border border-slate-200/80 shadow-lg">
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const active = isActive(item.href);
 
             return (

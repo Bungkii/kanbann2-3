@@ -2,15 +2,15 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
-  const host = request.headers.get('host') || ''
+  const host = request.headers.get('x-forwarded-host') || request.headers.get('host') || ''
   const { pathname } = request.nextUrl
 
-  // Subdomain routing: kanbann.bungkii.app -> Parent Portal (/parent)
+  // Subdomain routing: kanbann.bungkii.app -> Parent Portal (Rooted at src/app/parent)
   const isParentDomain =
     host.startsWith('kanbann.bungkii.app') ||
     (host.startsWith('kanbann.') && !host.includes('vercel.app'))
 
-  // Student-only routes must NEVER be on parent domain
+  // 1. Student-only routes must NEVER be on parent domain
   if (
     isParentDomain &&
     (pathname.startsWith('/election') ||
@@ -20,6 +20,21 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(`https://primjaa.bungkii.app${pathname}`)
   }
 
+  // 2. If parent domain is accessed with /parent prefix, redirect to clean root path
+  if (isParentDomain) {
+    if (pathname === '/parent') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/'
+      return NextResponse.redirect(url)
+    }
+    if (pathname.startsWith('/parent/')) {
+      const url = request.nextUrl.clone()
+      url.pathname = pathname.replace(/^\/parent/, '')
+      return NextResponse.redirect(url)
+    }
+  }
+
+  // 3. Rewrite clean root paths on parent domain directly to /parent pages
   let rewriteUrl: URL | null = null
   if (
     isParentDomain &&
@@ -30,7 +45,10 @@ export async function updateSession(request: NextRequest) {
     if (pathname === '/') {
       rewriteUrl = request.nextUrl.clone()
       rewriteUrl.pathname = '/parent'
-    } else if (!pathname.startsWith('/parent')) {
+    } else if (
+      pathname.startsWith('/assignments') ||
+      pathname.startsWith('/exams')
+    ) {
       rewriteUrl = request.nextUrl.clone()
       rewriteUrl.pathname = `/parent${pathname}`
     }
