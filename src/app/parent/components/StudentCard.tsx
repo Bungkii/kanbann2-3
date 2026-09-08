@@ -49,7 +49,7 @@ export default function StudentCard({
           <img
             src={avatar}
             alt={fullName}
-            className="w-full h-full object-contain"
+            className={`w-full h-full object-contain transition-transform ${student.prefix === 'ด.ช.' ? 'scale-115' : ''}`}
           />
         </div>
 

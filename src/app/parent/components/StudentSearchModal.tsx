@@ -136,7 +136,7 @@ export default function StudentSearchModal() {
             <div className="py-12 text-center text-slate-400">
               <Search className="mx-auto mb-2 opacity-30 text-sky-600" size={36} />
               <p className="font-semibold text-slate-600">ไม่พบนักเรียนที่ค้นหา</p>
-              <p className="text-xs text-slate-400 mt-1">ลองพิมพ์เลขประจำตัว เช่น 30260 หรือชื่อเล่น</p>
+              <p className="text-xs text-slate-400 mt-1">ลองพิมพ์เลขประจำตัว เช่น 30000 หรือชื่อเล่น</p>
             </div>
           ) : (
             filteredStudents.map((student) => {

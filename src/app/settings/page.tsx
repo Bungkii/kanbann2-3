@@ -2,7 +2,7 @@ import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import PageTransition from "@/components/PageTransition";
-import { ArrowLeft, Settings as SettingsIcon, Shirt, Calendar, Trash2 } from 'lucide-react';
+import { ArrowLeft, Settings as SettingsIcon, Shirt, Calendar, Trash2, Shield } from 'lucide-react';
 
 export const revalidate = 0;
 
@@ -16,7 +16,7 @@ export default async function SettingsDashboard() {
 
   return (
     <PageTransition className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 flex flex-col items-center">
-      <div className="w-full max-w-4xl relative">
+      <div className="w-full max-w-5xl relative">
         <Link 
           href="/"
           className="absolute -top-4 left-0 md:-left-12 text-slate-400 hover:text-slate-600 hover:bg-slate-200 p-2 rounded-full transition-colors z-10"
@@ -32,11 +32,11 @@ export default async function SettingsDashboard() {
             </div>
             <h1 className="text-3xl font-bold text-slate-800 mb-2">ตั้งค่าระบบพริมจ๋า</h1>
             <p className="text-slate-500">
-              จัดการระบบต่างๆ ภายในห้องเรียน
+              จัดการระบบต่างๆ ภายในห้องเรียน ม.2/3
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <Link href="/settings/schedule" className="group">
               <div className="bg-slate-50 border border-slate-100 rounded-2xl p-8 flex flex-col items-center text-center h-full transition-all hover:bg-indigo-50 hover:border-indigo-100 hover:shadow-sm">
                 <div className="bg-indigo-100 text-indigo-600 p-4 rounded-full mb-4 group-hover:scale-110 transition-transform">
@@ -64,6 +64,16 @@ export default async function SettingsDashboard() {
                 </div>
                 <h2 className="text-xl font-bold text-slate-800 mb-2 group-hover:text-amber-700">ชุดเครื่องแบบ</h2>
                 <p className="text-sm text-slate-500">กำหนดชุดนักเรียนที่ต้องใส่ในแต่ละวัน</p>
+              </div>
+            </Link>
+
+            <Link href="/settings/roles" className="group">
+              <div className="bg-slate-50 border border-slate-100 rounded-2xl p-8 flex flex-col items-center text-center h-full transition-all hover:bg-violet-50 hover:border-violet-100 hover:shadow-sm">
+                <div className="bg-violet-100 text-violet-600 p-4 rounded-full mb-4 group-hover:scale-110 transition-transform">
+                  <Shield size={32} />
+                </div>
+                <h2 className="text-xl font-bold text-slate-800 mb-2 group-hover:text-violet-700">สิทธิ์และบทบาท</h2>
+                <p className="text-sm text-slate-500">กำหนด Roles: SuperAdmin, Admin, Leader, Finance, Student</p>
               </div>
             </Link>
 

@@ -1,6 +1,6 @@
 import { createClient } from '@/utils/supabase/server';
 import KanbanBoard from '@/components/KanbanBoard';
-import StudentNavbar from '@/components/StudentNavbar';
+import LineBroadcastButtons from '@/components/LineBroadcastButtons';
 import Link from 'next/link';
 import PageTransition from '@/components/PageTransition';
 
@@ -43,7 +43,7 @@ export default async function KanbanPage() {
     }
 
     return (
-      <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center p-8 text-center">
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-8 text-center">
         <div className="bg-white rounded-3xl p-10 max-w-md shadow-sm border border-slate-200">
           <div className="bg-amber-100 text-amber-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
@@ -59,22 +59,26 @@ export default async function KanbanPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col font-sans selection:bg-indigo-500 selection:text-white antialiased relative">
-      {/* Subtle Ambient Background Lighting */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-indigo-500/5 rounded-full blur-3xl" />
-        <div className="absolute top-1/3 -right-40 w-[400px] h-[400px] bg-purple-500/4 rounded-full blur-3xl" />
-      </div>
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      <header className="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between shadow-sm sticky top-0 z-10">
+        <div className="flex items-center gap-4">
+          <Link href="/" className="text-slate-500 hover:text-slate-800 transition-colors p-2 rounded-full hover:bg-slate-100">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+          </Link>
+          <h1 className="text-2xl font-extrabold tracking-tight flex items-center gap-2">
+            <div>
+              <span className="text-slate-800">ทับสามไม่ทำงาน</span>
+              <span className="text-red-500"> by ชามนพิ</span>
+            </div>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-500"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
+          </h1>
+        </div>
+        {isAuthenticated && <LineBroadcastButtons />}
+      </header>
 
-      {/* Floating Pill Header Navigation */}
-      <StudentNavbar isAuthenticated={isAuthenticated} />
-
-      {/* Main Content Area */}
-      <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 pb-28 md:pb-12">
-        <PageTransition className="flex-1 w-full">
-          <KanbanBoard initialTasks={tasks || []} isAuthenticated={isAuthenticated} />
-        </PageTransition>
-      </main>
+      <PageTransition className="flex-1 p-8 overflow-x-auto">
+        <KanbanBoard initialTasks={tasks || []} isAuthenticated={isAuthenticated} />
+      </PageTransition>
     </div>
   );
 }

@@ -307,54 +307,36 @@ export default function KanbanBoard({ initialTasks, isAuthenticated = false }: {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header & Filter Bar */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-4 mb-6">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">
-              กระดานการบ้านและชิ้นงาน
-            </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/60">
-              ม.2/3
-            </span>
-          </div>
-          <p className="text-sm text-slate-500">
-            ติดตามสถานะงาน กำหนดส่ง และการบ้านทั้งหมดของห้องเรียน
-          </p>
+          <h2 className="text-xl font-bold text-slate-800">สรุปภาพรวมงาน</h2>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">กรองและค้นหารายการการบ้านตามวันที่หรือเงื่อนไข</p>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto justify-end">
-          {/* Enhanced Filter Widget */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto justify-end">
           <TaskFilterWidget filterState={filterState} onChange={setFilterState} />
 
-          {/* View Mode Switcher */}
-          <div className="bg-slate-200/70 p-1 rounded-2xl flex gap-1 self-end sm:self-auto">
+          <div className="bg-slate-200 p-1 rounded-xl flex gap-0.5 shrink-0 self-end sm:self-auto">
             <button
               onClick={() => setViewMode('board')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                viewMode === 'board'
-                  ? 'bg-white shadow-xs text-slate-800'
-                  : 'text-slate-600 hover:text-slate-900'
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                viewMode === 'board' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
               กระดาน
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                viewMode === 'list'
-                  ? 'bg-white shadow-xs text-slate-800'
-                  : 'text-slate-600 hover:text-slate-900'
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                viewMode === 'list' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              ตาราง
+              ติ๊ก
             </button>
             <button
               onClick={() => setViewMode('category')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                viewMode === 'category'
-                  ? 'bg-white shadow-xs text-slate-800'
-                  : 'text-slate-600 hover:text-slate-900'
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                viewMode === 'category' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
               หมวดหมู่

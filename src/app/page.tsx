@@ -96,8 +96,13 @@ export default async function Home() {
             ) : (
               <>
                 <form action="/auth/signout" method="post" className="w-full">
-                  <button className="w-full text-slate-600 hover:text-slate-900 font-medium transition-colors border border-slate-300 rounded-full px-6 py-2 shadow-sm bg-white hover:bg-slate-100">
-                    ออกจากระบบพิชามน
+                  <button className="w-full text-slate-600 hover:text-slate-900 font-medium transition-colors border border-slate-300 rounded-full px-4 py-2 shadow-sm bg-white hover:bg-slate-100 flex items-center justify-center gap-1.5 text-sm">
+                    <span>ออกจากระบบ{user.user_metadata?.nickname ? ` (${user.user_metadata.nickname})` : 'พิชามน'}</span>
+                    {user.user_metadata?.role && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                        {user.user_metadata.role}
+                      </span>
+                    )}
                   </button>
                 </form>
 
