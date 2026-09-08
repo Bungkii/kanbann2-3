@@ -4,6 +4,7 @@ import ToasterProvider from "@/components/ToasterProvider";
 import Footer from "@/components/Footer";
 import AnnouncementPopup from "@/components/AnnouncementPopup";
 import PwaRegister from "@/components/PwaRegister";
+import BottomNav from "@/components/BottomNav";
 import "./globals.css";
 import { getSystemSettings } from "@/app/settings/system/actions";
 
@@ -129,6 +130,7 @@ export default async function RootLayout({
         )}
         <Analytics />
         <PwaRegister />
+        <BottomNav />
       </body>
     </html>
   );
