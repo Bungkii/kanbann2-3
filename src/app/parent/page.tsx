@@ -4,6 +4,7 @@ import { headers } from 'next/headers';
 import Countdown from '@/components/Countdown';
 import { getSystemSettings } from '@/app/settings/system/actions';
 import PageTransition from '@/components/PageTransition';
+import ParentStudentBanner from './components/ParentStudentBanner';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,6 +66,9 @@ export default async function ParentHomePage() {
 
   return (
     <PageTransition className="flex-1 flex flex-col items-center justify-center min-h-[calc(100vh-140px)] py-4 sm:py-8">
+      {/* Student Identification & Persistence Banner */}
+      <ParentStudentBanner />
+
       {/* 2-Column Grid (Only Parent-Relevant Cards) */}
       <div className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch justify-center">
         {/* Left Section */}

@@ -3,12 +3,14 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, Search, User } from 'lucide-react';
+import { useParentStudent } from './ParentStudentContext';
 
 export default function ParentNavbar() {
   const pathname = usePathname();
   const isUnderParent = pathname.startsWith('/parent');
   const basePath = isUnderParent ? '/parent' : '';
+  const { selectedStudent, setIsSearchOpen } = useParentStudent();
 
   const navItems = [
     {
@@ -40,9 +42,9 @@ export default function ParentNavbar() {
     <>
       {/* Top Header & Floating Pill Navbar (Desktop & Tablet) */}
       <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200/70 px-4 sm:px-8 py-3 transition-all">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
           {/* Logo / Title */}
-          <Link href={basePath || '/'} className="flex items-center gap-2.5 group">
+          <Link href={basePath || '/'} className="flex items-center gap-2 sm:gap-2.5 group shrink-0">
             <span className="w-2.5 h-2.5 rounded-full bg-[#eb6885]" />
             <span className="text-base sm:text-lg font-bold text-slate-800 tracking-tight group-hover:text-slate-900 transition-colors">
               ระบบติดตามงานห้อง ม.2/3
@@ -56,45 +58,100 @@ export default function ParentNavbar() {
             </span>
           </Link>
 
-          {/* Floating Pill Nav Capsule (Exact match to reference design) */}
-          <nav className="hidden md:flex items-center bg-[#edf2f7] p-1.5 rounded-full border border-slate-200/60 shadow-2xs">
-            {navItems.map((item) => {
-              const active = isActive(item.href);
+          {/* Desktop Right Cluster: Student Badge & Pill Nav */}
+          <div className="hidden md:flex items-center gap-3">
+            {/* Student Search & Selection Badge */}
+            <button
+              onClick={() => setIsSearchOpen(true)}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all border shadow-2xs cursor-pointer ${
+                selectedStudent
+                  ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200/80'
+                  : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-200/80'
+              }`}
+              title="คลิกเพื่อค้นหาและเปลี่ยนนักเรียนที่ติดตาม"
+            >
+              {selectedStudent ? (
+                <>
+                  <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+                    {selectedStudent.student_no}
+                  </span>
+                  <span className="max-w-[140px] truncate">
+                    {selectedStudent.first_name} ({selectedStudent.nickname})
+                  </span>
+                  <Search size={12} className="text-emerald-600 opacity-60" />
+                </>
+              ) : (
+                <>
+                  <Search size={13} className="text-indigo-600 shrink-0" />
+                  <span>ค้นหานักเรียน</span>
+                </>
+              )}
+            </button>
 
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`px-5 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
-                    active
-                      ? 'bg-white text-slate-900 shadow-xs font-semibold'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
+            {/* Floating Pill Nav Capsule */}
+            <nav className="flex items-center bg-[#edf2f7] p-1.5 rounded-full border border-slate-200/60 shadow-2xs">
+              {navItems.map((item) => {
+                const active = isActive(item.href);
 
-            {/* Pink Accent Action Pill (Replaces 'เข้าสู่ระบบ' with 'ระบบนักเรียน ↗') */}
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`px-4 lg:px-5 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
+                      active
+                        ? 'bg-white text-slate-900 shadow-xs font-semibold'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
+
+              {/* Pink Accent Action Pill */}
+              <Link
+                href="https://primjaa.bungkii.app"
+                className="ml-1 inline-flex items-center gap-1.5 px-4 lg:px-5 py-1.5 rounded-full bg-[#eb6885] hover:bg-[#e05977] text-white text-sm font-medium shadow-xs transition-all duration-200 hover:shadow-sm"
+                title="สลับไปยังหน้าหลักของนักเรียน"
+              >
+                <span>ระบบนักเรียน</span>
+                <ArrowUpRight size={14} className="stroke-[2.2]" />
+              </Link>
+            </nav>
+          </div>
+
+          {/* Mobile Right Controls */}
+          <div className="md:hidden flex items-center gap-1.5">
+            <button
+              onClick={() => setIsSearchOpen(true)}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-semibold transition-all border ${
+                selectedStudent
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                  : 'bg-indigo-50 text-indigo-700 border-indigo-200'
+              }`}
+              title="ค้นหาและเลือกนักเรียน"
+            >
+              {selectedStudent ? (
+                <>
+                  <span className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[9px] font-bold">
+                    {selectedStudent.student_no}
+                  </span>
+                  <span className="max-w-[70px] truncate">{selectedStudent.nickname}</span>
+                </>
+              ) : (
+                <>
+                  <Search size={12} />
+                  <span>เลือกนักเรียน</span>
+                </>
+              )}
+            </button>
+
             <Link
               href="https://primjaa.bungkii.app"
-              className="ml-1 inline-flex items-center gap-1.5 px-5 py-1.5 rounded-full bg-[#eb6885] hover:bg-[#e05977] text-white text-sm font-medium shadow-xs transition-all duration-200 hover:shadow-sm"
-              title="สลับไปยังหน้าหลักของนักเรียน"
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#eb6885] text-white text-xs font-medium shadow-xs shrink-0"
             >
-              <span>ระบบนักเรียน</span>
-              <ArrowUpRight size={14} className="stroke-[2.2]" />
-            </Link>
-          </nav>
-
-          {/* Mobile Right Link */}
-          <div className="md:hidden flex items-center">
-            <Link
-              href="https://primjaa.bungkii.app"
-              className="inline-flex items-center gap-1 px-4 py-1.5 rounded-full bg-[#eb6885] text-white text-xs font-medium shadow-xs"
-            >
-              <span>ระบบนักเรียน</span>
-              <ArrowUpRight size={13} />
+              <span>นักเรียน</span>
+              <ArrowUpRight size={12} />
             </Link>
           </div>
         </div>

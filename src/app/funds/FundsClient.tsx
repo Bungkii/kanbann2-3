@@ -82,6 +82,23 @@ export default function FundsClient({ isLoggedIn, isParentMode = false, fundsSta
   const [lightboxImg, setLightboxImg] = useState<string | null>(null)
   const supabase = createClient()
 
+  // Highlight selected student for parents
+  const [highlightedStudent, setHighlightedStudent] = useState<{ student_no: number; student_id?: string; full_name: string; nickname: string } | null>(null)
+
+  useEffect(() => {
+    if (isParentMode) {
+      try {
+        const saved = localStorage.getItem('parent_selected_student')
+        if (saved) {
+          const parsed = JSON.parse(saved)
+          if (parsed?.student_no) {
+            setHighlightedStudent(parsed)
+          }
+        }
+      } catch (e) {}
+    }
+  }, [isParentMode])
+
   const weekDate = new Date(weekStart)
   const isCurrentWeek = weekStart === currentWeekStart
 
@@ -383,6 +400,7 @@ export default function FundsClient({ isLoggedIn, isParentMode = false, fundsSta
   const renderStudentBtn = (num: number, isPaid: boolean) => {
     const fundRecord = localFundsData.find(f => f.student_number === num)
     const amount = fundRecord?.amount || 20
+    const isMyChild = isParentMode && highlightedStudent?.student_no === num
 
     return (
       <motion.div
@@ -391,17 +409,24 @@ export default function FundsClient({ isLoggedIn, isParentMode = false, fundsSta
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.8 }}
-        className="relative"
+        className={`relative ${isMyChild ? 'z-20' : ''}`}
       >
         <button
           onClick={() => handleToggle(num, isPaid)}
           disabled={!isLoggedIn}
           className={`w-full h-full relative flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all duration-200 ${
+            isMyChild ? 'ring-3 ring-indigo-500 ring-offset-2 scale-105 shadow-md ' : ''
+          } ${
             isPaid 
               ? 'bg-emerald-50 border-emerald-200 hover:border-emerald-300' 
               : 'bg-white border-slate-200 hover:border-rose-200'
           } ${!isLoggedIn && 'cursor-default opacity-80'}`}
         >
+          {isMyChild && (
+            <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-indigo-600 text-white text-[9px] font-bold rounded-full shadow-xs whitespace-nowrap">
+              นักเรียนคุณ
+            </span>
+          )}
           <span className={`text-lg font-bold mb-1 ${isPaid ? 'text-emerald-700' : 'text-slate-600'}`}>
             {num}
           </span>
@@ -539,6 +564,30 @@ export default function FundsClient({ isLoggedIn, isParentMode = false, fundsSta
               <p className="font-semibold">กรุณาล็อกอินเพื่อจัดการเงินห้อง</p>
               <p className="text-sm opacity-90">ล็อกอินแล้วจะสามารถกดติ๊กจ่ายเงินให้เพื่อนได้ทันทีเลยครับ</p>
             </div>
+          </div>
+        )}
+
+        {/* Personalized Student Payment Status (For Parents) */}
+        {isParentMode && highlightedStudent && (
+          <div className="mb-6 p-4 bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 rounded-2xl border border-indigo-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-extrabold text-sm shrink-0 shadow-sm shadow-indigo-600/20">
+                #{highlightedStudent.student_no}
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-indigo-700">สถานะเงินห้องของนักเรียนของคุณ: {highlightedStudent.full_name} ({highlightedStudent.nickname})</p>
+                <p className="text-sm font-bold text-slate-800 mt-0.5">
+                  {localFundsData.find(f => f.student_number === highlightedStudent.student_no)?.is_paid
+                    ? '✅ ชำระเงินค่าห้องสัปดาห์นี้เรียบร้อยแล้ว (20 บาท)'
+                    : '⏳ ยังไม่ได้ชำระเงินค่าห้องสัปดาห์นี้ (20 บาท)'}
+                </p>
+              </div>
+            </div>
+            {highlightedStudent.student_id && (
+              <span className="text-xs px-3 py-1 rounded-full bg-white/80 font-semibold border border-indigo-100 text-slate-600 shrink-0">
+                เลขประจำตัว: {highlightedStudent.student_id}
+              </span>
+            )}
           </div>
         )}
 
