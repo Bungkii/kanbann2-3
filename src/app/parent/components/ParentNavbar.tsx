@@ -72,9 +72,13 @@ export default function ParentNavbar() {
             >
               {selectedStudent ? (
                 <>
-                  <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0">
-                    {selectedStudent.student_no}
-                  </span>
+                  <div className="w-5 h-5 rounded-full overflow-hidden border border-emerald-300 shrink-0 bg-white">
+                    <img
+                      src={selectedStudent.prefix === 'ด.ญ.' ? '/asset/student-girl.webp' : '/asset/student-boy.webp'}
+                      alt={selectedStudent.prefix}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
                   <span className="max-w-[140px] truncate">
                     {selectedStudent.first_name} ({selectedStudent.nickname})
                   </span>
@@ -133,9 +137,13 @@ export default function ParentNavbar() {
             >
               {selectedStudent ? (
                 <>
-                  <span className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[9px] font-bold">
-                    {selectedStudent.student_no}
-                  </span>
+                  <div className="w-5 h-5 rounded-full overflow-hidden border border-emerald-300 shrink-0 bg-white">
+                    <img
+                      src={selectedStudent.prefix === 'ด.ญ.' ? '/asset/student-girl.webp' : '/asset/student-boy.webp'}
+                      alt={selectedStudent.prefix}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
                   <span className="max-w-[70px] truncate">{selectedStudent.nickname}</span>
                 </>
               ) : (

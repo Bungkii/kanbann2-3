@@ -83,7 +83,7 @@ export default function FundsClient({ isLoggedIn, isParentMode = false, fundsSta
   const supabase = createClient()
 
   // Highlight selected student for parents
-  const [highlightedStudent, setHighlightedStudent] = useState<{ student_no: number; student_id?: string; full_name: string; nickname: string } | null>(null)
+  const [highlightedStudent, setHighlightedStudent] = useState<{ student_no: number; student_id?: string; prefix?: string; first_name?: string; last_name?: string; full_name: string; nickname: string } | null>(null)
 
   useEffect(() => {
     if (isParentMode) {
@@ -569,25 +569,40 @@ export default function FundsClient({ isLoggedIn, isParentMode = false, fundsSta
 
         {/* Personalized Student Payment Status (For Parents) */}
         {isParentMode && highlightedStudent && (
-          <div className="mb-6 p-4 bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 rounded-2xl border border-indigo-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-extrabold text-sm shrink-0 shadow-sm shadow-indigo-600/20">
-                #{highlightedStudent.student_no}
+          <div className="mb-6 p-4 sm:p-5 bg-white rounded-3xl border border-sky-100/90 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white border border-slate-100 shadow-[0_4px_12px_rgba(0,0,0,0.05)] flex items-center justify-center shrink-0 p-1.5 overflow-hidden">
+                <img
+                  src={highlightedStudent.prefix === 'ด.ญ.' ? '/asset/student-girl.webp' : '/asset/student-boy.webp'}
+                  alt={highlightedStudent.prefix || 'นักเรียน'}
+                  className="w-full h-full object-contain"
+                />
               </div>
-              <div>
-                <p className="text-xs font-semibold text-indigo-700">สถานะเงินห้องของนักเรียนของคุณ: {highlightedStudent.full_name} ({highlightedStudent.nickname})</p>
-                <p className="text-sm font-bold text-slate-800 mt-0.5">
-                  {localFundsData.find(f => f.student_number === highlightedStudent.student_no)?.is_paid
-                    ? '✅ ชำระเงินค่าห้องสัปดาห์นี้เรียบร้อยแล้ว (20 บาท)'
-                    : '⏳ ยังไม่ได้ชำระเงินค่าห้องสัปดาห์นี้ (20 บาท)'}
+              <div className="min-w-0">
+                <h4 className="text-base sm:text-lg md:text-xl font-extrabold text-slate-800 tracking-tight truncate">
+                  {highlightedStudent.prefix === 'ด.ญ.' ? 'เด็กหญิง' : highlightedStudent.prefix === 'ด.ช.' ? 'เด็กชาย' : (highlightedStudent.prefix || '')}{highlightedStudent.first_name || highlightedStudent.full_name} {highlightedStudent.last_name || ''}
+                </h4>
+                <p className="text-xs sm:text-sm text-slate-400 font-medium mt-0.5 sm:mt-1 flex items-center gap-1.5 flex-wrap">
+                  <span className="text-slate-600 font-semibold">ชื่อเล่น {highlightedStudent.nickname}</span>
+                  <span className="text-slate-300">·</span>
+                  <span>เลขที่ {highlightedStudent.student_no}</span>
+                  <span className="text-slate-300">·</span>
+                  <span>เลขประจำตัว {highlightedStudent.student_id}</span>
                 </p>
               </div>
             </div>
-            {highlightedStudent.student_id && (
-              <span className="text-xs px-3 py-1 rounded-full bg-white/80 font-semibold border border-indigo-100 text-slate-600 shrink-0">
-                เลขประจำตัว: {highlightedStudent.student_id}
+
+            <div className="shrink-0 w-full sm:w-auto flex justify-end">
+              <span className={`px-3.5 py-1.5 rounded-full text-xs font-bold shadow-2xs ${
+                localFundsData.find(f => f.student_number === highlightedStudent.student_no)?.is_paid
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  : 'bg-amber-50 text-amber-700 border border-amber-200'
+              }`}>
+                {localFundsData.find(f => f.student_number === highlightedStudent.student_no)?.is_paid
+                  ? '✅ ชำระค่าห้องสัปดาห์นี้แล้ว'
+                  : '⏳ ยังไม่ชำระค่าห้องสัปดาห์นี้ (20 บาท)'}
               </span>
-            )}
+            </div>
           </div>
         )}
 
