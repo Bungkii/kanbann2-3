@@ -4,9 +4,18 @@ import ParentNavbar from './components/ParentNavbar';
 import { ParentStudentProvider } from './components/ParentStudentContext';
 import StudentSearchModal from './components/StudentSearchModal';
 
+import ParentPwaInstallBanner from './components/ParentPwaInstallBanner';
+
 export const metadata: Metadata = {
   title: 'ระบบติดตามงานห้อง ม.2/3 | สำหรับผู้ปกครอง',
   description: 'ติดตามการบ้าน งานค้าง และเตรียมตัวสอบของนักเรียนชั้น ม.2/3 (โหมดอ่านอย่างเดียวสำหรับผู้ปกครอง)',
+  manifest: '/manifest-parent.json',
+  themeColor: '#0284c7',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'ผู้ปกครอง ม.2/3',
+  },
 };
 
 export default function ParentLayout({
@@ -33,6 +42,9 @@ export default function ParentLayout({
 
         {/* Global Student Search Modal */}
         <StudentSearchModal />
+
+        {/* PWA Install Banner */}
+        <ParentPwaInstallBanner />
       </div>
     </ParentStudentProvider>
   );

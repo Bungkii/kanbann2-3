@@ -155,24 +155,12 @@ export default function UploadSummaryPage() {
         // Upload files
         const uploadedUrls: string[] = [];
 
+        const { uploadFileSmart } = await import('@/utils/upload');
         for (let i = 0; i < selectedFiles.length; i++) {
           const { file } = selectedFiles[i];
           toast.loading(`กำลังอัปโหลด ${i + 1}/${selectedFiles.length}...`, { id: toastId });
 
-          const fileExt = file.name.split('.').pop();
-          const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-          const filePath = `${user.id}/${fileName}`;
-
-          const { error: uploadError } = await supabase.storage
-            .from('exam-summaries')
-            .upload(filePath, file);
-
-          if (uploadError) throw uploadError;
-
-          const { data: { publicUrl } } = supabase.storage
-            .from('exam-summaries')
-            .getPublicUrl(filePath);
-
+          const publicUrl = await uploadFileSmart(file);
           uploadedUrls.push(publicUrl);
         }
 

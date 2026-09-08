@@ -571,7 +571,7 @@ export default function FundsClient({ isLoggedIn, isParentMode = false, fundsSta
         {isParentMode && highlightedStudent && (
           <div className="mb-6 p-4 sm:p-5 bg-white rounded-3xl border border-sky-100/90 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white border border-slate-100 shadow-[0_4px_12px_rgba(0,0,0,0.05)] flex items-center justify-center shrink-0 p-1.5 overflow-hidden">
+              <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-white border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.04)] flex items-center justify-center shrink-0 p-2 overflow-hidden">
                 <img
                   src={highlightedStudent.prefix === 'ด.ญ.' ? '/asset/student-girl.webp' : '/asset/student-boy.webp'}
                   alt={highlightedStudent.prefix || 'นักเรียน'}

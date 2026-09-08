@@ -94,22 +94,8 @@ export default function HomeworkSolutions({ taskId }: { taskId: string }) {
     const toastId = toast.loading('กำลังอัปโหลดรูปภาพ...');
 
     try {
-      const uploadPromises = imageFiles.map(async (file) => {
-        const formData = new FormData();
-        formData.append('image', file);
-
-        const response = await fetch('https://api.imgbb.com/1/upload?key=d6e98dfc0cc0437c381b0f99f293fa14', {
-          method: 'POST',
-          body: formData,
-        });
-
-        const result = await response.json();
-        if (!result.success) {
-          throw new Error(result.error?.message || 'ImgBB upload failed');
-        }
-
-        return result.data.url;
-      });
+      const { uploadImageToImgBB } = await import('@/utils/upload');
+      const uploadPromises = imageFiles.map((file) => uploadImageToImgBB(file));
 
       const publicUrls = await Promise.all(uploadPromises);
 

@@ -74,22 +74,10 @@ export default function AddTaskPage() {
 
     try {
       if (imagePreviews.length > 0) {
+        const { uploadImageToImgBB } = await import('@/utils/upload');
         for (let i = 0; i < imagePreviews.length; i++) {
           toast.loading(`กำลังอัปโหลดรูป ${i + 1}/${imagePreviews.length}...`, { id: toastId });
-          const imgFile = imagePreviews[i].file;
-          const fileExt = imgFile.name.split('.').pop();
-          const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
-
-          const { error: uploadError } = await supabase.storage
-            .from('homework-images')
-            .upload(fileName, imgFile);
-
-          if (uploadError) throw uploadError;
-
-          const { data: { publicUrl } } = supabase.storage
-            .from('homework-images')
-            .getPublicUrl(fileName);
-          
+          const publicUrl = await uploadImageToImgBB(imagePreviews[i].file);
           imageUrls.push(publicUrl);
         }
       }

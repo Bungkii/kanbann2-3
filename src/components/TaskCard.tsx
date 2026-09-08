@@ -92,12 +92,22 @@ export default function TaskCard({ task, isOverlay, onDelete, onClick }: { task:
         </div>
       )}
 
-      {task.image_url && (
+      {((task.image_urls && task.image_urls.length > 0) || task.image_url) && (
         <div
           onClick={handleImageClick}
           className="w-full h-32 rounded-lg mb-3 overflow-hidden border border-slate-100 group relative"
         >
-          <img src={task.image_url} alt={task.subject} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+          <img
+            src={(task.image_urls && task.image_urls[0]) || task.image_url!}
+            alt={task.subject}
+            className="w-full h-full object-cover transition-transform group-hover:scale-105"
+          />
+          {task.image_urls && task.image_urls.length > 1 && (
+            <span className="absolute bottom-2 right-2 px-2 py-0.5 rounded-md bg-black/75 backdrop-blur-xs text-white text-[10px] font-bold flex items-center gap-1 shadow-sm z-10">
+              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+              {task.image_urls.length} รูป
+            </span>
+          )}
           <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6" /><path d="M9 21H3v-6" /><path d="M21 3l-7 7" /><path d="M3 21l7-7" /></svg>
           </div>

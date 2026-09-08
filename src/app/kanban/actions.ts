@@ -46,6 +46,7 @@ export async function updateTaskDetails(
     teacher_name: string | null;
     submission_method: string | null;
     image_url?: string | null;
+    image_urls?: string[] | null;
   }
 ) {
   const supabase = await createClient()

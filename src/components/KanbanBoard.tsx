@@ -23,6 +23,8 @@ import { createClient } from '@/utils/supabase/client';
 import { Users, User, Trophy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import HomeworkSolutions from './HomeworkSolutions';
+import TaskFilterWidget, { TaskFilterState } from './TaskFilterWidget';
+import TaskImageCarousel from './TaskImageCarousel';
 
 export type Task = {
   id: string;
@@ -30,6 +32,7 @@ export type Task = {
   due_date: string;
   details: string;
   image_url: string | null;
+  image_urls?: string[] | null;
   teacher_name: string | null;
   submission_method: string | null;
   status: string;
@@ -51,6 +54,11 @@ export default function KanbanBoard({ initialTasks, isAuthenticated = false }: {
   const [modalTab, setModalTab] = useState<'details' | 'solutions'>('details');
   const [viewMode, setViewMode] = useState<'board' | 'list' | 'category'>('board');
   const [filterSubject, setFilterSubject] = useState<string>('all');
+  const [filterState, setFilterState] = useState<TaskFilterState>({
+    period: 'year',
+    date: new Date().toISOString().split('T')[0],
+    sort: 'count',
+  });
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -181,21 +189,8 @@ export default function KanbanBoard({ initialTasks, isAuthenticated = false }: {
 
       if (imageFile && imageFile.size > 0) {
         toast.loading('กำลังอัปโหลดรูปภาพใหม่...', { id: toastId });
-        const supabase = createClient();
-        const fileExt = imageFile.name.split('.').pop();
-        const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from('homework-images')
-          .upload(fileName, imageFile);
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('homework-images')
-          .getPublicUrl(fileName);
-        
-        image_url = publicUrl;
+        const { uploadImageToImgBB } = await import('@/utils/upload');
+        image_url = await uploadImageToImgBB(imageFile);
       }
 
       toast.loading('กำลังบันทึกลงระบบ...', { id: toastId });
@@ -241,6 +236,33 @@ export default function KanbanBoard({ initialTasks, isAuthenticated = false }: {
     return subjects.sort();
   }, [activeTasks]);
 
+  // Filter tasks based on TaskFilterWidget (Period & Date & Sorting)
+  const filteredActiveTasks = useMemo(() => {
+    let result = [...activeTasks];
+
+    if (filterState.period === 'daily') {
+      result = result.filter(t => t.due_date && t.due_date.startsWith(filterState.date));
+    } else if (filterState.period === 'monthly') {
+      const targetMonth = filterState.date.substring(0, 7);
+      result = result.filter(t => t.due_date && t.due_date.startsWith(targetMonth));
+    }
+
+    if (filterState.sort === 'name') {
+      result.sort((a, b) => a.subject.localeCompare(b.subject, 'th'));
+    } else if (filterState.sort === 'latest') {
+      result.sort((a, b) => new Date(b.due_date).getTime() - new Date(a.due_date).getTime());
+    } else if (filterState.sort === 'count') {
+      result.sort((a, b) => {
+        const scoreA = a.max_score || 0;
+        const scoreB = b.max_score || 0;
+        if (scoreA !== scoreB) return scoreB - scoreA;
+        return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+      });
+    }
+
+    return result;
+  }, [activeTasks, filterState]);
+
   const categoryGroups = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -248,8 +270,8 @@ export default function KanbanBoard({ initialTasks, isAuthenticated = false }: {
     sevenDays.setDate(sevenDays.getDate() + 7);
 
     const filtered = filterSubject === 'all'
-      ? activeTasks
-      : activeTasks.filter(t => t.subject === filterSubject);
+      ? filteredActiveTasks
+      : filteredActiveTasks.filter(t => t.subject === filterSubject);
 
     const overdue = filtered.filter(t => {
       const d = new Date(t.due_date); d.setHours(0,0,0,0);
@@ -266,24 +288,11 @@ export default function KanbanBoard({ initialTasks, isAuthenticated = false }: {
     const done = filtered.filter(t => t.status === 'done');
 
     return { overdue, urgent, far, done };
-  }, [activeTasks, filterSubject]);
+  }, [filteredActiveTasks, filterSubject]);
 
-  // Sort tasks by urgency
   const sortedTasks = useMemo(() => {
-    return [...activeTasks].sort((a, b) => {
-      const urgencyMap: Record<string, number> = { critical: 0, warning: 1, chill: 2 };
-      const aUrgency = getUrgency(a)?.level || 'chill';
-      const bUrgency = getUrgency(b)?.level || 'chill';
-      if (a.status === 'done') return 1;
-      if (b.status === 'done') return -1;
-
-      const aScore = urgencyMap[aUrgency];
-      const bScore = urgencyMap[bUrgency];
-      if (aScore !== bScore) return aScore - bScore;
-
-      return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
-    });
-  }, [activeTasks]);
+    return filteredActiveTasks;
+  }, [filteredActiveTasks]);
 
   const tasksByColumn = COLUMNS.map((col) => ({
     ...col,
@@ -298,33 +307,41 @@ export default function KanbanBoard({ initialTasks, isAuthenticated = false }: {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex justify-between items-end mb-6">
-        <h2 className="text-xl font-bold text-slate-800">สรุปภาพรวมงาน</h2>
-        <div className="bg-slate-200 p-1 rounded-xl flex gap-0.5">
-          <button
-            onClick={() => setViewMode('board')}
-            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-              viewMode === 'board' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            กระดาน
-          </button>
-          <button
-            onClick={() => setViewMode('list')}
-            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-              viewMode === 'list' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            ติ๊ก
-          </button>
-          <button
-            onClick={() => setViewMode('category')}
-            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-              viewMode === 'category' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            หมวดหมู่
-          </button>
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-4 mb-6">
+        <div>
+          <h2 className="text-xl font-bold text-slate-800">สรุปภาพรวมงาน</h2>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">กรองและค้นหารายการการบ้านตามวันที่หรือเงื่อนไข</p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto justify-end">
+          <TaskFilterWidget filterState={filterState} onChange={setFilterState} />
+
+          <div className="bg-slate-200 p-1 rounded-xl flex gap-0.5 shrink-0 self-end sm:self-auto">
+            <button
+              onClick={() => setViewMode('board')}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                viewMode === 'board' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              กระดาน
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                viewMode === 'list' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              ติ๊ก
+            </button>
+            <button
+              onClick={() => setViewMode('category')}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                viewMode === 'category' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              หมวดหมู่
+            </button>
+          </div>
         </div>
       </div>
 
@@ -634,11 +651,19 @@ export default function KanbanBoard({ initialTasks, isAuthenticated = false }: {
 
                   {modalTab === 'details' ? (
                     <>
-                      {selectedTask.image_url && (
-                <div className="mb-6 rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
-                  <img src={selectedTask.image_url} alt="Task attachment" className="w-full object-contain max-h-64" />
-                </div>
-              )}
+                      {/* Multi-Image Carousel Slider (เลื่อนๆ รูปภาพได้) */}
+                      {((selectedTask.image_urls && selectedTask.image_urls.length > 0) || selectedTask.image_url) && (
+                        <div className="mb-6">
+                          <TaskImageCarousel
+                            images={
+                              selectedTask.image_urls && selectedTask.image_urls.length > 0
+                                ? selectedTask.image_urls
+                                : [selectedTask.image_url!]
+                            }
+                            alt={selectedTask.subject}
+                          />
+                        </div>
+                      )}
 
               <div className="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-5 mb-6">
                 <h4 className="text-sm font-bold text-indigo-800 mb-2 flex items-center gap-2">

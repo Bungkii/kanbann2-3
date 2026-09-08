@@ -34,6 +34,7 @@ export default async function ParentAssignmentsPage() {
     group_size: t.group_size != null ? Number(t.group_size) : null,
     max_score: t.max_score != null ? Number(t.max_score) : null,
     image_url: t.image_url || null,
+    image_urls: Array.isArray(t.image_urls) ? t.image_urls : (t.image_url ? [t.image_url] : []),
     created_at: t.created_at || undefined,
   }));
 

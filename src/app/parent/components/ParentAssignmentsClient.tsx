@@ -6,12 +6,16 @@ import { Users, Trophy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 
+import TaskFilterWidget, { TaskFilterState } from '@/components/TaskFilterWidget';
+import TaskImageCarousel from '@/components/TaskImageCarousel';
+
 export type Task = {
   id: string;
   subject: string;
   due_date: string;
   details: string;
   image_url: string | null;
+  image_urls?: string[] | null;
   teacher_name: string | null;
   submission_method: string | null;
   status: string;
@@ -45,6 +49,11 @@ export default function ParentAssignmentsClient({ initialTasks }: { initialTasks
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [viewMode, setViewMode] = useState<'board' | 'list' | 'category'>('board');
   const [filterSubject, setFilterSubject] = useState<string>('all');
+  const [filterState, setFilterState] = useState<TaskFilterState>({
+    period: 'year',
+    date: new Date().toISOString().split('T')[0],
+    sort: 'count',
+  });
 
   const activeTasks = useMemo(() => tasks.filter(t => t.status !== 'deleted'), [tasks]);
 
@@ -53,13 +62,40 @@ export default function ParentAssignmentsClient({ initialTasks }: { initialTasks
     return subjects.sort();
   }, [activeTasks]);
 
+  // Filter tasks based on TaskFilterWidget (Period & Date & Sorting)
+  const filteredActiveTasks = useMemo(() => {
+    let result = [...activeTasks];
+
+    if (filterState.period === 'daily') {
+      result = result.filter(t => t.due_date && t.due_date.startsWith(filterState.date));
+    } else if (filterState.period === 'monthly') {
+      const targetMonth = filterState.date.substring(0, 7);
+      result = result.filter(t => t.due_date && t.due_date.startsWith(targetMonth));
+    }
+
+    if (filterState.sort === 'name') {
+      result.sort((a, b) => a.subject.localeCompare(b.subject, 'th'));
+    } else if (filterState.sort === 'latest') {
+      result.sort((a, b) => new Date(b.due_date).getTime() - new Date(a.due_date).getTime());
+    } else if (filterState.sort === 'count') {
+      result.sort((a, b) => {
+        const scoreA = a.max_score || 0;
+        const scoreB = b.max_score || 0;
+        if (scoreA !== scoreB) return scoreB - scoreA;
+        return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+      });
+    }
+
+    return result;
+  }, [activeTasks, filterState]);
+
   const categoryGroups = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     const filtered = filterSubject === 'all'
-      ? activeTasks
-      : activeTasks.filter(t => t.subject === filterSubject);
+      ? filteredActiveTasks
+      : filteredActiveTasks.filter(t => t.subject === filterSubject);
 
     const overdue: Task[] = [];
     const urgent: Task[] = [];
@@ -83,7 +119,18 @@ export default function ParentAssignmentsClient({ initialTasks }: { initialTasks
     });
 
     return { overdue, urgent, far, done };
-  }, [activeTasks, filterSubject]);
+  }, [filteredActiveTasks, filterSubject]);
+
+  const tasksByColumn = useMemo(() => {
+    return COLUMNS.map(col => ({
+      ...col,
+      tasks: filteredActiveTasks.filter(task => task.status === col.id),
+    }));
+  }, [filteredActiveTasks]);
+
+  const sortedTasks = useMemo(() => {
+    return filteredActiveTasks;
+  }, [filteredActiveTasks]);
 
   const totalTasks = activeTasks.length;
   const doneTasks = activeTasks.filter(t => t.status === 'done').length;
@@ -95,28 +142,12 @@ export default function ParentAssignmentsClient({ initialTasks }: { initialTasks
     today.setHours(0, 0, 0, 0);
     return isBefore(due, today);
   }).length;
-
   const progress = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
-
-  const tasksByColumn = useMemo(() => {
-    return COLUMNS.map(col => ({
-      ...col,
-      tasks: activeTasks.filter(task => task.status === col.id),
-    }));
-  }, [activeTasks]);
-
-  const sortedTasks = useMemo(() => {
-    return [...activeTasks].sort((a, b) => {
-      if (a.status === 'done' && b.status !== 'done') return 1;
-      if (a.status !== 'done' && b.status === 'done') return -1;
-      return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
-    });
-  }, [activeTasks]);
 
   return (
     <div className="flex flex-col h-full">
       {/* Top Header & View Switcher */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-6">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-4 mb-6">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">กระดานการบ้านและชิ้นงาน</h1>
@@ -124,31 +155,37 @@ export default function ParentAssignmentsClient({ initialTasks }: { initialTasks
           </div>
           <p className="text-sm text-slate-500">ติดตามสถานะงาน กำหนดส่ง และการบ้านทั้งหมดของห้องเรียน</p>
         </div>
-        <div className="bg-slate-200/70 p-1 rounded-xl flex gap-0.5 border border-slate-200/60">
-          <button
-            onClick={() => setViewMode('board')}
-            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-              viewMode === 'board' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            กระดาน
-          </button>
-          <button
-            onClick={() => setViewMode('list')}
-            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-              viewMode === 'list' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            ติ๊ก
-          </button>
-          <button
-            onClick={() => setViewMode('category')}
-            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-              viewMode === 'category' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            หมวดหมู่
-          </button>
+
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto justify-end">
+          {/* Filter Widget (ตรงตามรูปภาพตัวอย่าง) */}
+          <TaskFilterWidget filterState={filterState} onChange={setFilterState} />
+
+          <div className="bg-slate-200/70 p-1 rounded-xl flex gap-0.5 border border-slate-200/60 shrink-0 self-end sm:self-auto">
+            <button
+              onClick={() => setViewMode('board')}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                viewMode === 'board' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              กระดาน
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                viewMode === 'list' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              ติ๊ก
+            </button>
+            <button
+              onClick={() => setViewMode('category')}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                viewMode === 'category' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              หมวดหมู่
+            </button>
+          </div>
         </div>
       </div>
 
@@ -375,19 +412,17 @@ export default function ParentAssignmentsClient({ initialTasks }: { initialTasks
                 </div>
 
                 <div className="flex flex-col gap-4">
-                  {selectedTask.image_url && (
-                    <div 
-                      onClick={() => window.open(selectedTask.image_url!, '_blank')}
-                      className="w-full h-48 rounded-xl overflow-hidden border border-slate-100 relative group cursor-pointer"
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={selectedTask.image_url} alt={selectedTask.subject} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
-                      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl">
-                        <span className="text-white text-sm font-medium bg-black/50 px-3 py-1.5 rounded-lg backdrop-blur-sm flex items-center gap-2">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6" /><path d="M9 21H3v-6" /><path d="M21 3l-7 7" /><path d="M3 21l7-7" /></svg>
-                          ดูรูปขนาดเต็ม
-                        </span>
-                      </div>
+                  {/* Multi-Image Carousel Slider (เลื่อนๆ รูปภาพได้) */}
+                  {((selectedTask.image_urls && selectedTask.image_urls.length > 0) || selectedTask.image_url) && (
+                    <div className="mb-6">
+                      <TaskImageCarousel
+                        images={
+                          selectedTask.image_urls && selectedTask.image_urls.length > 0
+                            ? selectedTask.image_urls
+                            : [selectedTask.image_url!]
+                        }
+                        alt={selectedTask.subject}
+                      />
                     </div>
                   )}
 
@@ -491,13 +526,23 @@ function StudentTaskCard({ task, onClick }: { task: Task; onClick: (task: Task) 
         </div>
       )}
 
-      {task.image_url && (
+      {((task.image_urls && task.image_urls.length > 0) || task.image_url) && (
         <div
           onClick={handleImageClick}
           className="w-full h-32 rounded-lg mb-3 overflow-hidden border border-slate-100 group relative cursor-pointer"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={task.image_url} alt={task.subject} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+          <img
+            src={(task.image_urls && task.image_urls[0]) || task.image_url!}
+            alt={task.subject}
+            className="w-full h-full object-cover transition-transform group-hover:scale-105"
+          />
+          {task.image_urls && task.image_urls.length > 1 && (
+            <span className="absolute bottom-2 right-2 px-2 py-0.5 rounded-md bg-black/75 backdrop-blur-xs text-white text-[10px] font-bold flex items-center gap-1 shadow-sm z-10">
+              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+              {task.image_urls.length} รูป
+            </span>
+          )}
           <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6" /><path d="M9 21H3v-6" /><path d="M21 3l-7 7" /><path d="M3 21l7-7" /></svg>
           </div>
