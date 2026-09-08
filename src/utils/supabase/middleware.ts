@@ -10,6 +10,16 @@ export async function updateSession(request: NextRequest) {
     host.startsWith('kanbann.bungkii.app') ||
     (host.startsWith('kanbann.') && !host.includes('vercel.app'))
 
+  // Student-only routes must NEVER be on parent domain
+  if (
+    isParentDomain &&
+    (pathname.startsWith('/election') ||
+      pathname.startsWith('/evaluate-boss') ||
+      pathname.startsWith('/homework-feed'))
+  ) {
+    return NextResponse.redirect(`https://primjaa.bungkii.app${pathname}`)
+  }
+
   let rewriteUrl: URL | null = null
   if (
     isParentDomain &&

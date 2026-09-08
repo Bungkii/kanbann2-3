@@ -10,8 +10,6 @@ export default async function ParentHomePage() {
   const settings = await getSystemSettings();
   const kanbanEnabled = settings.kanban_enabled !== false;
   const summariesEnabled = settings.summaries_enabled !== false;
-  const electionEnabled = settings.election_enabled !== false;
-  const bossEvaluationEnabled = settings.boss_evaluation_enabled !== false;
 
   const finalExamDate = settings.final_exam_date
     ? `${settings.final_exam_date}T00:00:00+07:00`
@@ -54,13 +52,11 @@ export default async function ParentHomePage() {
 
   return (
     <PageTransition className="flex-1 flex flex-col items-center justify-center min-h-[calc(100vh-140px)] py-4">
-
-
-      {/* 3-Column Grid Identical to Student Homepage */}
-      <div className="max-w-6xl w-full grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch justify-center">
+      {/* 2-Column Grid (Only Parent-Relevant Cards) */}
+      <div className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch justify-center">
         {/* Left Section */}
         <div className="flex flex-col gap-6 w-full h-full">
-          {/* Card 1: กระดานการบ้านและงานค้าง (Matching student "หน้าสำหรับคนจดงาน" design & style) */}
+          {/* Card 1: กระดานการบ้าน */}
           {renderCard(
             true,
             "/parent/assignments",
@@ -73,7 +69,7 @@ export default async function ParentHomePage() {
             </div>
           )}
 
-          {/* ตารางสอนของห้อง 3 (Identical to student homepage) */}
+          {/* ตารางสอนของห้อง 3 */}
           {renderCard(
             true,
             "/schedule",
@@ -97,9 +93,9 @@ export default async function ParentHomePage() {
           </div>
         </div>
 
-        {/* Middle Section */}
+        {/* Right Section */}
         <div className="w-full h-full flex flex-col gap-6">
-          {/* พริมง่วงทวงบุญคุณ 🔔 (Identical to student homepage, links to parent assignments) */}
+          {/* พริมง่วงทวงบุญคุณ 🔔 */}
           {renderCard(
             kanbanEnabled,
             "/parent/assignments",
@@ -117,7 +113,7 @@ export default async function ParentHomePage() {
             </div>
           )}
 
-          {/* แจกสรุปสอบปลายภาค 1/69 (Rose gradient with Countdown, links to parent exams) */}
+          {/* แจกสรุปสอบปลายภาค 1/69 */}
           {renderCard(
             summariesEnabled,
             "/parent/exams",
@@ -138,7 +134,7 @@ export default async function ParentHomePage() {
             "group flex-1 min-h-[160px] flex flex-col w-full"
           )}
 
-          {/* เนื้อหาออกสอบปลายภาค 1/69 (Indigo gradient, links to parent exams) */}
+          {/* เนื้อหาออกสอบปลายภาค 1/69 */}
           {renderCard(
             true,
             "/parent/exams",
@@ -155,50 +151,6 @@ export default async function ParentHomePage() {
                   ดูหัวข้อสอบทั้งหมด
                 </p>
               </div>
-            </div>,
-            "group flex-1 min-h-[160px] flex flex-col w-full"
-          )}
-        </div>
-
-        {/* Right Section */}
-        <div className="w-full h-full flex flex-col gap-6">
-          {/* ผลการเลือกตั้งปี 2569 (Identical to student) */}
-          {renderCard(
-            electionEnabled,
-            "/election",
-            <div className={`bg-white rounded-3xl p-10 h-full min-h-[300px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 flex flex-col items-center justify-center transition-all duration-300 ${electionEnabled ? 'hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1' : ''}`}>
-              <div className="bg-amber-50 text-amber-500 p-4 rounded-full mb-6 group-hover:scale-110 transition-transform duration-300">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
-              </div>
-              <h2 className="text-2xl font-bold text-slate-800 mb-2 text-center">ผลการเลือกตั้งปี 2569</h2>
-              <p className="text-slate-500 text-center">อัปเดตผลโหวตหัวหน้าห้องล่าสุด!</p>
-            </div>
-          )}
-
-          {/* ระบบประเมินหัวหน้า (Identical to student) */}
-          {renderCard(
-            bossEvaluationEnabled,
-            "/evaluate-boss",
-            <div className={`bg-white rounded-3xl p-8 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col items-center justify-center transition-all duration-300 ${bossEvaluationEnabled ? 'hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1' : ''} relative overflow-hidden h-full`}>
-              <div className="bg-emerald-50 text-emerald-500 p-4 rounded-full mb-4 group-hover:scale-110 transition-transform duration-300">
-                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10.4 12.6a2 2 0 1 1 3 3L8 21l-4 1 1-4Z"/><path d="M18 21v-8a2 2 0 0 0-2-2h-3"/><path d="M4 14.5V7a2 2 0 0 1 2-2h6l4 4"/></svg>
-              </div>
-              <h2 className="text-xl font-bold text-slate-800 mb-1 text-center">ระบบประเมินหัวหน้า</h2>
-              <p className="text-slate-500 text-center text-sm">คลิกเพื่อประเมินได้เลย</p>
-            </div>,
-            "group flex-1 min-h-[160px] flex flex-col w-full"
-          )}
-
-          {/* ลอกงาน 🚀 (Identical to student) */}
-          {renderCard(
-            true,
-            "/homework-feed",
-            <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col items-center justify-center transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1 relative overflow-hidden h-full">
-              <div className="bg-indigo-50 text-indigo-500 p-4 rounded-full mb-4 group-hover:scale-110 transition-transform duration-300">
-                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" className="bi bi-files" viewBox="0 0 16 16"><path d="M13 0H6a2 2 0 0 0-2 2 2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2 2 2 0 0 0 2-2V2a2 2 0 0 0-2-2m0 13V4a2 2 0 0 0-2-2H5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1M3 4a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></svg>
-              </div>
-              <h2 className="text-xl font-bold text-slate-800 mb-1 text-center">ลอกงาน 🚀</h2>
-              <p className="text-slate-500 text-center text-sm">รวมแนวทางจากเพื่อนๆ</p>
             </div>,
             "group flex-1 min-h-[160px] flex flex-col w-full"
           )}
