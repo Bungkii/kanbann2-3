@@ -6,12 +6,16 @@ import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, User, Trophy, ArrowLeft, Image as ImageIcon, Send, X, ClipboardList, Info } from 'lucide-react';
+import { Users, User, Trophy, ArrowLeft, Image as ImageIcon, Send, X, ClipboardList, Info, ShieldX } from 'lucide-react';
+
+const CAN_ADD_ROLES = ['Leader', 'Finance', 'Admin', 'SuperAdmin'];
 
 export default function AddTaskPage() {
   const [loading, setLoading] = useState(false);
   const [imagePreviews, setImagePreviews] = useState<{file: File; preview: string}[]>([]);
   const [workType, setWorkType] = useState<'individual' | 'group'>('individual');
+  const [teacherNames, setTeacherNames] = useState<string[]>([]);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -19,6 +23,25 @@ export default function AddTaskPage() {
   const [offlineInfo, setOfflineInfo] = useState<{ isOffline: boolean; until: string | null }>({ isOffline: false, until: null });
 
   useEffect(() => {
+    // Check user role from cookie
+    try {
+      const match = document.cookie.match(/(?:^|;\s*)primja_user=([^;]+)/);
+      if (match) {
+        const student = JSON.parse(decodeURIComponent(match[1]));
+        setUserRole(student?.role || 'Student');
+      }
+    } catch {}
+
+    // Fetch existing teacher names for autocomplete
+    const fetchTeachers = async () => {
+      try {
+        const { getExistingTeacherNames } = await import('./actions');
+        const names = await getExistingTeacherNames();
+        setTeacherNames(names);
+      } catch {}
+    };
+    fetchTeachers();
+
     const checkStatus = async () => {
       try {
         const { getPrimjaStatus } = await import('../line/actions');
@@ -106,6 +129,29 @@ export default function AddTaskPage() {
     );
   }
 
+  // ── Role gate: only Leader/Finance/Admin/SuperAdmin can add tasks ──
+  if (userRole !== null && !CAN_ADD_ROLES.includes(userRole)) {
+    return (
+      <main className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-8 text-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-white rounded-3xl p-10 max-w-md shadow-sm border border-slate-200"
+        >
+          <div className="bg-red-100 text-red-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
+            <ShieldX size={32} />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-800 mb-2">ไม่มีสิทธิ์เพิ่มงาน</h2>
+          <p className="text-slate-500 mb-2">เฉพาะ <strong>Leader, Finance, Admin, SuperAdmin</strong> เท่านั้นที่เพิ่มงานได้</p>
+          <p className="text-slate-400 text-sm mb-6">(ยศของคุณ: {userRole})</p>
+          <Link href="/kanban" className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-2.5 rounded-full transition-colors inline-block">
+            กลับหน้า Kanban
+          </Link>
+        </motion.div>
+      </main>
+    );
+  }
+
   if (offlineInfo.isOffline) {
     let offlineMsg = 'พริมจ๋ากำลังปรับปรุงระบบอยู่จ้า 🛠️';
     if (offlineInfo.until) {
@@ -167,7 +213,20 @@ export default function AddTaskPage() {
             
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">ครูผู้สั่ง</label>
-              <input name="teacher_name" placeholder="ชื่อครู" className="w-full border border-slate-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm" />
+              <input
+                name="teacher_name"
+                list="teacher-names-list"
+                placeholder="พิมพ์ชื่อครู หรือเลือกจากรายการ"
+                className="w-full border border-slate-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm"
+                autoComplete="off"
+              />
+              {teacherNames.length > 0 && (
+                <datalist id="teacher-names-list">
+                  {teacherNames.map((name) => (
+                    <option key={name} value={name} />
+                  ))}
+                </datalist>
+              )}
             </div>
           </div>
           

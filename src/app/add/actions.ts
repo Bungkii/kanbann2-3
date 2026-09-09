@@ -106,3 +106,28 @@ export async function deleteTaskAction(taskId: string) {
   revalidatePath('/kanban')
   return { success: true }
 }
+
+/**
+ * Returns unique teacher names from existing tasks for autocomplete.
+ */
+export async function getExistingTeacherNames(): Promise<string[]> {
+  const supabase = getAdminClient()
+  const { data } = await supabase
+    .from('homework_tasks')
+    .select('teacher_name')
+    .not('teacher_name', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(200)
+
+  if (!data) return []
+  const seen = new Set<string>()
+  const names: string[] = []
+  for (const row of data) {
+    const name = (row.teacher_name as string)?.trim()
+    if (name && !seen.has(name)) {
+      seen.add(name)
+      names.push(name)
+    }
+  }
+  return names
+}

@@ -3,6 +3,7 @@ import KanbanBoard from '@/components/KanbanBoard';
 import LineBroadcastButtons from '@/components/LineBroadcastButtons';
 import Link from 'next/link';
 import PageTransition from '@/components/PageTransition';
+import { getCurrentStudentSession } from '@/utils/studentAuth';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +21,11 @@ export default async function KanbanPage() {
   if (error) {
     console.error('Error fetching tasks:', error);
   }
+
+  // Check student role to determine if they can add/manage tasks
+  const studentSession = await getCurrentStudentSession();
+  const CAN_ADD_ROLES = ['Leader', 'Finance', 'Admin', 'SuperAdmin'];
+  const canAddTask = studentSession ? CAN_ADD_ROLES.includes(studentSession.role) : false;
 
   const { data: statusSetting } = await supabase
     .from('system_settings')
@@ -77,7 +83,7 @@ export default async function KanbanPage() {
       </header>
 
       <PageTransition className="flex-1 p-8 overflow-x-auto">
-        <KanbanBoard initialTasks={tasks || []} isAuthenticated={isAuthenticated} />
+        <KanbanBoard initialTasks={tasks || []} isAuthenticated={isAuthenticated} canAddTask={canAddTask} />
       </PageTransition>
     </div>
   );

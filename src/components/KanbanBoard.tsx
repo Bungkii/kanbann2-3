@@ -47,7 +47,7 @@ const COLUMNS = [
   { id: 'done', title: 'เสร็จแล้ว (Done)' },
 ];
 
-export default function KanbanBoard({ initialTasks, isAuthenticated = false }: { initialTasks: Task[], isAuthenticated?: boolean }) {
+export default function KanbanBoard({ initialTasks, isAuthenticated = false, canAddTask = false }: { initialTasks: Task[], isAuthenticated?: boolean, canAddTask?: boolean }) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -99,6 +99,59 @@ export default function KanbanBoard({ initialTasks, isAuthenticated = false }: {
 
     setTasks(mergedTasks);
   }, [initialTasks]);
+
+  // ── Realtime subscription — syncs task adds/edits/deletes across all clients ──
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel('homework_tasks_realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'homework_tasks' },
+        (payload) => {
+          const { eventType, new: newRecord, old: oldRecord } = payload;
+
+          // Read personal status overrides from localStorage
+          let localStatuses: Record<string, string> = {};
+          try {
+            const saved = localStorage.getItem('personalTaskStatus');
+            if (saved) localStatuses = JSON.parse(saved);
+          } catch {}
+
+          if (eventType === 'INSERT') {
+            const newTask = newRecord as Task;
+            // Apply local status override if present
+            if (localStatuses[newTask.id]) newTask.status = localStatuses[newTask.id];
+            setTasks((prev) => {
+              if (prev.some((t) => t.id === newTask.id)) return prev; // avoid duplicate
+              return [newTask, ...prev];
+            });
+          } else if (eventType === 'UPDATE') {
+            const updated = newRecord as Task;
+            setTasks((prev) =>
+              prev.map((t) => {
+                if (t.id !== updated.id) return t;
+                // Preserve personal local status override
+                return { ...updated, status: localStatuses[updated.id] || updated.status };
+              })
+            );
+            // Sync selectedTask modal if open
+            setSelectedTask((prev) =>
+              prev?.id === updated.id ? { ...prev, ...updated } : prev
+            );
+          } else if (eventType === 'DELETE') {
+            const deletedId = (oldRecord as Task).id;
+            setTasks((prev) => prev.filter((t) => t.id !== deletedId));
+            setSelectedTask((prev) => (prev?.id === deletedId ? null : prev));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const updateLocalStatus = (taskId: string, newStatus: string) => {
     setTasks((prevTasks) => {
