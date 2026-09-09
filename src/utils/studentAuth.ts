@@ -133,12 +133,43 @@ export function toSafeStudentAccount(account: StudentAccount): SafeStudentAccoun
  * Automatically hashes any legacy plaintext passwords on the fly.
  */
 export async function getStudentAccounts(): Promise<StudentAccount[]> {
-  // 1. Try Supabase first
+  // 1. Try local JSON first (most up-to-date, has is_first_login changes etc.)
+  try {
+    const fs = await getFs();
+    const content = await fs.readFile(ACCOUNTS_FILE, 'utf-8');
+    const accounts = JSON.parse(content) as StudentAccount[];
+    if (accounts && accounts.length > 0) {
+      // Auto-migrate: ensure 30260 is SuperAdmin, hash any plaintext passwords
+      let needsSave = false;
+      accounts.forEach((a) => {
+        if (a.student_id === '30260' && a.role !== 'SuperAdmin') {
+          a.role = 'SuperAdmin';
+          needsSave = true;
+        }
+        if (a.password && !a.password.startsWith('hash$')) {
+          a.password = hashPassword(a.password);
+          needsSave = true;
+        }
+        if (a.security_answer && !a.security_answer.startsWith('ans$')) {
+          a.security_answer = hashSecurityAnswer(a.security_answer);
+          needsSave = true;
+        }
+      });
+      if (needsSave) {
+        await saveStudentAccounts(accounts).catch(() => {});
+      }
+      return accounts;
+    }
+  } catch {
+    // Local JSON not found or unreadable — fall through to Supabase
+  }
+
+  // 2. Fallback: try Supabase (no local file — e.g. first deploy or Vercel)
   const supabase = getDirectSupabaseClient();
   if (supabase) {
     try {
       const { data, error } = await supabase.from('student_accounts').select('*').order('student_no', { ascending: true });
-      if (!error && data && data.length >= 50) {
+      if (!error && data && data.length > 0) {
         return data.map((r: any) => ({
           student_id: String(r.student_id),
           student_no: Number(r.student_no),
@@ -156,44 +187,14 @@ export async function getStudentAccounts(): Promise<StudentAccount[]> {
         }));
       }
     } catch {
-      // Supabase error or network issue -> fallback to JSON seamlessly
+      // Supabase also unavailable
     }
   }
 
-  // 2. Fallback to local JSON storage
-  try {
-    const fs = await getFs();
-    const content = await fs.readFile(ACCOUNTS_FILE, 'utf-8');
-    const accounts = JSON.parse(content) as StudentAccount[];
-    
-    // Auto-migrate any unhashed accounts or ensure 30260 is SuperAdmin
-    let needsSave = false;
-    accounts.forEach((a) => {
-      if (a.student_id === '30260' && a.role !== 'SuperAdmin') {
-        a.role = 'SuperAdmin';
-        needsSave = true;
-      }
-      if (a.password && !a.password.startsWith('hash$')) {
-        a.password = hashPassword(a.password);
-        needsSave = true;
-      }
-      if (a.security_answer && !a.security_answer.startsWith('ans$')) {
-        a.security_answer = hashSecurityAnswer(a.security_answer);
-        needsSave = true;
-      }
-    });
 
-    if (needsSave) {
-      await saveStudentAccounts(accounts);
-    }
-    return accounts;
-  } catch (error: any) {
-    if (error.code === 'ENOENT' || error instanceof SyntaxError) {
-      return await initializeStudentAccounts();
-    }
-    throw error;
-  }
+  return [];
 }
+
 
 /**
  * Returns safe student accounts (no passwords or secret answers).
@@ -242,13 +243,17 @@ export async function initializeStudentAccounts(): Promise<StudentAccount[]> {
  * Saves student accounts to local JSON and syncs with Supabase if accessible.
  */
 export async function saveStudentAccounts(accounts: StudentAccount[]): Promise<void> {
-  // 1. Save to local JSON file
-  const fs = await getFs();
-  const dir = path.dirname(ACCOUNTS_FILE);
-  await fs.mkdir(dir, { recursive: true });
-  await fs.writeFile(ACCOUNTS_FILE, JSON.stringify(accounts, null, 2), 'utf-8');
+  // 1. Try save to local JSON file (best-effort — may fail on read-only FS like Vercel)
+  try {
+    const fs = await getFs();
+    const dir = path.dirname(ACCOUNTS_FILE);
+    await fs.mkdir(dir, { recursive: true });
+    await fs.writeFile(ACCOUNTS_FILE, JSON.stringify(accounts, null, 2), 'utf-8');
+  } catch {
+    // On Vercel/serverless: filesystem is read-only. Silent fail — Supabase is source of truth.
+  }
 
-  // 2. Sync to Supabase in background if table exists
+  // 2. Sync to Supabase (primary storage when FS is unavailable)
   const supabase = getDirectSupabaseClient();
   if (supabase) {
     try {
@@ -267,10 +272,13 @@ export async function saveStudentAccounts(accounts: StudentAccount[]): Promise<v
         security_answer_hash: a.security_answer || null,
         updated_at: a.updated_at,
       }));
-      // Upsert in Supabase
-      await supabase.from('student_accounts').upsert(rows, { onConflict: 'student_id' });
-    } catch {
-      // Ignore Supabase sync error if offline or table not yet created
+      // Upsert in Supabase — ignore RLS errors gracefully
+      const { error } = await supabase.from('student_accounts').upsert(rows, { onConflict: 'student_id' });
+      if (error) {
+        console.warn('[studentAuth] Supabase upsert warning:', error.message);
+      }
+    } catch (e) {
+      console.warn('[studentAuth] Supabase sync failed:', e);
     }
   }
 }
