@@ -343,6 +343,11 @@ export async function skipStudentFirstLogin(studentId: string): Promise<boolean>
   if (index === -1) return false;
 
   accounts[index].is_first_login = false;
+  // Set sentinel so login knows this account has gone through first-time flow
+  // (even if the user chose to skip — prevents redirect loop)
+  if (!accounts[index].security_question) {
+    accounts[index].security_question = '__skipped__';
+  }
   accounts[index].updated_at = new Date().toISOString();
 
   await saveStudentAccounts(accounts);

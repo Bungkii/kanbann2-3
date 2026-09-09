@@ -41,10 +41,10 @@ export async function login(formData: FormData) {
     await setStudentSessionCookies(studentAccount)
     revalidatePath('/', 'layout')
 
-    // Only redirect to first-time setup if truly first login AND no security question yet
-    // (is_first_login alone is unreliable if Supabase hasn't been updated)
-    const hasSetupDone = !!studentAccount.security_question;
-    if (studentAccount.is_first_login && !hasSetupDone) {
+    // Redirect to first-time setup if security_question is NOT set yet
+    // '__skipped__' = user has already gone through first-time page (even if they skipped)
+    const hasCompletedSetup = !!studentAccount.security_question;
+    if (!hasCompletedSetup) {
       redirect('/login/first-time')
     } else {
       redirect('/kanban')
