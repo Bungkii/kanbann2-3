@@ -1,16 +1,24 @@
 import { createClient } from '@/utils/supabase/server';
+import { createClient as createAdminClient } from '@supabase/supabase-js';
 import KanbanBoard from '@/components/KanbanBoard';
 import LineBroadcastButtons from '@/components/LineBroadcastButtons';
 import Link from 'next/link';
 import PageTransition from '@/components/PageTransition';
 import { getCurrentStudentSession } from '@/utils/studentAuth';
 
+function getAdminClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  return createAdminClient(url, key);
+}
+
 export const dynamic = 'force-dynamic';
 
 export default async function KanbanPage() {
   const supabase = await createClient();
+  const adminDb = getAdminClient();
 
-  const { data: tasks, error } = await supabase
+  const { data: tasks, error } = await adminDb
     .from('homework_tasks')
     .select('*')
     .order('created_at', { ascending: false });
@@ -27,7 +35,7 @@ export default async function KanbanPage() {
   const CAN_ADD_ROLES = ['Leader', 'Finance', 'Admin', 'SuperAdmin'];
   const canAddTask = studentSession ? CAN_ADD_ROLES.includes(studentSession.role) : false;
 
-  const { data: statusSetting } = await supabase
+  const { data: statusSetting } = await adminDb
     .from('system_settings')
     .select('value')
     .eq('key', 'primja_status')
@@ -36,7 +44,7 @@ export default async function KanbanPage() {
   const isOffline = statusSetting?.value === 'offline';
 
   if (isOffline) {
-    const { data: timeSetting } = await supabase
+    const { data: timeSetting } = await adminDb
       .from('system_settings')
       .select('value')
       .eq('key', 'primja_offline_until')
