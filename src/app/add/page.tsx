@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { createClient } from '@/utils/supabase/client';
+import { addTaskAction } from './actions';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
@@ -13,7 +13,6 @@ export default function AddTaskPage() {
   const [imagePreviews, setImagePreviews] = useState<{file: File; preview: string}[]>([]);
   const [workType, setWorkType] = useState<'individual' | 'group'>('individual');
   const router = useRouter();
-  const supabase = createClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isCheckingStatus, setIsCheckingStatus] = useState(true);
@@ -59,20 +58,15 @@ export default function AddTaskPage() {
     e.preventDefault();
     setLoading(true);
 
-    const formData = new FormData(e.currentTarget);
-    const subject = formData.get('subject') as string;
-    const dueDate = formData.get('due_date') as string;
-    const details = formData.get('details') as string;
-    const teacherName = formData.get('teacher_name') as string;
-    const submissionMethod = formData.get('submission_method') as string;
-    const maxScore = formData.get('max_score') as string;
-    const groupSize = workType === 'group' ? formData.get('group_size') as string : null;
+    const formEl = e.currentTarget;
+    const formData = new FormData(formEl);
+    formData.set('work_type', workType);
 
     const imageUrls: string[] = [];
-
     const toastId = toast.loading('กำลังบันทึกข้อมูล...');
 
     try {
+      // Upload images client-side (ImgBB) then pass URLs to server action
       if (imagePreviews.length > 0) {
         const { uploadImageToImgBB } = await import('@/utils/upload');
         for (let i = 0; i < imagePreviews.length; i++) {
@@ -82,24 +76,16 @@ export default function AddTaskPage() {
         }
       }
 
-      toast.loading('กำลังบันทึกลงระบบ...', { id: toastId });
-      const { error: insertError } = await supabase
-        .from('homework_tasks')
-        .insert([{
-          subject,
-          due_date: new Date(dueDate).toISOString(),
-          details,
-          teacher_name: teacherName || null,
-          submission_method: submissionMethod || null,
-          image_url: imageUrls[0] || null,
-          image_urls: imageUrls.length > 0 ? imageUrls : null,
-          status: 'todo',
-          work_type: workType,
-          group_size: groupSize ? parseInt(groupSize) : null,
-          max_score: maxScore ? parseFloat(maxScore) : null
-        }]);
+      // Pass image URLs to server action via formData
+      if (imageUrls.length > 0) {
+        formData.set('image_url', imageUrls[0]);
+        formData.set('image_urls', JSON.stringify(imageUrls));
+      }
 
-      if (insertError) throw insertError;
+      toast.loading('กำลังบันทึกลงระบบ...', { id: toastId });
+      const result = await addTaskAction(formData);
+
+      if (result?.error) throw new Error(result.error);
 
       toast.success('บันทึกงานสำเร็จ! จะแสดงในบอร์ดให้เพื่อนเห็นทันที', { id: toastId });
       router.push('/kanban');
