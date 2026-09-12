@@ -102,7 +102,7 @@
 
 ### 14. ☁️ โครงสร้างการจัดเก็บและอัปโหลดไฟล์ (Storage & Upload Architecture)
 - 🖼️ **รูปภาพ (Images - JPG, PNG, WEBP, GIF):** อัปโหลดตรงเข้า **ImgBB API** ผ่านฟังก์ชัน `uploadImageToImgBB()` รวดเร็วและแสดงผลได้ทันที
-- 📁 **ไฟล์ทุกชนิด & เอกสาร (All Files - PDF, Word, Excel, PowerPoint, Zip ฯลฯ):** อัปโหลดเข้า **Cloudflare R2 Storage** ผ่าน **Cloudflare Worker** ภายใต้โดเมน **`https://cdn.bungkii.app`** (`uploadFileToR2()`)
+- 📁 **ไฟล์ทุกชนิด & เอกสาร (All Files - PDF, Word, Excel, PowerPoint, Zip ฯลฯ):** อัปโหลดเข้า **Cloudflare R2 Storage** ผ่าน **Cloudflare Worker** ภายใต้โดเมน **`https://cdn.bungkii.app`** (หรือ **`https://kanbann-r2-worker.bungkii.workers.dev`**) (`uploadFileToR2()`)
 - 🤖 **Smart Uploader:** ฟังก์ชัน `uploadFileSmart(file)` สลับปลายทางอัปโหลดให้อัตโนมัติตามประเภทไฟล์ พร้อมโค้ด Worker สำเร็จรูปในโฟลเดอร์ [`cloudflare-worker-r2/`](file:///c:/Users/BUNGKII/Downloads/kanbann2-3/cloudflare-worker-r2)
 
 ---

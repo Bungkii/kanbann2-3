@@ -14,6 +14,10 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'kanbann-r2-worker.bungkii.workers.dev',
+      },
+      {
+        protocol: 'https',
         hostname: 'storage.cnintercon.tech',
       },
       {

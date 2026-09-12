@@ -11,7 +11,7 @@
    - ได้ URL ลิงก์ตรงที่โหลดไว ไม่มีค่าใช้จ่าย และแสดงผลได้ทันที
 2. 📁 **ไฟล์ทุกชนิด & เอกสาร (All File Types - PDF, DOCX, XLSX, ZIP, etc.):**
    - อัปโหลดเข้า **Cloudflare R2 Storage** ผ่าน **Cloudflare Worker** (`uploadFileToR2()`)
-   - URL ปลายทาง: **`https://cdn.bungkii.app/<filename>`**
+   - URL ปลายทาง: **`https://cdn.bungkii.app/<filename>`** หรือ **`https://kanbann-r2-worker.bungkii.workers.dev/<filename>`**
 
 ---
 

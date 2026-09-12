@@ -11,9 +11,12 @@ preview_bucket_name = "kanbann-storage-preview"
 
 [vars]
 PUBLIC_URL = "https://cdn.bungkii.app"
+WORKERS_DEV_URL = "https://kanbann-r2-worker.bungkii.workers.dev"
 AUTH_SECRET = "" # ใส่ Secret Token หากต้องการจำกัดสิทธิ์อัปโหลด หรือปล่อยว่างเพื่อให้อัปโหลดแบบเปิด
 
 # 🌐 Custom Domain บน Cloudflare (cdn.bungkii.app)
+# และใช้งานผ่าน https://kanbann-r2-worker.bungkii.workers.dev ได้ทันที
 routes = [
   { pattern = "cdn.bungkii.app/*", zone_name = "bungkii.app" }
 ]
+

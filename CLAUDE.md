@@ -13,7 +13,7 @@ This repository is **Kanbann (ระบบจัดการห้องเร�
 - **Database:** Supabase (PostgreSQL, Row Level Security, Auth)
 - **Storage & Upload Architecture:**
   - 🖼️ **Images:** ImgBB API (`uploadImageToImgBB`)
-  - 📁 **All Other Files & Documents:** Cloudflare R2 Storage via Cloudflare Worker (`uploadFileToR2`) rooted at **`https://cdn.bungkii.app`**
+  - 📁 **All Other Files & Documents:** Cloudflare R2 Storage via Cloudflare Worker (`uploadFileToR2`) rooted at **`https://cdn.bungkii.app`** (and fallback `https://kanbann-r2-worker.bungkii.workers.dev`)
   - 🤖 **Smart Uploader:** `uploadFileSmart` (`src/utils/upload.ts`) & standalone Worker in `cloudflare-worker-r2/`
 - **Supabase Clients:**
   - Server Components & Server Actions: `@/utils/supabase/server` (`createClient()`)
