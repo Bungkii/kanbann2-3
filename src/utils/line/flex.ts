@@ -958,49 +958,19 @@ export function createFundsFlexMessage(paidCount: number, unpaidStudents: number
           uri: 'https://primjaa.bungkii.app/funds'
         }
       },
-      header: {
-        type: 'box',
-        layout: 'vertical',
-        contents: [
-          {
-            type: 'box',
-            layout: 'horizontal',
-            contents: [
-              {
-                type: 'text',
-                text: isHardcore ? '🤬' : '💸',
-                size: 'xxl',
-                flex: 0
-              },
-              {
-                type: 'text',
-                text: title,
-                weight: 'bold',
-                color: '#ffffff',
-                size: 'lg',
-                margin: 'md',
-                align: 'start',
-                gravity: 'center',
-                wrap: true
-              }
-            ],
-            alignItems: 'center'
-          },
-          {
-            type: 'text',
-            text: `ประจำสัปดาห์: ${weekLabel}`,
-            color: '#ffffffcc',
-            size: 'xs',
-            margin: 'sm'
-          }
-        ],
-        backgroundColor: headerColor,
-        paddingAll: 'lg'
-      },
       body: {
         type: 'box',
         layout: 'vertical',
         contents: [
+          {
+            type: 'text',
+            text: `📅 ประจำสัปดาห์: ${weekLabel}`,
+            color: '#64748b',
+            size: 'xs',
+            weight: 'bold',
+            align: 'center',
+            margin: 'none'
+          },
           {
             type: 'box',
             layout: 'vertical',
@@ -1024,7 +994,7 @@ export function createFundsFlexMessage(paidCount: number, unpaidStudents: number
             backgroundColor: '#f8fafc',
             paddingAll: 'md',
             cornerRadius: 'md',
-            margin: 'sm'
+            margin: 'md'
           },
           {
             type: 'box',
@@ -1106,16 +1076,6 @@ export function createFundsFlexMessage(paidCount: number, unpaidStudents: number
             },
             style: 'primary',
             color: headerColor,
-            height: 'sm'
-          },
-          {
-            type: 'button',
-            action: {
-              type: 'uri',
-              label: '👨‍👩‍👧 สำหรับผู้ปกครอง (kanbann)',
-              uri: 'https://kanbann.bungkii.app/parent/funds'
-            },
-            style: 'secondary',
             height: 'sm'
           }
         ],
