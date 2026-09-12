@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
     let csvContent = '';
 
     // Header Summary Section
-    csvContent += `รายงานบัญชีและกองทุนห้อง ม.2/3 (ห้อง 3 สัมธุน)\n`;
+    csvContent += `รายงานบัญชีและกองทุนห้อง ม.2/3\n`;
     csvContent += `วันที่ออกรายงาน,${escapeCSV(exportDateStr)}\n`;
     csvContent += `ประจำสัปดาห์รอบที่เลือก,${escapeCSV(weekLabel)}\n`;
     csvContent += `\n`;

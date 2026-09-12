@@ -90,7 +90,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Title
-    doc.fontSize(20).fillColor('#0f172a').text(`รายงานบัญชีและกองทุนห้อง ม.2/3 (ห้อง 3 สัมธุน)`, { align: 'center' });
+    doc.fontSize(20).fillColor('#0f172a').text(`รายงานบัญชีและกองทุนห้อง ม.2/3`, { align: 'center' });
     doc.fontSize(14).fillColor('#475569').text(`ประจำสัปดาห์: ${weekLabel}  |  วันที่ออกรายงาน: ${exportDateStr}`, { align: 'center' });
     doc.moveDown(0.8);
 

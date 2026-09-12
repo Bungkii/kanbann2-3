@@ -6,7 +6,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date()
 
   return [
-    // 🎓 Student Portal (Primjaa / พริมจ๋า ม.2/3 ห้อง 3 สัมธุน)
+    // 🎓 Student Portal (Primjaa / พริมจ๋า ม.2/3)
     {
       url: studentUrl,
       lastModified: now,
