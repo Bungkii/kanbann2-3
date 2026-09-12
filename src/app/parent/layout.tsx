@@ -11,13 +11,37 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'ระบบติดตามงานห้อง ม.2/3 | สำหรับผู้ปกครอง',
-  description: 'ติดตามการบ้าน งานค้าง และเตรียมตัวสอบของนักเรียนชั้น ม.2/3 (โหมดอ่านอย่างเดียวสำหรับผู้ปกครอง)',
+  metadataBase: new URL('https://kanbann.bungkii.app'),
+  title: {
+    default: 'ระบบติดตามงานและการบ้านห้อง ม.2/3 · ห้อง 3 สัมธุน | สำหรับผู้ปกครอง',
+    template: '%s | ผู้ปกครอง ม.2/3 · ห้อง 3 สัมธุน'
+  },
+  description: 'ติดตามการบ้าน งานค้าง กองทุนห้อง และเตรียมตัวสอบของนักเรียนชั้น ม.2/3 ห้อง 3 สัมธุน (พริมจ๋า) สำหรับผู้ปกครอง',
+  keywords: [
+    "พริมจ๋า",
+    "พริมจ๋า ม.2/3",
+    "ห้อง3สัมธุน",
+    "ห้อง 3 สัมธุน",
+    "สัมธุน ม.2/3",
+    "ผู้ปกครอง ม.2/3",
+    "การบ้าน ม.2/3",
+    "kanbann.bungkii.app",
+    "primjaa.bungkii.app"
+  ],
   manifest: '/manifest-parent.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
     title: 'ผู้ปกครอง ม.2/3',
+  },
+  openGraph: {
+    type: "website",
+    locale: "th_TH",
+    url: "https://kanbann.bungkii.app",
+    title: "ระบบติดตามงานและการบ้านห้อง ม.2/3 · ห้อง 3 สัมธุน | สำหรับผู้ปกครอง",
+    description: "ติดตามการบ้าน งานค้าง กองทุนห้อง และเตรียมตัวสอบของนักเรียนชั้น ม.2/3 ห้อง 3 สัมธุน",
+    siteName: "กระดานผู้ปกครอง ม.2/3",
+    images: [{ url: "/logo.png", width: 512, height: 512, alt: "ผู้ปกครอง ม.2/3 ห้อง 3 สัมธุน" }],
   },
 };
 

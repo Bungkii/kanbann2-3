@@ -1,38 +1,109 @@
 import { MetadataRoute } from 'next'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://primjaa.bungkii.app'
+  const studentUrl = 'https://primjaa.bungkii.app'
+  const parentUrl = 'https://kanbann.bungkii.app'
+  const now = new Date()
 
   return [
+    // 🎓 Student Portal (Primjaa / พริมจ๋า ม.2/3 ห้อง 3 สัมธุน)
     {
-      url: baseUrl,
-      lastModified: new Date(),
+      url: studentUrl,
+      lastModified: now,
       changeFrequency: 'daily',
-      priority: 1,
+      priority: 1.0,
     },
     {
-      url: `${baseUrl}/kanban`,
-      lastModified: new Date(),
+      url: `${studentUrl}/kanban`,
+      lastModified: now,
       changeFrequency: 'always',
-      priority: 0.8,
+      priority: 0.95,
     },
     {
-      url: `${baseUrl}/schedule`,
-      lastModified: new Date(),
+      url: `${studentUrl}/schedule`,
+      lastModified: now,
       changeFrequency: 'daily',
+      priority: 0.9,
+    },
+    {
+      url: `${studentUrl}/summaries`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.85,
+    },
+    {
+      url: `${studentUrl}/exam-topics`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.85,
+    },
+    {
+      url: `${studentUrl}/homework-feed`,
+      lastModified: now,
+      changeFrequency: 'always',
+      priority: 0.85,
+    },
+    {
+      url: `${studentUrl}/funds`,
+      lastModified: now,
+      changeFrequency: 'weekly',
       priority: 0.8,
     },
     {
-      url: `${baseUrl}/login`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.5,
+      url: `${studentUrl}/election`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.7,
     },
     {
-      url: `${baseUrl}/signup`,
-      lastModified: new Date(),
+      url: `${studentUrl}/evaluate-boss`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.7,
+    },
+    {
+      url: `${studentUrl}/login`,
+      lastModified: now,
       changeFrequency: 'monthly',
-      priority: 0.5,
+      priority: 0.6,
+    },
+
+    // 👨‍👩‍👧 Parent Portal (Kanbann ม.2/3 สำหรับผู้ปกครอง)
+    {
+      url: parentUrl,
+      lastModified: now,
+      changeFrequency: 'daily',
+      priority: 1.0,
+    },
+    {
+      url: `${parentUrl}/assignments`,
+      lastModified: now,
+      changeFrequency: 'always',
+      priority: 0.95,
+    },
+    {
+      url: `${parentUrl}/exams`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.9,
+    },
+    {
+      url: `${parentUrl}/funds`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.85,
+    },
+    {
+      url: `${parentUrl}/manual`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
+      url: `${studentUrl}/manual`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.8,
     },
   ]
 }

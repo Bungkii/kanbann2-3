@@ -15,25 +15,60 @@ const ibmPlexSansThai = IBM_Plex_Sans_Thai({
 export const metadata: Metadata = {
   metadataBase: new URL('https://primjaa.bungkii.app'),
   title: {
-    default: "พริมทวงยิก ม.2/3 | ระบบกระดานจัดการงานออนไลน์",
-    template: "%s | พริมทวงยิก ม.2/3"
+    default: "พริมจ๋า ม.2/3 · ห้อง 3 สัมธุน | ระบบกระดานจัดการงานและการบ้านออนไลน์",
+    template: "%s | พริมจ๋า ม.2/3 · ห้อง 3 สัมธุน"
   },
-  description: "ระบบจดงาน จัดการเวรทำความสะอาด และกระดานแจ้งเตือนสำหรับนักเรียนห้อง 2/3 พร้อมระบบส่งข้อความบอทเตือนความจำอัตโนมัติ",
-  keywords: ["กระดานงาน", "จดงานนักเรียน", "Kanban board", "ม.2/3", "ระบบเตือนงาน", "บอททวงงาน"],
-  authors: [{ name: "Bungkii" }],
+  description: "ระบบกระดานงาน การบ้าน ตารางเรียน สรุปสอบ และเงินห้อง สำหรับนักเรียนและผู้ปกครองห้อง ม.2/3 ห้อง 3 สัมธุน (พริมจ๋า / พริมทวงยิก)",
+  keywords: [
+    "พริมจ๋า",
+    "พริมจ๋า ม.2/3",
+    "ห้อง3สัมธุน",
+    "ห้อง 3 สัมธุน",
+    "สัมธุน ม.2/3",
+    "ม.2/3 สัมธุน",
+    "สัมธุน",
+    "โรงเรียนสัมธุน",
+    "พริมทวงยิก",
+    "พริมทวงยิก ม.2/3",
+    "กระดานการบ้าน ม.2/3",
+    "ระบบการบ้านห้อง ม.2/3",
+    "ตารางเรียน ม.2/3",
+    "สรุปสอบ ม.2/3",
+    "kanbann2-3",
+    "primjaa",
+    "primjaa.bungkii.app",
+    "kanbann.bungkii.app"
+  ],
+  authors: [{ name: "Bungkii", url: "https://bungkii.app" }],
   creator: "Bungkii",
+  publisher: "Primjaa & Kanbann ม.2/3",
+  alternates: {
+    canonical: 'https://primjaa.bungkii.app',
+    languages: {
+      'th-TH': 'https://primjaa.bungkii.app',
+    },
+  },
   openGraph: {
     type: "website",
     locale: "th_TH",
     url: "https://primjaa.bungkii.app",
-    title: "พริมทวงยิก ม.2/3 | ระบบกระดานจัดการงานออนไลน์",
-    description: "ระบบจดงาน จัดการเวรทำความสะอาด และกระดานแจ้งเตือนสำหรับนักเรียนห้อง 2/3",
-    siteName: "พริมทวงยิก ม.2/3"
+    title: "พริมจ๋า ม.2/3 · ห้อง 3 สัมธุน | ระบบกระดานจัดการงานและการบ้านออนไลน์",
+    description: "ระบบกระดานงาน การบ้าน ตารางเรียน สรุปสอบ และเงินห้อง สำหรับนักเรียนและผู้ปกครองห้อง ม.2/3 ห้อง 3 สัมธุน (พริมจ๋า / พริมทวงยิก)",
+    siteName: "พริมจ๋า ม.2/3 · ห้อง 3 สัมธุน",
+    images: [
+      {
+        url: "/logo.png",
+        width: 512,
+        height: 512,
+        alt: "โลโก้พริมจ๋า ม.2/3 ห้อง 3 สัมธุน",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "พริมทวงยิก ม.2/3 | ระบบกระดานจัดการงานออนไลน์",
-    description: "ระบบจดงาน จัดการเวรทำความสะอาด และกระดานแจ้งเตือนสำหรับนักเรียนห้อง 2/3"
+    title: "พริมจ๋า ม.2/3 · ห้อง 3 สัมธุน | ระบบกระดานจัดการงานและการบ้านออนไลน์",
+    description: "ระบบกระดานงาน การบ้าน ตารางเรียน สรุปสอบ และเงินห้อง สำหรับนักเรียนและผู้ปกครองห้อง ม.2/3 ห้อง 3 สัมธุน",
+    images: ["/logo.png"],
   },
   robots: {
     index: true,
@@ -50,12 +85,13 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'พริมทวงยิก',
+    title: 'พริมจ๋า ม.2/3',
   },
   formatDetection: {
     telephone: false,
   },
   icons: {
+    icon: '/logo.png',
     apple: '/icons/icon-192.jpg',
   },
 };
@@ -71,6 +107,7 @@ export function generateViewport(): Viewport {
   };
 }
 
+import MaintenanceScreen from "@/components/MaintenanceScreen";
 import { Analytics } from "@vercel/analytics/next";
 
 export default async function RootLayout({
@@ -92,24 +129,46 @@ export default async function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-192.jpg" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="พริมทวงยิก" />
+        <meta name="apple-mobile-web-app-title" content="พริมจ๋า ม.2/3" />
         {/* MS Tile */}
         <meta name="msapplication-TileColor" content="#7C3AED" />
         <meta name="msapplication-tap-highlight" content="no" />
+        {/* JSON-LD Structured Data for Google Rich Search */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebApplication",
+              "name": "พริมจ๋า ม.2/3 · ห้อง 3 สัมธุน",
+              "alternateName": ["พริมจ๋า", "ห้อง3สัมธุน", "พริมทวงยิก ม.2/3", "Kanbann ม.2/3"],
+              "url": "https://primjaa.bungkii.app",
+              "applicationCategory": "EducationalApplication",
+              "operatingSystem": "All",
+              "browserRequirements": "Requires JavaScript. Requires HTML5.",
+              "description": "ระบบจัดการห้องเรียน การบ้าน ตารางเรียน สรุปสอบ และเงินห้อง สำหรับนักเรียนและผู้ปกครองห้อง ม.2/3 ห้อง 3 สัมธุน",
+              "author": {
+                "@type": "Person",
+                "name": "Bungkii",
+                "url": "https://bungkii.app"
+              },
+              "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "THB"
+              }
+            })
+          }}
+        />
       </head>
       <body className="min-h-full flex flex-col bg-slate-50 text-slate-900 font-sans">
         {maintenanceMode ? (
-          <div className="flex-1 flex flex-col items-center justify-center min-h-screen bg-slate-900 text-white p-4">
-            <div className="text-center max-w-lg bg-slate-800 p-12 rounded-3xl border border-slate-700 shadow-2xl">
-               <div className="bg-slate-700 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-                 <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-400"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
-               </div>
-               <h1 className="text-3xl font-bold mb-4 text-white">ปิดปรับปรุงระบบชั่วคราว</h1>
-               <p className="text-slate-400 text-base leading-relaxed">
-                 ระบบพริมจ๋ากำลังอยู่ระหว่างการปรับปรุง ขออภัยในความไม่สะดวก กรุณากลับมาใช้งานใหม่ในภายหลัง
-               </p>
-            </div>
-          </div>
+          <MaintenanceScreen
+            title={settings.maintenance_title || "ปิดปรับปรุงระบบชั่วคราว"}
+            dateText={settings.maintenance_date || "วันที่ 19 ก.ย. 2567"}
+            timeText={settings.maintenance_time || "เวลา 9.00 น. ถึง เวลา 18.00 น."}
+            noticeText={settings.maintenance_notice || "ท่านจะไม่สามารถใช้งานแอปพลิเคชันได้ในเวลาดังกล่าว ขออภัยในความไม่สะดวก"}
+          />
         ) : (
           <>
             {announcementEnabled && announcementText && (

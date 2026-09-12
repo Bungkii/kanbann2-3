@@ -55,7 +55,7 @@ This repository is **Kanbann (ระบบจัดการห้องเร�
 - `/election` (`page.tsx`): Classroom representative/leader election dashboard.
 - `/evaluate-boss` (`page.tsx`): Classroom leader performance assessment with a post-submission mental health & emergency hotline modal.
 - `/settings` (`page.tsx`): Admin settings hub:
-  - `/settings/system`: Feature toggles (Maintenance, Add Work, Kanban, Summaries, Election, Boss Evaluation, Announcement), multi-image popup modal configuration, announcement banner text, and Boss Evaluation PDF/CSV export.
+  - `/settings/system`: Feature toggles (Maintenance Mode, Add Work, Kanban, Summaries, Election, Boss Evaluation, Announcement), customizable Maintenance Screen (Title, Date, Time, Notice with live preview), multi-image popup modal configuration, announcement banner text, and Boss Evaluation PDF/CSV export.
   - `/settings/schedule`: Edit timetable entries (subject, teacher, room, periods).
   - `/settings/cleaning`: Manage weekday cleaning duty rosters.
   - `/settings/uniform`: Manage daily student uniform requirements.

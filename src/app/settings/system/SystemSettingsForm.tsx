@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { updateSystemSetting } from "./actions";
 import toast from "react-hot-toast";
-import { Download, Image, Link, X, Plus, GripVertical, ExternalLink } from "lucide-react";
+import { Download, Image, Link, X, Plus, GripVertical, ExternalLink, AlertTriangle, Eye, EyeOff, Calendar, Clock } from "lucide-react";
+import MaintenanceScreen from "@/components/MaintenanceScreen";
 
 const systemFeatures = [
   { key: "maintenance_mode_enabled", label: "โหมดปิดปรับปรุงระบบ (Maintenance Mode)", description: "บล็อคการเข้าใช้งานเว็บทั้งหมด (ต้องเข้า Database เพื่อเปิดใหม่)" },
@@ -49,6 +50,14 @@ export default function SystemSettingsForm({
   const [announcementText, setAnnouncementText] = useState(initialSettings.announcement_text || "");
   const [isSavingAnnouncement, setIsSavingAnnouncement] = useState(false);
 
+  // Maintenance screen customizations
+  const [maintenanceTitle, setMaintenanceTitle] = useState(initialSettings.maintenance_title || "ปิดปรับปรุงระบบชั่วคราว");
+  const [maintenanceDate, setMaintenanceDate] = useState(initialSettings.maintenance_date || "วันที่ 19 ก.ย. 2567");
+  const [maintenanceTime, setMaintenanceTime] = useState(initialSettings.maintenance_time || "เวลา 9.00 น. ถึง เวลา 18.00 น.");
+  const [maintenanceNotice, setMaintenanceNotice] = useState(initialSettings.maintenance_notice || "ท่านจะไม่สามารถใช้งานแอปพลิเคชันได้ในเวลาดังกล่าว ขออภัยในความไม่สะดวก");
+  const [isSavingMaintenance, setIsSavingMaintenance] = useState(false);
+  const [showMaintenancePreview, setShowMaintenancePreview] = useState(false);
+
   // Popup images (array)
   const [popupImages, setPopupImages] = useState<PopupImage[]>(() => {
     const parsed = parsePopupImages(initialSettings.popup_images);
@@ -84,6 +93,21 @@ export default function SystemSettingsForm({
     setIsSavingAnnouncement(false);
     if (result.success) toast.success("บันทึกข้อความประกาศสำเร็จ!");
     else toast.error("เกิดข้อผิดพลาดในการบันทึก");
+  };
+
+  // ---- Maintenance Settings ----
+  const handleSaveMaintenance = async () => {
+    setIsSavingMaintenance(true);
+    const results = await Promise.all([
+      updateSystemSetting("maintenance_title", maintenanceTitle),
+      updateSystemSetting("maintenance_date", maintenanceDate),
+      updateSystemSetting("maintenance_time", maintenanceTime),
+      updateSystemSetting("maintenance_notice", maintenanceNotice),
+    ]);
+    setIsSavingMaintenance(false);
+    const hasError = results.some((r) => !r.success);
+    if (!hasError) toast.success("บันทึกข้อมูลหน้าปิดปรับปรุงระบบสำเร็จ!");
+    else toast.error("เกิดข้อผิดพลาดในการบันทึกบางรายการ");
   };
 
   // ---- Popup Images ----
@@ -205,6 +229,112 @@ export default function SystemSettingsForm({
           </div>
         </div>
       )}
+
+      {/* Maintenance Screen Settings */}
+      <div className="bg-slate-900 text-white p-6 rounded-2xl border border-slate-800 flex flex-col gap-5 shadow-xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="bg-amber-500/20 text-amber-400 p-2.5 rounded-xl border border-amber-500/30">
+              <AlertTriangle size={22} />
+            </div>
+            <div>
+              <h3 className="font-bold text-white text-lg">ตั้งค่าหน้าปิดปรับปรุงระบบ (Maintenance Screen)</h3>
+              <p className="text-sm text-slate-400">ข้อความและกำหนดเวลาที่จะแสดงเมื่อเปิดโหมด Maintenance</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowMaintenancePreview(!showMaintenancePreview)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold border border-slate-700 transition-colors self-start sm:self-auto"
+          >
+            {showMaintenancePreview ? <EyeOff size={16} /> : <Eye size={16} />}
+            {showMaintenancePreview ? "ซ่อนตัวอย่าง" : "ดูตัวอย่างหน้าจริง"}
+          </button>
+        </div>
+
+        {/* Live Preview Modal / Embed */}
+        {showMaintenancePreview && (
+          <div className="rounded-2xl overflow-hidden border border-slate-700 shadow-2xl relative">
+            <div className="bg-slate-950 px-4 py-2 border-b border-slate-800 flex items-center justify-between text-xs text-slate-400 font-mono">
+              <span>● ● ● ตัวอย่างหน้าเว็บเมื่อปิดปรับปรุง</span>
+              <span className="text-amber-400 font-semibold">PREVIEW MODE</span>
+            </div>
+            <div className="max-h-[500px] overflow-y-auto">
+              <MaintenanceScreen
+                title={maintenanceTitle}
+                dateText={maintenanceDate}
+                timeText={maintenanceTime}
+                noticeText={maintenanceNotice}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Input Fields */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+              หัวข้อหลัก (Title)
+            </label>
+            <input
+              type="text"
+              value={maintenanceTitle}
+              onChange={(e) => setMaintenanceTitle(e.target.value)}
+              placeholder="ปิดปรับปรุงระบบชั่วคราว"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
+              <Calendar size={13} className="text-amber-400" /> วันที่ปรับปรุง (Date)
+            </label>
+            <input
+              type="text"
+              value={maintenanceDate}
+              onChange={(e) => setMaintenanceDate(e.target.value)}
+              placeholder="เช่น วันที่ 19 ก.ย. 2567"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
+              <Clock size={13} className="text-amber-400" /> ช่วงเวลาปรับปรุง (Time)
+            </label>
+            <input
+              type="text"
+              value={maintenanceTime}
+              onChange={(e) => setMaintenanceTime(e.target.value)}
+              placeholder="เช่น เวลา 9.00 น. ถึง เวลา 18.00 น."
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+              ข้อความแจ้งเตือนท้ายหน้า (Notice)
+            </label>
+            <input
+              type="text"
+              value={maintenanceNotice}
+              onChange={(e) => setMaintenanceNotice(e.target.value)}
+              placeholder="ท่านจะไม่สามารถใช้งานแอปพลิเคชันได้ในเวลาดังกล่าว ขออภัยในความไม่สะดวก"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm"
+            />
+          </div>
+        </div>
+
+        {/* Save Maintenance Settings */}
+        <button
+          type="button"
+          onClick={handleSaveMaintenance}
+          disabled={isSavingMaintenance}
+          className="self-start bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-7 py-2.5 rounded-xl shadow-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+        >
+          {isSavingMaintenance ? "กำลังบันทึก..." : "บันทึกข้อความปรับปรุงระบบ"}
+        </button>
+      </div>
 
       {/* Popup Images (multi) */}
       <div className="bg-violet-50 p-6 rounded-2xl border border-violet-100 flex flex-col gap-5">
