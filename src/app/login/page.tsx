@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import LoginForm from './LoginForm';
-import { ArrowLeft, Sparkles, BookOpen } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
 type Props = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -8,7 +8,7 @@ type Props = {
 
 export const metadata = {
   title: 'เข้าสู่ระบบ | พริมทวงยิก ม.2/3',
-  description: 'ระบบเข้าสู่ระบบด้วยเลขประจำตัวนักเรียน และทางเข้าสำหรับผู้ปกครองห้อง ม.2/3',
+  description: 'ระบบเข้าสู่ระบบด้วยเลขประจำตัวนักเรียน ห้อง ม.2/3',
 };
 
 export default async function LoginPage(props: Props) {
@@ -25,17 +25,6 @@ export default async function LoginPage(props: Props) {
         <ArrowLeft size={15} />
         กลับหน้าหลัก
       </Link>
-
-      {/* Parent Manual Quick Link (Top Right) */}
-      <a
-        href="https://kanbann.bungkii.app/manual"
-        className="absolute right-4 top-4 sm:right-6 sm:top-6 py-2 px-4 rounded-full no-underline text-rose-700 bg-white/90 hover:bg-rose-50 border border-pink-200/80 shadow-2xs backdrop-blur-md flex items-center gap-2 text-xs sm:text-sm font-semibold transition-all hover:scale-105 z-20"
-        title="เปิดดูคู่มือผู้ปกครอง (kanbann.bungkii.app/manual)"
-      >
-        <BookOpen size={14} className="text-rose-500" />
-        <span className="hidden sm:inline">คู่มือผู้ปกครอง</span>
-        <span className="sm:hidden">คู่มือ</span>
-      </a>
 
       {/* Subtle ambient pink glows */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -63,7 +52,7 @@ export default async function LoginPage(props: Props) {
             <span>เข้าสู่ระบบ</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            พริมทวงยิก · ระบบห้องเรียน & ผู้ปกครอง ม.2/3
+            พริมทวงยิก · ระบบห้องเรียน ม.2/3
           </p>
         </div>
 

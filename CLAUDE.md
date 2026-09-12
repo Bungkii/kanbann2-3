@@ -57,7 +57,7 @@ This repository is **Kanbann (ระบบจัดการห้องเร�
   - `/settings/uniform`: Manage daily student uniform requirements.
 - `/parent` (`layout.tsx`, `page.tsx`, `/assignments`, `/exams`, `/funds`, `/manual`): **Parent Portal (ระบบผู้ปกครอง)** — Portal with White & Pink aesthetic tailored for parents to track urgent/overdue homework, live real-time task completion when their child marks tasks as done (`student_task_completions`), final exam countdown, subject exam scopes, study summaries, class funds, and the dedicated Parent Manual (`/parent/manual` and `https://kanbann.bungkii.app/manual`).
 - `/manual` (`page.tsx`): Standalone route rendering `ParentManualClient` ensuring `https://kanbann.bungkii.app/manual` works universally across domains and preview environments.
-- `/login`: Revamped White & Pink login system using 5-digit student ID only (legacy email removed completely), Live Student Profile Detection & rank/role badge preview, password visibility toggle, Caps Lock indicator, and quick 1-click access for parents.
+- `/login`: Student-only authentication using 5-digit student ID (example: `30000`, initial password `bBb@30000`). Features Live Student Profile Detection without displaying role/rank, password visibility toggle, Caps Lock indicator, and security question password reset. Strictly separated from the parent portal (`https://kanbann.bungkii.app`).
 - `/api/student-task-completion`: API for fetching and updating per-student homework completion statuses with live sync to parents.
 
 ### API Routes (`src/app/api/`)
