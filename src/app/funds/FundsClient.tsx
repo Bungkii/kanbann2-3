@@ -2,13 +2,14 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Banknote, ChevronLeft, ChevronRight, CheckCircle2, Circle, RefreshCw, HandCoins, Settings, X, Plus, Minus, Equal, RotateCcw, Receipt, Trash2, Camera, Image as ImageIcon, ExternalLink } from 'lucide-react'
+import { Banknote, ChevronLeft, ChevronRight, CheckCircle2, Circle, RefreshCw, HandCoins, Settings, X, Plus, Minus, Equal, RotateCcw, Receipt, Trash2, Camera, Image as ImageIcon, ExternalLink, Search } from 'lucide-react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 import { toggleFundStatus, setFundsBalanceAdjustment, addExpense, deleteExpense, getFundsForWeek, setFundsSettings } from './actions'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo } from 'react'
+import { STUDENTS } from '@/data/students'
 
 type FundRecord = {
   student_number: number;
@@ -401,6 +402,7 @@ export default function FundsClient({ isLoggedIn, isParentMode = false, fundsSta
     const fundRecord = localFundsData.find(f => f.student_number === num)
     const amount = fundRecord?.amount || 20
     const isMyChild = isParentMode && highlightedStudent?.student_no === num
+    const studentInfo = STUDENTS.find(s => s.student_no === num)
 
     return (
       <motion.div
@@ -414,30 +416,63 @@ export default function FundsClient({ isLoggedIn, isParentMode = false, fundsSta
         <button
           onClick={() => handleToggle(num, isPaid)}
           disabled={!isLoggedIn}
-          className={`w-full h-full relative flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all duration-200 ${
-            isMyChild ? 'ring-3 ring-indigo-500 ring-offset-2 scale-105 shadow-md ' : ''
+          title={studentInfo ? `${studentInfo.full_name} (${studentInfo.nickname})` : `เลขที่ ${num}`}
+          className={`w-full h-full relative flex flex-col items-center justify-between p-2.5 sm:p-3 rounded-2xl border-2 transition-all duration-200 text-center ${
+            isMyChild ? 'ring-4 ring-indigo-500 ring-offset-2 scale-105 shadow-lg bg-indigo-50/50' : ''
           } ${
             isPaid 
-              ? 'bg-emerald-50 border-emerald-200 hover:border-emerald-300' 
-              : 'bg-white border-slate-200 hover:border-rose-200'
-          } ${!isLoggedIn && 'cursor-default opacity-80'}`}
+              ? 'bg-emerald-50/70 border-emerald-300 hover:border-emerald-400 shadow-xs' 
+              : 'bg-white border-slate-200 hover:border-rose-300 hover:bg-rose-50/30'
+          } ${!isLoggedIn && 'cursor-default'}`}
         >
           {isMyChild && (
-            <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-indigo-600 text-white text-[9px] font-bold rounded-full shadow-xs whitespace-nowrap">
-              นักเรียนคุณ
+            <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-2.5 py-0.5 bg-indigo-600 text-white text-[10px] font-bold rounded-full shadow-md whitespace-nowrap z-10 animate-bounce">
+              ⭐ บุตรหลานของคุณ
             </span>
           )}
-          <span className={`text-lg font-bold mb-1 ${isPaid ? 'text-emerald-700' : 'text-slate-600'}`}>
-            {num}
-          </span>
-          {isPaid ? (
-            <div className="flex flex-col items-center">
-              <CheckCircle2 size={16} className="text-emerald-500 mb-0.5" />
-              <span className="text-xs font-semibold text-emerald-600">{amount}฿</span>
-            </div>
-          ) : (
-            <Circle size={20} className="text-slate-300" />
-          )}
+
+          {/* Student Number & Status Top Row */}
+          <div className="w-full flex items-center justify-between gap-1 mb-1">
+            <span className={`w-6 h-6 rounded-full text-xs font-black flex items-center justify-center shrink-0 ${
+              isPaid ? 'bg-emerald-200 text-emerald-800' : 'bg-slate-100 text-slate-600'
+            }`}>
+              {num}
+            </span>
+            {isPaid ? (
+              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100/80 px-1.5 py-0.5 rounded-md">
+                {amount}฿ ✓
+              </span>
+            ) : (
+              <span className="text-[10px] font-semibold text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded-md">
+                ค้างจ่าย
+              </span>
+            )}
+          </div>
+
+          {/* Student Nickname & Name */}
+          <div className="w-full my-1">
+            <p className={`text-sm font-bold truncate leading-tight ${isPaid ? 'text-emerald-900' : 'text-slate-800'}`}>
+              {studentInfo?.nickname || `เลขที่ ${num}`}
+            </p>
+            <p className="text-[10px] text-slate-400 truncate mt-0.5 max-w-full">
+              {studentInfo?.first_name || ''}
+            </p>
+          </div>
+
+          {/* Status Indicator Bar */}
+          <div className="w-full pt-1 border-t border-slate-100/80 flex items-center justify-center">
+            {isPaid ? (
+              <div className="flex items-center gap-1 text-[10px] font-semibold text-emerald-600">
+                <CheckCircle2 size={12} className="text-emerald-500 shrink-0" />
+                <span>จ่ายแล้ว</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 text-[10px] font-medium text-slate-400">
+                <Circle size={10} className="text-slate-300 shrink-0" />
+                <span>ยังไม่จ่าย</span>
+              </div>
+            )}
+          </div>
         </button>
 
         {isLoggedIn && (
@@ -447,7 +482,7 @@ export default function FundsClient({ isLoggedIn, isParentMode = false, fundsSta
               setEditingStudent({ num, amount, isPaid })
               setEditStudentAmount(amount.toString())
             }}
-            className="absolute top-1 right-1 p-1 text-slate-400 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-colors z-10"
+            className="absolute top-1.5 right-1.5 p-1 text-slate-400 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-colors z-10"
             title="แก้ไขยอดเงิน"
           >
             <Settings size={12} />

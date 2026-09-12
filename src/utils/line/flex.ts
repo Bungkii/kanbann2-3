@@ -917,21 +917,47 @@ export function createFunnyFlexMessage(title: string, message: string, emoji: st
   };
 }
 
+import { STUDENTS } from '@/data/students';
+
 export function createFundsFlexMessage(paidCount: number, unpaidStudents: number[], totalFunds: number, weekLabel: string, isHardcore: boolean = false) {
-  let unpaidText = unpaidStudents.length > 0 
-    ? unpaidStudents.map(num => `เลขที่ ${num}`).join(', ')
-    : 'จ่ายครบทุกคนแล้วจ้า! 🎉';
+  const unpaidListFormatted = unpaidStudents.map((num, idx) => {
+    const student = STUDENTS.find(s => s.student_no === num);
+    if (student) {
+      return `${idx + 1}. ${student.prefix}${student.first_name} ${student.last_name} (เลขที่ ${num} - ${student.nickname})`;
+    }
+    return `${idx + 1}. เลขที่ ${num}`;
+  });
+
+  const unpaidText = unpaidListFormatted.length > 0 
+    ? unpaidListFormatted.join('\n')
+    : '🎉 ทุกคนจ่ายเงินครบหมดแล้ว ขอบคุณมากครับ!';
   
-  const headerColor = isHardcore ? '#dc2626' : '#059669'; // Red for hardcore, Green for normal
-  const title = isHardcore ? '🚨 ประกาศจับคนยังไม่จ่ายเงินห้อง!' : 'สถานะเงินห้อง';
-  const subtitleLabel = isHardcore ? '🔥 รีบจ่ายเดี๋ยวนี้เลยนะ:' : '❌ รายชื่อคนยังไม่จ่าย:';
+  const headerColor = isHardcore ? '#dc2626' : '#059669'; // Red for hardcore, Emerald for normal
+  const title = isHardcore ? '🚨 ตาลทวงยับ! ใครยังไม่จ่ายเงินห้อง' : '💰 รายงานสถานะเงินห้อง ม.2/3';
+  const subtitleLabel = isHardcore ? '🔥 รายชื่อคนยังไม่จ่าย (รีบโอนด่วน!):' : '📋 รายชื่อนักเรียนที่ยังไม่จ่าย:';
   
+  // Hero Banner image (Standard Aspect Ratio 20:13)
+  const heroImageUrl = isHardcore
+    ? 'https://i.ibb.co/68vMmqM/tarn-hardcore-banner.jpg'
+    : 'https://i.ibb.co/G3Vq7F1/primjaa-funds-banner.jpg';
+
   return {
     type: 'flex',
-    altText: isHardcore ? 'ประจานคนไม่จ่ายเงินห้อง!' : 'สรุปยอดเงินห้องสัปดาห์นี้',
+    altText: isHardcore ? '🤬 ตาลทวงยับ! ประจานคนยังไม่จ่ายเงินห้อง' : '💰 สรุปยอดเงินห้องสัปดาห์นี้',
     contents: {
       type: 'bubble',
       size: 'mega',
+      hero: {
+        type: 'image',
+        url: heroImageUrl,
+        size: 'full',
+        aspectRatio: '20:13',
+        aspectMode: 'cover',
+        action: {
+          type: 'uri',
+          uri: 'https://primjaa.bungkii.app/funds'
+        }
+      },
       header: {
         type: 'box',
         layout: 'vertical',
@@ -942,7 +968,7 @@ export function createFundsFlexMessage(paidCount: number, unpaidStudents: number
             contents: [
               {
                 type: 'text',
-                text: isHardcore ? '🤬' : '💰',
+                text: isHardcore ? '🤬' : '💸',
                 size: 'xxl',
                 flex: 0
               },
@@ -951,10 +977,11 @@ export function createFundsFlexMessage(paidCount: number, unpaidStudents: number
                 text: title,
                 weight: 'bold',
                 color: '#ffffff',
-                size: 'xl',
+                size: 'lg',
                 margin: 'md',
                 align: 'start',
-                gravity: 'center'
+                gravity: 'center',
+                wrap: true
               }
             ],
             alignItems: 'center'
@@ -963,12 +990,12 @@ export function createFundsFlexMessage(paidCount: number, unpaidStudents: number
             type: 'text',
             text: `ประจำสัปดาห์: ${weekLabel}`,
             color: '#ffffffcc',
-            size: 'sm',
-            margin: 'md'
+            size: 'xs',
+            margin: 'sm'
           }
         ],
         backgroundColor: headerColor,
-        paddingAll: 'xl'
+        paddingAll: 'lg'
       },
       body: {
         type: 'box',
@@ -980,24 +1007,24 @@ export function createFundsFlexMessage(paidCount: number, unpaidStudents: number
             contents: [
               {
                 type: 'text',
-                text: 'ยอดเงินกองกลางทั้งหมด',
+                text: 'ยอดเงินกองกลางคงเหลือ',
                 color: '#64748b',
                 size: 'xs',
                 weight: 'bold'
               },
               {
                 type: 'text',
-                text: `${totalFunds.toLocaleString()} บาท`,
+                text: `${totalFunds.toLocaleString()} ฿`,
                 size: 'xxl',
                 weight: 'bold',
                 color: '#0f172a',
-                margin: 'sm'
+                margin: 'xs'
               }
             ],
             backgroundColor: '#f8fafc',
             paddingAll: 'md',
             cornerRadius: 'md',
-            margin: 'md'
+            margin: 'sm'
           },
           {
             type: 'box',
@@ -1006,59 +1033,93 @@ export function createFundsFlexMessage(paidCount: number, unpaidStudents: number
               {
                 type: 'text',
                 text: '✅ จ่ายแล้ว',
-                size: 'sm',
+                size: 'xs',
                 color: '#64748b'
               },
               {
                 type: 'text',
                 text: `${paidCount} / 52 คน`,
-                size: 'sm',
+                size: 'xs',
                 color: '#10b981',
                 align: 'end',
                 weight: 'bold'
               }
             ],
-            margin: 'xl'
+            margin: 'md'
+          },
+          {
+            type: 'box',
+            layout: 'horizontal',
+            contents: [
+              {
+                type: 'text',
+                text: '❌ ค้างจ่าย',
+                size: 'xs',
+                color: '#64748b'
+              },
+              {
+                type: 'text',
+                text: `${unpaidStudents.length} คน`,
+                size: 'xs',
+                color: '#ef4444',
+                align: 'end',
+                weight: 'bold'
+              }
+            ],
+            margin: 'xs'
           },
           {
             type: 'separator',
-            margin: 'lg'
+            margin: 'md'
           },
           {
             type: 'text',
-            text: '❌ รายชื่อคนยังไม่จ่าย (รีบหน่อยนะ!):',
+            text: subtitleLabel,
             weight: 'bold',
-            color: '#ef4444',
-            size: 'sm',
-            margin: 'xl'
+            color: isHardcore ? '#dc2626' : '#ef4444',
+            size: 'xs',
+            margin: 'md'
           },
           {
             type: 'text',
             text: unpaidText,
             wrap: true,
-            size: 'sm',
+            size: 'xxs',
             color: '#334155',
-            margin: 'md',
-            weight: 'bold'
+            margin: 'sm',
+            lineSpacing: '4px'
           }
         ],
-        paddingAll: 'xl'
+        paddingAll: 'lg'
       },
       footer: {
         type: 'box',
         layout: 'vertical',
+        spacing: 'sm',
         contents: [
           {
             type: 'button',
             action: {
               type: 'uri',
-              label: 'ดูรายละเอียด/จัดการ',
+              label: '📱 ตรวจสอบสถานะ / เช็คชื่อ',
               uri: 'https://primjaa.bungkii.app/funds'
             },
             style: 'primary',
-            color: '#059669'
+            color: headerColor,
+            height: 'sm'
+          },
+          {
+            type: 'button',
+            action: {
+              type: 'uri',
+              label: '👨‍👩‍👧 สำหรับผู้ปกครอง (kanbann)',
+              uri: 'https://kanbann.bungkii.app/parent/funds'
+            },
+            style: 'secondary',
+            height: 'sm'
           }
-        ]
+        ],
+        paddingAll: 'md'
       }
     }
   };

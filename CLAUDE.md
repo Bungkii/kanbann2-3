@@ -51,7 +51,8 @@ This repository is **Kanbann (ระบบจัดการห้องเร�
 - `/summaries` (`page.tsx`): Exam summary depository with term filtering, multi-image carousel preview, PDF downloads, and external link support.
 - `/exam-topics` (`page.tsx`, `ExamTopicsClient.tsx`): Breakdown of exam scopes per subject, teacher names, MCQ/essay question counts, and term filtering.
 - `/homework-feed` (`page.tsx`): "ลอกงาน 🚀" homework sharing & requests feed with multi-image uploads, interactive comments/replies chat, like/repost systems, and Dicebear avatars.
-- `/funds` (`page.tsx`, `FundsClient.tsx`): Class funds tracking (weekly dues, student payment grid 1–52, expense tracking, balance adjustments, bank/PromptPay QR modal).
+- `/funds` (`page.tsx`, `FundsClient.tsx`): Class funds tracking (weekly dues, student payment grid 1–52 showing student nicknames and full names, highlighted student card for parents, expense tracking, balance adjustments, bank/PromptPay QR modal).
+- LINE Flex Messages (`src/utils/line/flex.ts`): Rich flex messages for homework reminders, class schedules, exam topics, and "ตาลทวงยับ" (`createFundsFlexMessage`) featuring full student names with nicknames and 20:13 hero banner images.
 - `/election` (`page.tsx`): Classroom representative/leader election dashboard.
 - `/evaluate-boss` (`page.tsx`): Classroom leader performance assessment with a post-submission mental health & emergency hotline modal.
 - `/settings` (`page.tsx`): Admin settings hub:
