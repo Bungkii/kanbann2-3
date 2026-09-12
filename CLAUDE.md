@@ -57,6 +57,7 @@ This repository is **Kanbann (ระบบจัดการห้องเร�
 - `/evaluate-boss` (`page.tsx`): Classroom leader performance assessment with a post-submission mental health & emergency hotline modal.
 - `/settings` (`page.tsx`): Admin settings hub:
   - `/settings/system`: Feature toggles (Maintenance Mode, Add Work, Kanban, Summaries, Election, Boss Evaluation, Announcement), customizable Maintenance Screen (Title, Date, Time, Notice with live preview), multi-image popup modal configuration, announcement banner text, and Boss Evaluation PDF/CSV export.
+  - `/settings/roles`: Manage student roles and accounts. All ranked members (`Leader`, `Finance`, `Admin`, `SuperAdmin`) can add new students and reset passwords. `SuperAdmin` has full privileges (create, edit student details, delete students, promote/demote any role). `Student` role is restricted from accessing roles management.
   - `/settings/schedule`: Edit timetable entries (subject, teacher, room, periods).
   - `/settings/cleaning`: Manage weekday cleaning duty rosters.
   - `/settings/uniform`: Manage daily student uniform requirements.

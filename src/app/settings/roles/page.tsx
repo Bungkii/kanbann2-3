@@ -18,8 +18,8 @@ export default async function StudentRolesPage() {
 
   const currentUserRole = (user.user_metadata?.role || 'Student') as StudentRole;
 
-  // Only Admin or SuperAdmin can access roles management
-  if (currentUserRole !== 'Admin' && currentUserRole !== 'SuperAdmin') {
+  // Allow all ranked users (Leader, Finance, Admin, SuperAdmin) - except Student
+  if (currentUserRole === 'Student') {
     redirect('/settings');
   }
 

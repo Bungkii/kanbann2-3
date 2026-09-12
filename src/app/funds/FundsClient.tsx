@@ -183,7 +183,10 @@ export default function FundsClient({
   }, [isParentMode])
 
   const isCurrentWeek = weekStart === currentWeekStart
-  const students = Array.from({ length: 52 }, (_, i) => i + 1)
+  const students = useMemo(() => {
+    const maxNo = Math.max(52, ...STUDENTS.map(s => s.student_no), ...localFundsData.map(f => f.student_number || 0))
+    return Array.from({ length: maxNo }, (_, i) => i + 1)
+  }, [localFundsData])
 
   // Robust, timezone-safe generation of available weeks
   const weeksList = useMemo(() => {
@@ -668,7 +671,7 @@ export default function FundsClient({
             <p className="text-base sm:text-lg font-bold text-emerald-700 mt-0.5">
               {weekSumPaid.toLocaleString()} ฿
             </p>
-            <span className="text-[11px] text-slate-400">({paidCount} จาก 52 คน)</span>
+            <span className="text-[11px] text-slate-400">({paidCount} จาก {students.length} คน)</span>
           </div>
 
           <div className="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-100">
@@ -742,7 +745,7 @@ export default function FundsClient({
             href={`/api/export-funds-csv?week=${weekStart}`}
             download
             className="px-3.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-semibold rounded-xl text-xs flex items-center gap-1.5 transition-colors"
-            title="ดาวน์โหลดสรุปบัญชี CSV / Excel (ยอดยกมา + 52 คน + รายจ่าย)"
+            title="ดาวน์โหลดสรุปบัญชี CSV / Excel (ยอดยกมา + นักเรียน + รายจ่าย)"
           >
             <FileSpreadsheet size={15} />
             Export CSV
@@ -764,7 +767,7 @@ export default function FundsClient({
         <div className="w-full bg-slate-100 rounded-full h-3 mb-8 overflow-hidden flex">
           <motion.div 
             initial={{ width: 0 }}
-            animate={{ width: `${(paidCount / 52) * 100}%` }}
+            animate={{ width: `${(paidCount / students.length) * 100}%` }}
             className="bg-emerald-500 h-full"
           />
         </div>

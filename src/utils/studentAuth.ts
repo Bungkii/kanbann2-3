@@ -439,24 +439,190 @@ export async function verifyAndResetWithSecurityAnswer(
 }
 
 /**
- * Updates a student's role (Admin / SuperAdmin action).
- * Protected: SuperAdmin (30260) cannot be demoted by standard Admins.
+ * Creates a new student account (Ranked users action).
+ * Non-Student roles (Leader, Finance, Admin, SuperAdmin) can add students.
+ * Only SuperAdmin can assign Admin or SuperAdmin role.
+ */
+export type CreateStudentInput = {
+  student_id: string;
+  student_no: number;
+  prefix: string;
+  first_name: string;
+  last_name: string;
+  nickname: string;
+  role?: StudentRole;
+};
+
+export async function createStudentAccount(
+  input: CreateStudentInput,
+  operatorRole?: StudentRole
+): Promise<{ success: boolean; account?: SafeStudentAccount; error?: string }> {
+  if (!operatorRole || operatorRole === 'Student') {
+    return { success: false, error: 'เฉพาะผู้มียศ (Leader, Finance, Admin, SuperAdmin) เท่านั้นที่สามารถเพิ่มนักเรียนได้' };
+  }
+
+  const studentId = String(input.student_id).trim();
+  const studentNo = Number(input.student_no);
+  const prefix = input.prefix?.trim() || 'ด.ช.';
+  const firstName = input.first_name?.trim() || '';
+  const lastName = input.last_name?.trim() || '';
+  const nickname = input.nickname?.trim() || '';
+
+  if (!studentId || !firstName || !lastName || isNaN(studentNo) || studentNo <= 0) {
+    return { success: false, error: 'กรุณากรอกข้อมูลนักเรียนให้ครบถ้วนและถูกต้อง' };
+  }
+
+  const accounts = await getStudentAccounts();
+  if (accounts.some((a) => a.student_id === studentId)) {
+    return { success: false, error: `รหัสประจำตัว ${studentId} มีอยู่ในระบบแล้ว` };
+  }
+
+  let assignedRole: StudentRole = input.role || 'Student';
+  // If operator is NOT SuperAdmin, they cannot assign SuperAdmin or Admin
+  if (operatorRole !== 'SuperAdmin') {
+    if (assignedRole === 'SuperAdmin' || assignedRole === 'Admin') {
+      assignedRole = 'Student';
+    }
+  }
+
+  const fullName = `${prefix}${firstName} ${lastName}`;
+  const defaultPassword = `bBb@${studentId}`;
+
+  const newAccount: StudentAccount = {
+    student_id: studentId,
+    student_no: studentNo,
+    prefix,
+    first_name: firstName,
+    last_name: lastName,
+    nickname,
+    full_name: fullName,
+    role: assignedRole,
+    password: hashPassword(defaultPassword),
+    is_first_login: true,
+    updated_at: new Date().toISOString(),
+  };
+
+  accounts.push(newAccount);
+  accounts.sort((a, b) => a.student_no - b.student_no);
+
+  await saveStudentAccounts(accounts);
+  return { success: true, account: toSafeStudentAccount(newAccount) };
+}
+
+/**
+ * Deletes a student account (SuperAdmin ONLY action).
+ */
+export async function deleteStudentAccount(
+  studentId: string,
+  operatorRole?: StudentRole
+): Promise<{ success: boolean; error?: string }> {
+  if (operatorRole !== 'SuperAdmin') {
+    return { success: false, error: 'เฉพาะ SuperAdmin (โคตรพ่อโคตรแม่ผู้ดูแลระบบ) เท่านั้นที่สามารถลบนักเรียนได้' };
+  }
+
+  const cleanId = studentId.trim();
+  if (cleanId === '30260') {
+    return { success: false, error: 'ไม่อนุญาตให้ลบบัญชี SuperAdmin หลักของระบบ' };
+  }
+
+  let accounts = await getStudentAccounts();
+  const index = accounts.findIndex((a) => a.student_id === cleanId);
+  if (index === -1) {
+    return { success: false, error: 'ไม่พบบัญชีนักเรียนที่ต้องการลบ' };
+  }
+
+  accounts.splice(index, 1);
+  await saveStudentAccounts(accounts);
+
+  // Also delete from Supabase table directly
+  const supabase = getDirectSupabaseClient();
+  if (supabase) {
+    try {
+      await supabase.from('student_accounts').delete().eq('student_id', cleanId);
+    } catch (e) {
+      console.warn('[studentAuth] Supabase delete failed:', e);
+    }
+  }
+
+  return { success: true };
+}
+
+/**
+ * Updates a student's basic information (SuperAdmin action).
+ */
+export async function updateStudentInfo(
+  studentId: string,
+  data: Partial<CreateStudentInput>,
+  operatorRole?: StudentRole
+): Promise<{ success: boolean; account?: SafeStudentAccount; error?: string }> {
+  if (operatorRole !== 'SuperAdmin') {
+    return { success: false, error: 'เฉพาะ SuperAdmin เท่านั้นที่สามารถแก้ไขข้อมูลนักเรียนได้' };
+  }
+
+  const cleanId = studentId.trim();
+  const accounts = await getStudentAccounts();
+  const index = accounts.findIndex((a) => a.student_id === cleanId);
+  if (index === -1) {
+    return { success: false, error: 'ไม่พบบัญชีนักเรียน' };
+  }
+
+  const acc = accounts[index];
+  if (data.student_no !== undefined) acc.student_no = Number(data.student_no);
+  if (data.prefix) acc.prefix = data.prefix.trim();
+  if (data.first_name) acc.first_name = data.first_name.trim();
+  if (data.last_name) acc.last_name = data.last_name.trim();
+  if (data.nickname !== undefined) acc.nickname = data.nickname.trim();
+  acc.full_name = `${acc.prefix}${acc.first_name} ${acc.last_name}`;
+  acc.updated_at = new Date().toISOString();
+
+  if (data.role && operatorRole === 'SuperAdmin') {
+    acc.role = data.role;
+  }
+
+  accounts.sort((a, b) => a.student_no - b.student_no);
+  await saveStudentAccounts(accounts);
+
+  return { success: true, account: toSafeStudentAccount(acc) };
+}
+
+/**
+ * Updates a student's role (Ranked users action).
+ * Protected: SuperAdmin (30260) cannot be demoted by standard users.
+ * Non-SuperAdmin cannot promote anyone to Admin or SuperAdmin.
  */
 export async function updateStudentRole(
   studentId: string,
   newRole: StudentRole,
   operatorRole?: StudentRole
 ): Promise<{ success: boolean; error?: string }> {
-  if (studentId.trim() === '30260' && newRole !== 'SuperAdmin') {
+  const cleanId = studentId.trim();
+
+  if (cleanId === '30260' && newRole !== 'SuperAdmin') {
     if (operatorRole !== 'SuperAdmin') {
       return { success: false, error: 'ไม่อนุญาตให้ลดระดับสิทธิ์ของ SuperAdmin (โคตรพ่อโคตรแม่ผู้ดูแลระบบ)' };
     }
   }
 
+  if (!operatorRole || operatorRole === 'Student') {
+    return { success: false, error: 'คุณไม่มีสิทธิ์ในการเปลี่ยนบทบาทนักเรียน (ต้องเป็นผู้มียศเท่านั้น)' };
+  }
+
+  if (operatorRole !== 'SuperAdmin') {
+    if (newRole === 'SuperAdmin' || newRole === 'Admin') {
+      return { success: false, error: 'เฉพาะ SuperAdmin เท่านั้นที่สามารถแต่งตั้ง Admin หรือ SuperAdmin ได้' };
+    }
+  }
+
   const accounts = await getStudentAccounts();
-  const index = accounts.findIndex((a) => a.student_id === studentId.trim());
+  const index = accounts.findIndex((a) => a.student_id === cleanId);
   if (index === -1) {
     return { success: false, error: 'ไม่พบบัญชีนักเรียน' };
+  }
+
+  if (operatorRole !== 'SuperAdmin') {
+    if (accounts[index].role === 'SuperAdmin' || accounts[index].role === 'Admin') {
+      return { success: false, error: 'เฉพาะ SuperAdmin เท่านั้นที่สามารถเปลี่ยนสิทธิ์ของ Admin หรือ SuperAdmin ได้' };
+    }
   }
 
   accounts[index].role = newRole;
@@ -467,7 +633,7 @@ export async function updateStudentRole(
 }
 
 /**
- * Resets a student's password back to default bBb@<student_id> (Admin action).
+ * Resets a student's password back to default bBb@<student_id> (Admin/Ranked action).
  * Passwords are saved hashed. Does not reveal passwords in public logs.
  */
 export async function resetStudentPassword(
@@ -476,6 +642,10 @@ export async function resetStudentPassword(
 ): Promise<{ success: boolean; defaultPassword?: string; error?: string }> {
   if (studentId.trim() === '30260' && operatorRole !== 'SuperAdmin') {
     return { success: false, error: 'ไม่อนุญาตให้รีเซ็ตรหัสผ่านของ SuperAdmin' };
+  }
+
+  if (!operatorRole || operatorRole === 'Student') {
+    return { success: false, error: 'คุณไม่มีสิทธิ์ในการรีเซ็ตรหัสผ่าน' };
   }
 
   const accounts = await getStudentAccounts();
