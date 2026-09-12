@@ -70,6 +70,11 @@ export async function getExpenses() {
   return data || []
 }
 
+function isValidUUID(id?: string | null): boolean {
+  if (!id) return false
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
+}
+
 export async function addExpense(amount: number, description: string, receiptUrl: string | null) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -86,7 +91,7 @@ export async function addExpense(amount: number, description: string, receiptUrl
       amount,
       description,
       receipt_url: receiptUrl,
-      created_by: user.id
+      created_by: isValidUUID(user.id) ? user.id : null
     })
 
   if (error) return { error: error.message }
@@ -121,6 +126,19 @@ export async function getTotalFunds() {
   return totalFunds
 }
 
+function normalizeValue(raw: any): any {
+  if (raw === null || raw === undefined) return null
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw)
+      return parsed
+    } catch {
+      return raw
+    }
+  }
+  return raw
+}
+
 export async function setFundsBalanceAdjustment(amount: number) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -133,7 +151,11 @@ export async function setFundsBalanceAdjustment(amount: number) {
   
   const { error } = await adminSupabase
     .from('system_settings')
-    .upsert({ key: 'funds_balance_adjustment', value: amount.toString() })
+    .upsert({ 
+      key: 'funds_balance_adjustment', 
+      value: amount,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'key' })
     
   if (error) return { error: error.message }
   
@@ -153,9 +175,10 @@ export async function getFundsSettings() {
   let finalExamDate = null
   
   data?.forEach(item => {
-    if (item.key === 'funds_start_date') startDate = item.value
-    if (item.key === 'funds_end_date') endDate = item.value
-    if (item.key === 'final_exam_date') finalExamDate = item.value
+    const val = normalizeValue(item.value)
+    if (item.key === 'funds_start_date') startDate = typeof val === 'string' ? val : (val ? String(val) : null)
+    if (item.key === 'funds_end_date') endDate = typeof val === 'string' ? val : (val ? String(val) : null)
+    if (item.key === 'final_exam_date') finalExamDate = typeof val === 'string' ? val : (val ? String(val) : null)
   })
   
   // Also query distinct recorded weeks from class_funds to guarantee all past recorded weeks remain selectable
@@ -178,15 +201,16 @@ export async function setFundsSettings(startDate: string, endDate: string, final
   const { createClient: createSupabaseClient } = await import('@supabase/supabase-js')
   const adminSupabase = createSupabaseClient(supabaseUrl, supabaseKey)
   
+  const now = new Date().toISOString()
   const updates = [
-    { key: 'funds_start_date', value: startDate },
-    { key: 'funds_end_date', value: endDate },
-    { key: 'final_exam_date', value: finalExamDate }
+    { key: 'funds_start_date', value: startDate, updated_at: now },
+    { key: 'funds_end_date', value: endDate, updated_at: now },
+    { key: 'final_exam_date', value: finalExamDate, updated_at: now }
   ]
   
   const { error } = await adminSupabase
     .from('system_settings')
-    .upsert(updates)
+    .upsert(updates, { onConflict: 'key' })
     
   if (error) return { error: error.message }
   
@@ -216,7 +240,7 @@ export async function toggleFundStatus(weekStartDate: string, studentNumber: num
       is_paid: isPaid,
       amount: amount,
       updated_at: new Date().toISOString(),
-      updated_by: user?.id
+      updated_by: isValidUUID(user?.id) ? user.id : null
     }, {
       onConflict: 'week_start_date,student_number'
     })
