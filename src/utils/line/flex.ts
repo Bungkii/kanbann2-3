@@ -936,10 +936,10 @@ export function createFundsFlexMessage(paidCount: number, unpaidStudents: number
   const title = isHardcore ? '🚨 ตาลทวงยับ! ใครยังไม่จ่ายเงินห้อง' : '💰 รายงานสถานะเงินห้อง ม.2/3';
   const subtitleLabel = isHardcore ? '🔥 รายชื่อคนยังไม่จ่าย (รีบโอนด่วน!):' : '📋 รายชื่อนักเรียนที่ยังไม่จ่าย:';
   
-  // Hero Banner image (Standard Aspect Ratio 20:13)
+  // Hero Banner image (Official Tarn Thuang Yab banner)
   const heroImageUrl = isHardcore
-    ? 'https://i.ibb.co/68vMmqM/tarn-hardcore-banner.jpg'
-    : 'https://i.ibb.co/G3Vq7F1/primjaa-funds-banner.jpg';
+    ? 'https://i.ibb.co/NgqMpjdP/66dcfc9536a1.png'
+    : 'https://i.ibb.co/NgqMpjdP/66dcfc9536a1.png';
 
   return {
     type: 'flex',
@@ -951,7 +951,7 @@ export function createFundsFlexMessage(paidCount: number, unpaidStudents: number
         type: 'image',
         url: heroImageUrl,
         size: 'full',
-        aspectRatio: '20:13',
+        aspectRatio: '3:1',
         aspectMode: 'cover',
         action: {
           type: 'uri',
