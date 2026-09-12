@@ -91,7 +91,7 @@ export default async function KanbanPage() {
       </header>
 
       <PageTransition className="flex-1 p-8 overflow-x-auto">
-        <KanbanBoard initialTasks={tasks || []} isAuthenticated={isAuthenticated} canAddTask={canAddTask} />
+        <KanbanBoard initialTasks={tasks || []} isAuthenticated={isAuthenticated} canAddTask={canAddTask} currentStudent={studentSession} />
       </PageTransition>
     </div>
   );

@@ -47,8 +47,9 @@ This repository is **Kanbann (ระบบจัดการห้องเร�
   - `/settings/schedule`: Edit timetable entries (subject, teacher, room, periods).
   - `/settings/cleaning`: Manage weekday cleaning duty rosters.
   - `/settings/uniform`: Manage daily student uniform requirements.
-- `/parent` (`layout.tsx`, `page.tsx`, `/assignments`, `/exams`): **Parent Portal (ระบบผู้ปกครอง)** — Read-only portal with Slate/Blue theme tailored for parents to track urgent/overdue homework, live final exam countdown, subject exam scopes (MCQ/essay counts), and study summaries with PDF/image lightboxes. Mobile-first design with bottom navigation.
-- `/login`, `/signup`, `/auth/signout`: Supabase user authentication.
+- `/parent` (`layout.tsx`, `page.tsx`, `/assignments`, `/exams`, `/funds`, `/manual`): **Parent Portal (ระบบผู้ปกครอง)** — Portal with White & Pink aesthetic tailored for parents to track urgent/overdue homework, live real-time task completion when their child marks tasks as done (`student_task_completions`), final exam countdown, subject exam scopes, study summaries, class funds, and the dedicated White & Pink Parent Manual (`/parent/manual`).
+- `/login`: Revamped White & Pink login system using 5-digit student ID only (legacy email removed completely), Live Student Profile Detection & rank/role badge preview, password visibility toggle, Caps Lock indicator, and quick 1-click access for parents.
+- `/api/student-task-completion`: API for fetching and updating per-student homework completion statuses with live sync to parents.
 
 ### API Routes (`src/app/api/`)
 - `/api/webhook/line/route.ts`: Core LINE Messaging API webhook handling all incoming user & group text messages.

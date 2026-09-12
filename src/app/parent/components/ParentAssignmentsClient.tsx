@@ -1,13 +1,26 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { format, isBefore, isToday, isTomorrow, differenceInDays, startOfDay } from 'date-fns';
-import { Users, Trophy } from 'lucide-react';
+import {
+  Users,
+  Trophy,
+  CheckCircle2,
+  Clock,
+  Sparkles,
+  RefreshCw,
+  Search,
+  BookOpen,
+  Filter,
+  Check,
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 
 import TaskFilterWidget, { TaskFilterState } from '@/components/TaskFilterWidget';
 import TaskImageCarousel from '@/components/TaskImageCarousel';
+import { useParentStudent } from './ParentStudentContext';
+import { Student } from '@/data/students';
 
 export type Task = {
   id: string;
@@ -45,32 +58,110 @@ const COLUMNS = [
 ];
 
 export default function ParentAssignmentsClient({ initialTasks }: { initialTasks: Task[] }) {
+  const { selectedStudent, setIsSearchOpen } = useParentStudent();
   const [tasks] = useState<Task[]>(initialTasks);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [viewMode, setViewMode] = useState<'board' | 'list' | 'category'>('board');
   const [filterSubject, setFilterSubject] = useState<string>('all');
+  const [childFilter, setChildFilter] = useState<'all' | 'pending' | 'done'>('all');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [studentCompletions, setStudentCompletions] = useState<Record<string, 'todo' | 'in_progress' | 'done'>>({});
+
   const [filterState, setFilterState] = useState<TaskFilterState>({
     period: 'year',
     date: new Date().toISOString().split('T')[0],
     sort: 'count',
   });
 
-  const activeTasks = useMemo(() => tasks.filter(t => t.status !== 'deleted'), [tasks]);
+  // Fetch completions for the selected child
+  const fetchCompletions = useCallback(async (silent = false) => {
+    if (!selectedStudent?.student_id) return;
+    try {
+      if (!silent) setIsRefreshing(true);
+      const res = await fetch(`/api/student-task-completion?studentId=${selectedStudent.student_id}`);
+      const data = await res.json();
+      if (data.success && data.completions) {
+        setStudentCompletions((prev) => {
+          if (silent) {
+            // Check if any new task was completed in real time
+            Object.keys(data.completions).forEach((tId) => {
+              if (data.completions[tId] === 'done' && prev[tId] !== 'done') {
+                const matchedTask = tasks.find((t) => t.id === tId);
+                const taskName = matchedTask ? matchedTask.subject : 'การบ้าน';
+                toast.success(
+                  `🌸 น้อง${selectedStudent.nickname || selectedStudent.first_name} เพิ่งทำงานวิชา "${taskName}" เสร็จแล้ว! 🎉`,
+                  {
+                    duration: 6000,
+                    style: {
+                      borderRadius: '16px',
+                      background: '#FFF1F2',
+                      color: '#9F1239',
+                      border: '1px solid #FECDD3',
+                      fontWeight: 'bold',
+                    },
+                  }
+                );
+              }
+            });
+          }
+          return data.completions;
+        });
+      }
+    } catch (e) {
+      console.warn('Failed to fetch student completions:', e);
+    } finally {
+      if (!silent) setIsRefreshing(false);
+    }
+  }, [selectedStudent?.student_id, tasks]);
+
+  // Initial load & Polling for live updates
+  useEffect(() => {
+    if (selectedStudent?.student_id) {
+      fetchCompletions(false);
+      const interval = setInterval(() => {
+        fetchCompletions(true);
+      }, 4000);
+      return () => clearInterval(interval);
+    } else {
+      setStudentCompletions({});
+    }
+  }, [selectedStudent?.student_id, fetchCompletions]);
+
+  // Apply child completion status on top of base classroom tasks
+  const activeTasks = useMemo(() => {
+    return tasks
+      .filter((t) => t.status !== 'deleted')
+      .map((t) => {
+        if (!selectedStudent) return t;
+        const childStatus = studentCompletions[t.id];
+        if (childStatus) {
+          return { ...t, status: childStatus };
+        }
+        return t;
+      });
+  }, [tasks, selectedStudent, studentCompletions]);
 
   const uniqueSubjects = useMemo(() => {
-    const subjects = [...new Set(activeTasks.map(t => t.subject))];
+    const subjects = [...new Set(activeTasks.map((t) => t.subject))];
     return subjects.sort();
   }, [activeTasks]);
 
-  // Filter tasks based on TaskFilterWidget (Period & Date & Sorting)
+  // Filter tasks based on TaskFilterWidget & Child Filter
   const filteredActiveTasks = useMemo(() => {
     let result = [...activeTasks];
 
+    // Child status filter (all | pending | done)
+    if (selectedStudent && childFilter === 'pending') {
+      result = result.filter((t) => t.status !== 'done');
+    } else if (selectedStudent && childFilter === 'done') {
+      result = result.filter((t) => t.status === 'done');
+    }
+
     if (filterState.period === 'daily') {
-      result = result.filter(t => t.due_date && t.due_date.startsWith(filterState.date));
+      result = result.filter((t) => t.due_date && t.due_date.startsWith(filterState.date));
     } else if (filterState.period === 'monthly') {
       const targetMonth = filterState.date.substring(0, 7);
-      result = result.filter(t => t.due_date && t.due_date.startsWith(targetMonth));
+      result = result.filter((t) => t.due_date && t.due_date.startsWith(targetMonth));
     }
 
     if (filterState.sort === 'name') {
@@ -87,22 +178,23 @@ export default function ParentAssignmentsClient({ initialTasks }: { initialTasks
     }
 
     return result;
-  }, [activeTasks, filterState]);
+  }, [activeTasks, filterState, childFilter, selectedStudent]);
 
   const categoryGroups = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const filtered = filterSubject === 'all'
-      ? filteredActiveTasks
-      : filteredActiveTasks.filter(t => t.subject === filterSubject);
+    const filtered =
+      filterSubject === 'all'
+        ? filteredActiveTasks
+        : filteredActiveTasks.filter((t) => t.subject === filterSubject);
 
     const overdue: Task[] = [];
     const urgent: Task[] = [];
     const far: Task[] = [];
     const done: Task[] = [];
 
-    filtered.forEach(task => {
+    filtered.forEach((task) => {
       if (task.status === 'done') {
         done.push(task);
         return;
@@ -122,9 +214,9 @@ export default function ParentAssignmentsClient({ initialTasks }: { initialTasks
   }, [filteredActiveTasks, filterSubject]);
 
   const tasksByColumn = useMemo(() => {
-    return COLUMNS.map(col => ({
+    return COLUMNS.map((col) => ({
       ...col,
-      tasks: filteredActiveTasks.filter(task => task.status === col.id),
+      tasks: filteredActiveTasks.filter((task) => task.status === col.id),
     }));
   }, [filteredActiveTasks]);
 
@@ -132,9 +224,11 @@ export default function ParentAssignmentsClient({ initialTasks }: { initialTasks
     return filteredActiveTasks;
   }, [filteredActiveTasks]);
 
+  // Overall & Child Statistics
   const totalTasks = activeTasks.length;
-  const doneTasks = activeTasks.filter(t => t.status === 'done').length;
-  const overdueTasks = activeTasks.filter(t => {
+  const doneTasks = activeTasks.filter((t) => t.status === 'done').length;
+  const pendingTasks = totalTasks - doneTasks;
+  const overdueTasks = activeTasks.filter((t) => {
     if (t.status === 'done') return false;
     const due = new Date(t.due_date);
     due.setHours(0, 0, 0, 0);
@@ -146,25 +240,152 @@ export default function ParentAssignmentsClient({ initialTasks }: { initialTasks
 
   return (
     <div className="flex flex-col h-full">
+      {/* 🌸 Child Status Banner (White & Pink Aesthetic) */}
+      {selectedStudent ? (
+        <div className="mb-6 rounded-3xl p-5 sm:p-6 bg-gradient-to-r from-rose-50/90 via-pink-50/60 to-white border border-pink-200/80 shadow-[0_4px_24px_rgba(244,63,94,0.06)] relative overflow-hidden">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-white border border-pink-200 shadow-xs p-1.5 flex items-center justify-center shrink-0">
+                <img
+                  src={selectedStudent.prefix === 'ด.ญ.' ? '/asset/student-girl.webp' : '/asset/student-boy.webp'}
+                  alt={selectedStudent.nickname}
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-base sm:text-lg font-bold text-slate-800">
+                    น้อง{selectedStudent.first_name} {selectedStudent.last_name} ({selectedStudent.nickname})
+                  </h2>
+                  <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-white text-rose-600 border border-pink-200 shadow-2xs">
+                    เลขที่ {selectedStudent.student_no}
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100/80 text-emerald-800">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    ซิงค์สดอัตโนมัติ
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  ทำเสร็จแล้ว <strong className="text-emerald-600">{doneTasks}</strong> จากทั้งหมด {totalTasks} งาน ({progress}%)
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+              <button
+                onClick={() => fetchCompletions(false)}
+                disabled={isRefreshing}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white hover:bg-rose-50/60 text-rose-700 text-xs font-semibold border border-pink-200 shadow-2xs transition-all cursor-pointer disabled:opacity-60"
+                title="รีเฟรชข้อมูลสถานะงานล่าสุด"
+              >
+                <RefreshCw size={13} className={isRefreshing ? 'animate-spin' : ''} />
+                <span>{isRefreshing ? 'กำลังอัปเดต...' : 'รีเฟรช'}</span>
+              </button>
+
+              <button
+                onClick={() => setIsSearchOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-500 hover:bg-rose-600 text-white text-xs font-semibold shadow-2xs transition-all cursor-pointer"
+              >
+                <span>เปลี่ยนนักเรียน</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Child Progress Bar */}
+          <div className="mt-4 pt-3 border-t border-pink-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="w-full sm:flex-1">
+              <div className="w-full bg-pink-100/60 rounded-full h-2.5 overflow-hidden">
+                <div
+                  className="bg-gradient-to-r from-rose-500 to-pink-500 h-2.5 rounded-full transition-all duration-700 ease-out"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Quick Status Filter Pills */}
+            <div className="flex items-center gap-1.5 shrink-0 text-xs">
+              <button
+                onClick={() => setChildFilter('all')}
+                className={`px-2.5 py-1 rounded-full font-medium transition-all ${
+                  childFilter === 'all'
+                    ? 'bg-rose-500 text-white shadow-2xs'
+                    : 'bg-white text-slate-600 border border-pink-100 hover:bg-pink-50'
+                }`}
+              >
+                ทั้งหมด ({totalTasks})
+              </button>
+              <button
+                onClick={() => setChildFilter('pending')}
+                className={`px-2.5 py-1 rounded-full font-medium transition-all ${
+                  childFilter === 'pending'
+                    ? 'bg-amber-500 text-white shadow-2xs'
+                    : 'bg-white text-slate-600 border border-pink-100 hover:bg-pink-50'
+                }`}
+              >
+                ยังไม่ทำ ({pendingTasks})
+              </button>
+              <button
+                onClick={() => setChildFilter('done')}
+                className={`px-2.5 py-1 rounded-full font-medium transition-all ${
+                  childFilter === 'done'
+                    ? 'bg-emerald-600 text-white shadow-2xs'
+                    : 'bg-white text-slate-600 border border-pink-100 hover:bg-pink-50'
+                }`}
+              >
+                เสร็จแล้ว ({doneTasks})
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* Prompt when no student is selected */
+        <div className="mb-6 rounded-3xl p-5 bg-gradient-to-r from-rose-50 via-pink-50 to-white border border-pink-200/70 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3 text-center sm:text-left">
+            <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+              <Sparkles size={20} />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-800">
+                ต้องการดูว่าลูกของคุณทำงานชิ้นไหนเสร็จแล้วบ้าง?
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                แตะเพื่อเลือกลูกหลานของคุณ ระบบจะแสดงสถานะการส่งงานของลูกแบบสดๆ ทันที
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setIsSearchOpen(true)}
+            className="px-4 py-2 rounded-full bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold shadow-xs transition-all shrink-0 cursor-pointer"
+          >
+            🔍 เลือกลูกของคุณ
+          </button>
+        </div>
+      )}
+
       {/* Top Header & View Switcher */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-4 mb-6">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">กระดานการบ้านและชิ้นงาน</h1>
-            <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200/60 shadow-2xs">ม.2/3</span>
+            <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 shadow-2xs">
+              ม.2/3
+            </span>
           </div>
-          <p className="text-sm text-slate-500">ติดตามสถานะงาน กำหนดส่ง และการบ้านทั้งหมดของห้องเรียน</p>
+          <p className="text-sm text-slate-500">
+            {selectedStudent
+              ? `กำลังติดตามการบ้านของน้อง${selectedStudent.nickname} และความคืบหน้ารวม`
+              : 'ติดตามสถานะงาน กำหนดส่ง และการบ้านทั้งหมดของห้องเรียน'}
+          </p>
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto justify-end">
-          {/* Filter Widget (ตรงตามรูปภาพตัวอย่าง) */}
           <TaskFilterWidget filterState={filterState} onChange={setFilterState} />
 
           <div className="bg-slate-200/70 p-1 rounded-xl flex gap-0.5 border border-slate-200/60 shrink-0 self-end sm:self-auto">
             <button
               onClick={() => setViewMode('board')}
               className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                viewMode === 'board' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'
+                viewMode === 'board' ? 'bg-white shadow-sm text-rose-600' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
               กระดาน
@@ -172,7 +393,7 @@ export default function ParentAssignmentsClient({ initialTasks }: { initialTasks
             <button
               onClick={() => setViewMode('list')}
               className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                viewMode === 'list' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'
+                viewMode === 'list' ? 'bg-white shadow-sm text-rose-600' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
               ติ๊ก
@@ -180,7 +401,7 @@ export default function ParentAssignmentsClient({ initialTasks }: { initialTasks
             <button
               onClick={() => setViewMode('category')}
               className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                viewMode === 'category' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'
+                viewMode === 'category' ? 'bg-white shadow-sm text-rose-600' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
               หมวดหมู่
@@ -189,7 +410,7 @@ export default function ParentAssignmentsClient({ initialTasks }: { initialTasks
         </div>
       </div>
 
-      {/* Dashboard Overview Cards (Exact student code & styling) */}
+      {/* Dashboard Overview Cards */}
       <div className="mb-8 grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
           <span className="text-slate-500 font-medium mb-2">การบ้านทั้งหมด</span>
@@ -206,24 +427,34 @@ export default function ParentAssignmentsClient({ initialTasks }: { initialTasks
           </div>
         </div>
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
-          <span className="text-emerald-500 font-medium mb-2">เคลียร์แล้ว</span>
+          <span className="text-emerald-600 font-medium mb-2">
+            {selectedStudent ? `น้อง${selectedStudent.nickname} เคลียร์แล้ว` : 'เคลียร์แล้ว'}
+          </span>
           <div className="text-4xl font-extrabold text-emerald-600">{doneTasks}</div>
         </div>
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-center gap-2">
           <div className="flex justify-between items-end mb-1">
-            <span className="text-indigo-600 font-bold">ความคืบหน้า</span>
-            <span className="text-2xl font-bold text-indigo-700">{progress}%</span>
+            <span className="text-rose-600 font-bold">
+              {selectedStudent ? `ความคืบหน้าน้อง${selectedStudent.nickname}` : 'ความคืบหน้า'}
+            </span>
+            <span className="text-2xl font-bold text-rose-600">{progress}%</span>
           </div>
           <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden shadow-inner">
-            <div className="bg-indigo-500 h-3 rounded-full transition-all duration-1000 ease-out relative overflow-hidden" style={{ width: `${progress}%` }}>
-              <div className="absolute inset-0 bg-white/20 w-full h-full" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)', animation: 'shimmer 2s infinite' }}></div>
+            <div
+              className="bg-gradient-to-r from-rose-500 to-pink-500 h-3 rounded-full transition-all duration-1000 ease-out relative overflow-hidden"
+              style={{ width: `${progress}%` }}
+            >
+              <div
+                className="absolute inset-0 bg-white/20 w-full h-full"
+                style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)', animation: 'shimmer 2s infinite' }}
+              />
             </div>
           </div>
         </div>
       </div>
 
       {/* ───────────────────────────────────────────────────────────── */}
-      {/* 1. KANBAN BOARD VIEW (Identical to Student Kanban)           */}
+      {/* 1. KANBAN BOARD VIEW                                          */}
       {/* ───────────────────────────────────────────────────────────── */}
       {viewMode === 'board' ? (
         <div className="overflow-x-auto w-full pb-6 -mx-4 px-4 sm:mx-0 sm:px-0">
@@ -251,6 +482,7 @@ export default function ParentAssignmentsClient({ initialTasks }: { initialTasks
                         key={task.id}
                         task={task}
                         onClick={setSelectedTask}
+                        selectedStudent={selectedStudent}
                       />
                     ))
                   )}
@@ -261,25 +493,24 @@ export default function ParentAssignmentsClient({ initialTasks }: { initialTasks
         </div>
       ) : viewMode === 'category' ? (
         /* ───────────────────────────────────────────────────────────── */
-        /* 2. CATEGORY VIEW (Identical to Student Category)              */
+        /* 2. CATEGORY VIEW                                              */
         /* ───────────────────────────────────────────────────────────── */
         <div className="space-y-4">
-          {/* Subject filter */}
           <div className="flex flex-wrap gap-2 pb-2">
             <button
               onClick={() => setFilterSubject('all')}
               className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-colors ${
-                filterSubject === 'all' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                filterSubject === 'all' ? 'bg-rose-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
               ทุกวิชา
             </button>
-            {uniqueSubjects.map(subject => (
+            {uniqueSubjects.map((subject) => (
               <button
                 key={subject}
                 onClick={() => setFilterSubject(subject)}
                 className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-colors ${
-                  filterSubject === subject ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  filterSubject === subject ? 'bg-rose-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
                 {subject}
@@ -287,7 +518,6 @@ export default function ParentAssignmentsClient({ initialTasks }: { initialTasks
             ))}
           </div>
 
-          {/* Overdue section */}
           {categoryGroups.overdue.length > 0 && (
             <CategorySection
               title="🚨 เลยกำหนดแล้ว"
@@ -297,7 +527,6 @@ export default function ParentAssignmentsClient({ initialTasks }: { initialTasks
             />
           )}
 
-          {/* Urgent section */}
           <CategorySection
             title="⚡ ส่งเร็วๆ นี้ (7 วันหน้า)"
             tasks={categoryGroups.urgent}
@@ -306,7 +535,6 @@ export default function ParentAssignmentsClient({ initialTasks }: { initialTasks
             emptyText="ไม่มีงานที่ต้องส่งใน 7 วันนี้ 🎉"
           />
 
-          {/* Far section */}
           <CategorySection
             title="📅 อีกยาวไกล (มากกว่า 7 วัน)"
             tasks={categoryGroups.far}
@@ -315,7 +543,6 @@ export default function ParentAssignmentsClient({ initialTasks }: { initialTasks
             emptyText="ไม่มีงานระยะยาว"
           />
 
-          {/* Done section */}
           {categoryGroups.done.length > 0 && (
             <CategorySection
               title="✅ เสร็จแล้ว"
@@ -327,59 +554,67 @@ export default function ParentAssignmentsClient({ initialTasks }: { initialTasks
         </div>
       ) : (
         /* ───────────────────────────────────────────────────────────── */
-        /* 3. LIST VIEW (Identical to Student List View)                 */
+        /* 3. LIST VIEW                                                  */
         /* ───────────────────────────────────────────────────────────── */
         <div className="bg-white rounded-3xl border border-slate-200 p-4 sm:p-6 shadow-sm">
           <div className="space-y-3">
-            {sortedTasks.map(task => (
-              <div
-                key={task.id}
-                onClick={() => setSelectedTask(task)}
-                className={`flex items-start gap-4 p-4 rounded-2xl border transition-all cursor-pointer ${
-                  task.status === 'done' ? 'bg-slate-50 border-slate-200 opacity-60' : 'bg-white border-slate-200 shadow-sm hover:border-indigo-300'
-                }`}
-              >
-                <div className="pt-1">
-                  <div
-                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-                      task.status === 'done' ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300'
-                    }`}
-                  >
-                    {task.status === 'done' && (
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
-                    )}
+            {sortedTasks.map((task) => {
+              const isDone = task.status === 'done';
+              return (
+                <div
+                  key={task.id}
+                  onClick={() => setSelectedTask(task)}
+                  className={`flex items-start gap-4 p-4 rounded-2xl border transition-all cursor-pointer ${
+                    isDone ? 'bg-emerald-50/20 border-emerald-200/60' : 'bg-white border-slate-200 shadow-sm hover:border-pink-300'
+                  }`}
+                >
+                  <div className="pt-1">
+                    <div
+                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+                        isDone ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300'
+                      }`}
+                    >
+                      {isDone && (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className={`font-bold text-lg mb-1 truncate ${task.status === 'done' ? 'text-slate-500 line-through' : 'text-slate-800'}`}>
-                    {task.subject}
-                  </h4>
-                  <p className="text-sm text-slate-500 line-clamp-2 mb-2">{task.details}</p>
-                  <div className="flex flex-wrap items-center gap-2 text-xs">
-                    <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded-md font-medium">
-                      กำหนด: {new Date(task.due_date).toLocaleDateString('th-TH')}
-                    </span>
-                    {task.teacher_name && (
-                      <span className="text-slate-400">
-                        คนสั่ง: {task.teacher_name}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <h4 className={`font-bold text-lg mb-1 truncate ${isDone ? 'text-slate-500 line-through' : 'text-slate-800'}`}>
+                        {task.subject}
+                      </h4>
+                      {selectedStudent && (
+                        <span
+                          className={`text-xs font-semibold px-2.5 py-0.5 rounded-full shrink-0 ${
+                            isDone ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
+                          }`}
+                        >
+                          {isDone ? `น้อง${selectedStudent.nickname} ทำเสร็จแล้ว` : 'ยังไม่เสร็จ'}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-slate-500 line-clamp-2 mb-2">{task.details}</p>
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded-md font-medium">
+                        กำหนด: {new Date(task.due_date).toLocaleDateString('th-TH')}
                       </span>
-                    )}
+                      {task.teacher_name && (
+                        <span className="text-slate-400">คนสั่ง: {task.teacher_name}</span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             {sortedTasks.length === 0 && (
-              <div className="text-center py-12 text-slate-500">
-                ไม่มีงานในระบบ
-              </div>
+              <div className="text-center py-12 text-slate-500">ไม่มีงานในระบบ</div>
             )}
           </div>
         </div>
       )}
 
-      {/* ───────────────────────────────────────────────────────────── */}
-      {/* TASK MODAL (Identical to Student Kanban Task Modal)           */}
-      {/* ───────────────────────────────────────────────────────────── */}
+      {/* Task Modal */}
       <AnimatePresence>
         {selectedTask && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -400,11 +635,32 @@ export default function ParentAssignmentsClient({ initialTasks }: { initialTasks
             >
               <div className="p-6 overflow-y-auto">
                 <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-2xl font-bold text-slate-800 pr-4">
-                    {selectedTask.subject}
-                  </h3>
-                  <button 
-                    onClick={() => setSelectedTask(null)} 
+                  <div>
+                    <h3 className="text-2xl font-bold text-slate-800 pr-4">{selectedTask.subject}</h3>
+                    {selectedStudent && (
+                      <span
+                        className={`inline-flex items-center gap-1 mt-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                          selectedTask.status === 'done'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-rose-100 text-rose-800'
+                        }`}
+                      >
+                        {selectedTask.status === 'done' ? (
+                          <>
+                            <CheckCircle2 size={13} />
+                            <span>น้อง{selectedStudent.nickname} ทำงานนี้เสร็จแล้ว 🎉</span>
+                          </>
+                        ) : (
+                          <>
+                            <Clock size={13} />
+                            <span>น้อง{selectedStudent.nickname} ยังทำงานนี้ไม่เสร็จ</span>
+                          </>
+                        )}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setSelectedTask(null)}
                     className="text-slate-400 hover:bg-slate-100 p-2 rounded-full transition-colors shrink-0"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
@@ -412,9 +668,8 @@ export default function ParentAssignmentsClient({ initialTasks }: { initialTasks
                 </div>
 
                 <div className="flex flex-col gap-4">
-                  {/* Multi-Image Carousel Slider (เลื่อนๆ รูปภาพได้) */}
                   {((selectedTask.image_urls && selectedTask.image_urls.length > 0) || selectedTask.image_url) && (
-                    <div className="mb-6">
+                    <div className="mb-4">
                       <TaskImageCarousel
                         images={
                           selectedTask.image_urls && selectedTask.image_urls.length > 0
@@ -427,14 +682,20 @@ export default function ParentAssignmentsClient({ initialTasks }: { initialTasks
                   )}
 
                   <div className="bg-slate-50 p-4 rounded-xl">
-                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">รายละเอียด</span>
-                    <p className="text-slate-700 whitespace-pre-wrap leading-relaxed">{selectedTask.details}</p>
+                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">
+                      รายละเอียด
+                    </span>
+                    <p className="text-slate-700 whitespace-pre-wrap leading-relaxed">
+                      {selectedTask.details}
+                    </p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="bg-slate-50 p-3 rounded-xl">
                       <span className="text-xs font-semibold text-slate-400 block mb-1">กำหนดส่ง</span>
-                      <span className="font-bold text-slate-800 text-base">{new Date(selectedTask.due_date).toLocaleDateString('th-TH', { dateStyle: 'short' })}</span>
+                      <span className="font-bold text-slate-800 text-base">
+                        {new Date(selectedTask.due_date).toLocaleDateString('th-TH', { dateStyle: 'short' })}
+                      </span>
                     </div>
                     <div className="bg-slate-50 p-3 rounded-xl">
                       <span className="text-xs font-semibold text-slate-400 block mb-1">คนสั่ง</span>
@@ -446,14 +707,16 @@ export default function ParentAssignmentsClient({ initialTasks }: { initialTasks
                     <div className="bg-slate-50 p-3 rounded-xl">
                       <span className="text-xs font-semibold text-slate-400 block mb-1">ประเภทงาน</span>
                       <span className="font-medium text-slate-700">
-                        {selectedTask.work_type === 'group' 
+                        {selectedTask.work_type === 'group'
                           ? `งานกลุ่ม ${selectedTask.group_size ? `(${selectedTask.group_size} คน)` : ''}`
                           : 'งานเดี่ยว'}
                       </span>
                     </div>
                     <div className="bg-slate-50 p-3 rounded-xl">
                       <span className="text-xs font-semibold text-slate-400 block mb-1">คะแนนเต็ม</span>
-                      <span className="font-medium text-slate-700">{selectedTask.max_score != null ? `${selectedTask.max_score} คะแนน` : '-'}</span>
+                      <span className="font-bold text-slate-800 text-base">
+                        {selectedTask.max_score ? `${selectedTask.max_score} คะแนน` : '-'}
+                      </span>
                     </div>
                   </div>
 
@@ -466,20 +729,10 @@ export default function ParentAssignmentsClient({ initialTasks }: { initialTasks
                 </div>
               </div>
 
-              <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
-                <button 
-                  onClick={() => {
-                    navigator.clipboard.writeText(`วิชา: ${selectedTask.subject}\nรายละเอียด: ${selectedTask.details}`);
-                    toast.success('คัดลอกรายละเอียดแล้ว');
-                  }} 
-                  className="px-5 py-2.5 bg-white border border-slate-300 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors shadow-sm flex items-center gap-2 text-sm"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>
-                  คัดลอกงาน
-                </button>
-                <button 
-                  onClick={() => setSelectedTask(null)} 
-                  className="px-5 py-2.5 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition-colors shadow-sm text-sm"
+              <div className="border-t border-slate-100 p-4 bg-slate-50 flex justify-end gap-3 shrink-0">
+                <button
+                  onClick={() => setSelectedTask(null)}
+                  className="px-5 py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-medium rounded-xl transition-colors shadow-sm"
                 >
                   ปิดหน้าต่าง
                 </button>
@@ -492,10 +745,19 @@ export default function ParentAssignmentsClient({ initialTasks }: { initialTasks
   );
 }
 
-// ─── Student TaskCard Component (100% Identical to TaskCard.tsx) ──────────────
-function StudentTaskCard({ task, onClick }: { task: Task; onClick: (task: Task) => void }) {
+// ─── Student TaskCard Component with Child Status Badge ──────────────────────
+function StudentTaskCard({
+  task,
+  onClick,
+  selectedStudent,
+}: {
+  task: Task;
+  onClick: (task: Task) => void;
+  selectedStudent: Student | null;
+}) {
   const dueDate = new Date(task.due_date);
   const urgency = getUrgency(task);
+  const isDone = task.status === 'done';
 
   const handleCopyHomework = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -514,10 +776,15 @@ function StudentTaskCard({ task, onClick }: { task: Task; onClick: (task: Task) 
   return (
     <div
       onClick={() => onClick(task)}
-      className={`bg-white rounded-xl p-4 shadow-sm border border-slate-200 hover:shadow-md transition-shadow cursor-pointer ${
-        urgency?.level === 'critical' ? 'border-red-200 shadow-[0_0_15px_rgba(239,68,68,0.1)]' : ''
+      className={`bg-white rounded-xl p-4 shadow-sm border transition-all cursor-pointer ${
+        isDone
+          ? 'border-emerald-200/80 bg-emerald-50/10'
+          : urgency?.level === 'critical'
+          ? 'border-red-200 shadow-[0_0_15px_rgba(239,68,68,0.1)]'
+          : 'border-slate-200 hover:shadow-md'
       }`}
     >
+      {/* Urgency Badge */}
       {urgency && (
         <div className="mb-3">
           <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${urgency.color}`}>
@@ -526,12 +793,12 @@ function StudentTaskCard({ task, onClick }: { task: Task; onClick: (task: Task) 
         </div>
       )}
 
+      {/* Image Preview */}
       {((task.image_urls && task.image_urls.length > 0) || task.image_url) && (
         <div
           onClick={handleImageClick}
           className="w-full h-32 rounded-lg mb-3 overflow-hidden border border-slate-100 group relative cursor-pointer"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={(task.image_urls && task.image_urls[0]) || task.image_url!}
             alt={task.subject}
@@ -543,15 +810,14 @@ function StudentTaskCard({ task, onClick }: { task: Task; onClick: (task: Task) 
               {task.image_urls.length} รูป
             </span>
           )}
-          <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6" /><path d="M9 21H3v-6" /><path d="M21 3l-7 7" /><path d="M3 21l7-7" /></svg>
-          </div>
         </div>
       )}
 
       <div className="flex justify-between items-start mb-2 gap-2">
         <div className="flex-1 min-w-0">
-          <h4 className="font-bold text-slate-800 line-clamp-2 leading-tight">{task.subject}</h4>
+          <h4 className={`font-bold text-slate-800 line-clamp-2 leading-tight ${isDone ? 'line-through text-slate-500' : ''}`}>
+            {task.subject}
+          </h4>
           {(task.work_type === 'group' || task.max_score != null) && (
             <div className="flex items-center gap-2 mt-1.5 text-xs font-medium">
               {task.work_type === 'group' && (
@@ -580,7 +846,24 @@ function StudentTaskCard({ task, onClick }: { task: Task; onClick: (task: Task) 
 
       <p className="text-sm text-slate-500 mb-3 line-clamp-2">{task.details}</p>
 
-      <div className="flex items-center justify-between text-xs mt-auto pt-3 border-t border-slate-100">
+      {/* Child Status Indicator Badge */}
+      {selectedStudent && (
+        <div className="mb-2.5 pt-2 border-t border-slate-100 flex items-center justify-between">
+          {isDone ? (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100/90 text-emerald-800 border border-emerald-200">
+              <CheckCircle2 size={12} className="text-emerald-600" />
+              <span>น้อง{selectedStudent.nickname} ทำเสร็จแล้ว ✅</span>
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-rose-50 text-rose-700 border border-rose-200">
+              <Clock size={11} className="text-rose-500" />
+              <span>น้อง{selectedStudent.nickname} ยังไม่เสร็จ</span>
+            </span>
+          )}
+        </div>
+      )}
+
+      <div className="flex items-center justify-between text-xs mt-auto pt-2 border-t border-slate-100">
         <div className="flex items-center gap-1.5">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
           <span className={`font-medium ${urgency?.level === 'critical' ? 'text-red-600' : 'text-slate-500'}`}>
@@ -599,7 +882,7 @@ function StudentTaskCard({ task, onClick }: { task: Task; onClick: (task: Task) 
   );
 }
 
-// ─── Student CategorySection Component (100% Identical to KanbanBoard.tsx) ────
+// ─── CategorySection Component ────────────────────────────────────────────────
 type CategorySectionProps = {
   title: string;
   tasks: Task[];
@@ -609,9 +892,9 @@ type CategorySectionProps = {
 };
 
 const COLOR_MAP = {
-  red:     { section: 'border-red-200 bg-red-50',     badge: 'bg-red-100 text-red-700',     header: 'text-red-700' },
-  amber:   { section: 'border-amber-200 bg-amber-50', badge: 'bg-amber-100 text-amber-700', header: 'text-amber-700' },
-  slate:   { section: 'border-slate-200 bg-slate-50', badge: 'bg-slate-100 text-slate-600', header: 'text-slate-600' },
+  red: { section: 'border-red-200 bg-red-50', badge: 'bg-red-100 text-red-700', header: 'text-red-700' },
+  amber: { section: 'border-amber-200 bg-amber-50', badge: 'bg-amber-100 text-amber-700', header: 'text-amber-700' },
+  slate: { section: 'border-slate-200 bg-slate-50', badge: 'bg-slate-100 text-slate-600', header: 'text-slate-600' },
   emerald: { section: 'border-emerald-100 bg-emerald-50/50', badge: 'bg-emerald-100 text-emerald-700', header: 'text-emerald-700' },
 };
 
@@ -622,7 +905,7 @@ function CategorySection({ title, tasks, color, onTaskClick, emptyText }: Catego
   return (
     <div className={`rounded-2xl border ${c.section} overflow-hidden`}>
       <button
-        onClick={() => setCollapsed(v => !v)}
+        onClick={() => setCollapsed((v) => !v)}
         className="w-full flex items-center justify-between px-5 py-3 hover:brightness-95 transition"
       >
         <span className={`font-bold text-sm ${c.header} flex items-center gap-2`}>
@@ -632,12 +915,18 @@ function CategorySection({ title, tasks, color, onTaskClick, emptyText }: Catego
           </span>
         </span>
         <svg
-          xmlns="http://www.w3.org/2000/svg" width="16" height="16"
-          viewBox="0 0 24 24" fill="none" stroke="currentColor"
-          strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
           className={`transition-transform ${collapsed ? '-rotate-90' : ''} text-slate-400`}
         >
-          <path d="m6 9 6 6 6-6"/>
+          <path d="m6 9 6 6 6-6" />
         </svg>
       </button>
 
@@ -654,7 +943,7 @@ function CategorySection({ title, tasks, color, onTaskClick, emptyText }: Catego
               {tasks.length === 0 && emptyText ? (
                 <p className="text-center text-slate-400 text-sm py-4">{emptyText}</p>
               ) : (
-                tasks.map(task => (
+                tasks.map((task) => (
                   <motion.div
                     layout
                     initial={{ opacity: 0, y: 10 }}
@@ -662,19 +951,17 @@ function CategorySection({ title, tasks, color, onTaskClick, emptyText }: Catego
                     exit={{ opacity: 0, scale: 0.9 }}
                     key={task.id}
                     onClick={() => onTaskClick(task)}
-                    className={`flex items-start gap-3 bg-white rounded-xl border px-4 py-3 cursor-pointer shadow-sm transition-all hover:border-indigo-300 ${
-                      task.status === 'done' ? 'opacity-50' : ''
+                    className={`flex items-start gap-3 bg-white rounded-xl border px-4 py-3 cursor-pointer shadow-sm transition-all hover:border-pink-300 ${
+                      task.status === 'done' ? 'opacity-60' : ''
                     }`}
                   >
                     <div
                       className={`mt-0.5 w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
-                        task.status === 'done'
-                          ? 'bg-emerald-500 border-emerald-500 text-white'
-                          : 'border-slate-300'
+                        task.status === 'done' ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300'
                       }`}
                     >
                       {task.status === 'done' && (
-                        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
                       )}
                     </div>
 

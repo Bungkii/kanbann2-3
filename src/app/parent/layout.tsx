@@ -1,16 +1,19 @@
 import React from 'react';
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import ParentNavbar from './components/ParentNavbar';
 import { ParentStudentProvider } from './components/ParentStudentContext';
 import StudentSearchModal from './components/StudentSearchModal';
 
 import ParentPwaInstallBanner from './components/ParentPwaInstallBanner';
 
+export const viewport: Viewport = {
+  themeColor: '#0284c7',
+};
+
 export const metadata: Metadata = {
   title: 'ระบบติดตามงานห้อง ม.2/3 | สำหรับผู้ปกครอง',
   description: 'ติดตามการบ้าน งานค้าง และเตรียมตัวสอบของนักเรียนชั้น ม.2/3 (โหมดอ่านอย่างเดียวสำหรับผู้ปกครอง)',
   manifest: '/manifest-parent.json',
-  themeColor: '#0284c7',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',

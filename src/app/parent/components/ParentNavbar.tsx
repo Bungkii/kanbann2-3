@@ -29,6 +29,10 @@ export default function ParentNavbar() {
       label: 'เนื้อหา & สรุปสอบ',
       href: `${basePath}/exams`,
     },
+    {
+      label: 'คู่มือ 🌸',
+      href: `${basePath}/manual`,
+    },
   ];
 
   const isActive = (href: string) => {

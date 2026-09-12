@@ -71,3 +71,42 @@ export async function updateTaskDetails(
   revalidatePath('/kanban')
   return { success: true }
 }
+
+/**
+ * Updates a student's personal task completion status (todo | in_progress | done)
+ * and syncs it to the parent portal.
+ */
+export async function updateStudentTaskStatusAction(
+  taskId: string,
+  newStatus: 'todo' | 'in_progress' | 'done',
+  studentIdOverride?: string
+) {
+  const { getCurrentStudentSession } = await import('@/utils/studentAuth');
+  const { setStudentTaskCompletion } = await import('@/utils/studentTaskCompletions');
+
+  let studentId = studentIdOverride;
+  if (!studentId) {
+    const session = await getCurrentStudentSession();
+    if (session) {
+      studentId = session.student_id;
+    }
+  }
+
+  if (!studentId) {
+    return { success: false, error: 'No student identified' };
+  }
+
+  const result = await setStudentTaskCompletion(studentId, taskId, newStatus);
+  revalidatePath('/kanban');
+  revalidatePath('/parent/assignments');
+  return { ...result, studentId };
+}
+
+/**
+ * Reads all personal task completion statuses for a student.
+ */
+export async function getStudentTaskCompletionsAction(studentId: string) {
+  const { getStudentTaskCompletions } = await import('@/utils/studentTaskCompletions');
+  return await getStudentTaskCompletions(studentId);
+}
+

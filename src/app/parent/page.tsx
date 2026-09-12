@@ -5,6 +5,7 @@ import Countdown from '@/components/Countdown';
 import { getSystemSettings } from '@/app/settings/system/actions';
 import PageTransition from '@/components/PageTransition';
 import ParentStudentBanner from './components/ParentStudentBanner';
+import { BookOpen, ArrowRight } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +21,7 @@ export default async function ParentHomePage() {
   const assignmentsHref = isParentDomain ? '/assignments' : '/parent/assignments';
   const examsHref = isParentDomain ? '/exams' : '/parent/exams';
   const fundsHref = isParentDomain ? '/funds' : '/parent/funds';
+  const manualHref = isParentDomain ? '/manual' : '/parent/manual';
 
   const settings = await getSystemSettings();
   const kanbanEnabled = settings.kanban_enabled !== false;
@@ -68,6 +70,39 @@ export default async function ParentHomePage() {
     <PageTransition className="flex-1 flex flex-col items-center justify-center min-h-[calc(100vh-140px)] py-4 sm:py-8">
       {/* Student Identification & Persistence Banner */}
       <ParentStudentBanner />
+
+      {/* 🌸 White & Pink Parent Guide Banner */}
+      <div className="w-full max-w-4xl mb-8">
+        <Link
+          href={manualHref}
+          className="group block w-full rounded-3xl p-5 sm:p-6 bg-gradient-to-r from-rose-50/90 via-pink-50/60 to-white border border-pink-200/80 shadow-[0_4px_24px_rgba(244,63,94,0.06)] hover:shadow-[0_8px_30px_rgba(244,63,94,0.12)] transition-all duration-300 hover:-translate-y-0.5"
+        >
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4 min-w-0">
+              <div className="w-12 h-12 rounded-2xl bg-rose-500 text-white flex items-center justify-center shrink-0 shadow-[0_4px_14px_rgba(244,63,94,0.3)] group-hover:scale-110 transition-transform">
+                <BookOpen size={22} />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                  <h3 className="text-base sm:text-lg font-extrabold text-slate-800 group-hover:text-rose-600 transition-colors">
+                    คู่มือการใช้งานสำหรับผู้ปกครอง 🌸
+                  </h3>
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700">
+                    แนะนำ
+                  </span>
+                </div>
+                <p className="text-xs sm:text-sm text-slate-500 line-clamp-1">
+                  แนะนำวิธีติดตามงานที่ลูกทำเสร็จแบบเรียลไทม์ ตารางสอน และวิธีติดตั้งแอปลงบนมือถือ
+                </p>
+              </div>
+            </div>
+            <div className="shrink-0 flex items-center gap-1 text-xs font-bold text-rose-600 bg-white px-3.5 py-2 rounded-full border border-pink-200 shadow-2xs group-hover:bg-rose-500 group-hover:text-white transition-all">
+              <span>เปิดคู่มือ</span>
+              <ArrowRight size={14} />
+            </div>
+          </div>
+        </Link>
+      </div>
 
       {/* 2-Column Grid (Only Parent-Relevant Cards) */}
       <div className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch justify-center">

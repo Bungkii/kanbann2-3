@@ -13,7 +13,7 @@ import {
   DragEndEvent,
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { updateTaskStatus, deleteTask } from '@/app/kanban/actions';
+import { updateTaskStatus, deleteTask, updateStudentTaskStatusAction } from '@/app/kanban/actions';
 import KanbanColumn from './KanbanColumn';
 import TaskCard, { getUrgency } from './TaskCard';
 import toast from 'react-hot-toast';
@@ -47,7 +47,17 @@ const COLUMNS = [
   { id: 'done', title: 'เสร็จแล้ว (Done)' },
 ];
 
-export default function KanbanBoard({ initialTasks, isAuthenticated = false, canAddTask = false }: { initialTasks: Task[], isAuthenticated?: boolean, canAddTask?: boolean }) {
+export default function KanbanBoard({
+  initialTasks,
+  isAuthenticated = false,
+  canAddTask = false,
+  currentStudent,
+}: {
+  initialTasks: Task[];
+  isAuthenticated?: boolean;
+  canAddTask?: boolean;
+  currentStudent?: any;
+}) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -98,7 +108,29 @@ export default function KanbanBoard({ initialTasks, isAuthenticated = false, can
     });
 
     setTasks(mergedTasks);
-  }, [initialTasks]);
+
+    // If currentStudent is available, fetch remote completions to sync
+    const effectiveStudentId = currentStudent?.student_id;
+    if (effectiveStudentId) {
+      fetch(`/api/student-task-completion?studentId=${effectiveStudentId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.completions) {
+            const serverStatuses = data.completions as Record<string, string>;
+            const updatedMerged = initialTasks.map(task => {
+              const status = serverStatuses[task.id] || localStatuses[task.id] || task.status;
+              return { ...task, status };
+            });
+            setTasks(updatedMerged);
+            try {
+              const combined = { ...localStatuses, ...serverStatuses };
+              localStorage.setItem('personalTaskStatus', JSON.stringify(combined));
+            } catch {}
+          }
+        })
+        .catch(err => console.warn('Could not sync completions from server:', err));
+    }
+  }, [initialTasks, currentStudent?.student_id]);
 
   // ── Realtime subscription — syncs task adds/edits/deletes across all clients ──
   useEffect(() => {
@@ -171,7 +203,24 @@ export default function KanbanBoard({ initialTasks, isAuthenticated = false, can
       return newTasks;
     });
 
-    toast.success(newStatus === 'done' ? 'งานเส้จแล้วจ่า' : 'อัปเดตสถานะแล้ว');
+    // Sync to server / database for the student so parent sees it in real-time!
+    const effectiveStudentId = currentStudent?.student_id || (typeof window !== 'undefined' ? localStorage.getItem('last_student_id') : null);
+    if (effectiveStudentId) {
+      updateStudentTaskStatusAction(taskId, newStatus as any, effectiveStudentId).catch((err) => {
+        console.warn('Sync to parent portal failed:', err);
+      });
+    }
+
+    if (newStatus === 'done') {
+      toast.success(
+        currentStudent
+          ? `🎉 ทำงานเสร็จแล้ว! สถานะอัปเดตไปขึ้นที่ฝั่งผู้ปกครองแล้วนะ`
+          : 'งานเสร็จแล้วจ้า! (ข้อมูลบันทึกแล้ว)',
+        { duration: 4000 }
+      );
+    } else {
+      toast.success('อัปเดตสถานะแล้ว');
+    }
   };
 
   const sensors = useSensors(
@@ -770,7 +819,7 @@ export default function KanbanBoard({ initialTasks, isAuthenticated = false, can
             
             {!isEditing && (
               <div className="border-t border-slate-100 p-4 bg-slate-50 flex justify-between gap-3 shrink-0">
-                {isAuthenticated ? (
+                {(Boolean(currentStudent && ['Leader', 'Finance', 'Admin', 'SuperAdmin'].includes(currentStudent.role)) || canAddTask || isAuthenticated) ? (
                   <button onClick={() => {
                     setIsEditing(true);
                     setImagePreview(null);
