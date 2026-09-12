@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import UniformForm from './UniformForm';
+import { DEFAULT_UNIFORM_SCHEDULE, UniformScheduleRow } from '@/utils/defaultSchedule';
 
 export const revalidate = 0;
 
@@ -23,6 +24,25 @@ export default async function UniformSettingsPage() {
     console.error('Error fetching uniform schedule:', error);
   }
 
+  const scheduleMap = new Map<number, UniformScheduleRow>();
+  DEFAULT_UNIFORM_SCHEDULE.forEach(item => {
+    scheduleMap.set(item.day_of_week, { ...item });
+  });
+
+  if (schedule && schedule.length > 0) {
+    schedule.forEach((item: any) => {
+      scheduleMap.set(item.day_of_week, {
+        id: item.id,
+        day_of_week: item.day_of_week,
+        day_name: item.day_name || DEFAULT_UNIFORM_SCHEDULE.find(d => d.day_of_week === item.day_of_week)?.day_name || `วัน ${item.day_of_week}`,
+        uniform_name: item.uniform_name || 'ชุดนักเรียน',
+        theme_color: item.theme_color || '#1E3A8A',
+      });
+    });
+  }
+
+  const finalSchedule = Array.from(scheduleMap.values()).sort((a, b) => a.day_of_week - b.day_of_week);
+
   return (
     <main className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 flex flex-col items-center">
       <div className="w-full max-w-3xl relative">
@@ -42,7 +62,7 @@ export default async function UniformSettingsPage() {
             </p>
           </div>
 
-          <UniformForm initialSchedule={schedule || []} />
+          <UniformForm initialSchedule={finalSchedule} />
         </div>
       </div>
     </main>

@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Calendar } from 'lucide-react';
 import ScheduleForm from './ScheduleForm';
+import { DEFAULT_CLASS_SCHEDULE, ScheduleRow } from '@/utils/defaultSchedule';
 
 export const revalidate = 0;
 
@@ -24,6 +25,34 @@ export default async function SchedulePage() {
     console.error('Error fetching class schedule:', error);
   }
 
+  // Combine default schedule with database schedule so table is never blank
+  const scheduleMap = new Map<string, ScheduleRow>();
+
+  DEFAULT_CLASS_SCHEDULE.forEach(item => {
+    scheduleMap.set(`${item.day_of_week}-${item.period}`, {
+      day_of_week: item.day_of_week,
+      period: item.period,
+      subject: item.subject,
+      teacher: item.teacher,
+    });
+  });
+
+  if (schedule && schedule.length > 0) {
+    schedule.forEach((item: any) => {
+      scheduleMap.set(`${item.day_of_week}-${item.period}`, {
+        day_of_week: item.day_of_week,
+        period: item.period,
+        subject: item.subject || '',
+        teacher: item.teacher || null,
+      });
+    });
+  }
+
+  const finalSchedule = Array.from(scheduleMap.values()).sort((a, b) => {
+    if (a.day_of_week !== b.day_of_week) return a.day_of_week - b.day_of_week;
+    return a.period - b.period;
+  });
+
   return (
     <main className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 flex flex-col items-center">
       <div className="w-full max-w-4xl relative">
@@ -36,17 +65,17 @@ export default async function SchedulePage() {
         </Link>
         
         <div className="bg-white rounded-3xl p-8 md:p-12 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100">
-          <div className="text-center mb-10 flex flex-col items-center">
+          <div className="text-center mb-8 flex flex-col items-center">
             <div className="bg-indigo-100 text-indigo-600 p-4 rounded-full mb-4">
               <Calendar size={32} />
             </div>
             <h1 className="text-3xl font-bold text-slate-800 mb-2">ตารางสอน (ม.2/3)</h1>
             <p className="text-slate-500">
-              จัดการวิชาและครูผู้สอนในแต่ละคาบ (1-8)
+              จัดการวิชาและครูผู้สอนในแต่ละคาบ (1-8) ซิงค์กับระบบพริมจ๋าและ LINE Bot
             </p>
           </div>
 
-          <ScheduleForm initialData={schedule || []} />
+          <ScheduleForm initialData={finalSchedule} isDbEmpty={!schedule || schedule.length === 0} />
         </div>
       </div>
     </main>

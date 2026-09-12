@@ -5,16 +5,10 @@ import { updateUniform } from './actions';
 import toast from 'react-hot-toast';
 import { Save } from 'lucide-react';
 
-type UniformSchedule = {
-  id: string;
-  day_of_week: number;
-  day_name: string;
-  uniform_name: string;
-  theme_color: string;
-};
+import { UniformScheduleRow } from '@/utils/defaultSchedule';
 
-export default function UniformForm({ initialSchedule }: { initialSchedule: UniformSchedule[] }) {
-  const [schedule, setSchedule] = useState<UniformSchedule[]>(initialSchedule);
+export default function UniformForm({ initialSchedule }: { initialSchedule: UniformScheduleRow[] }) {
+  const [schedule, setSchedule] = useState<UniformScheduleRow[]>(initialSchedule);
   const [isSubmitting, setIsSubmitting] = useState<number | null>(null);
 
   const handleUpdate = async (dayOfWeek: number, uniformName: string, themeColor: string) => {
@@ -35,7 +29,7 @@ export default function UniformForm({ initialSchedule }: { initialSchedule: Unif
     }
   };
 
-  const handleChange = (index: number, field: keyof UniformSchedule, value: string) => {
+  const handleChange = (index: number, field: keyof UniformScheduleRow, value: string) => {
     const newSchedule = [...schedule];
     newSchedule[index] = { ...newSchedule[index], [field]: value };
     setSchedule(newSchedule);
@@ -44,7 +38,7 @@ export default function UniformForm({ initialSchedule }: { initialSchedule: Unif
   return (
     <div className="space-y-6">
       {schedule.map((day, index) => (
-        <div key={day.id} className="bg-slate-50 rounded-2xl p-6 border border-slate-100 flex flex-col md:flex-row gap-4 items-end md:items-center">
+        <div key={day.id || day.day_of_week} className="bg-slate-50 rounded-2xl p-6 border border-slate-100 flex flex-col md:flex-row gap-4 items-end md:items-center">
           <div className="w-full md:w-1/4">
             <label className="block text-sm font-bold text-slate-700 mb-1">{day.day_name}</label>
           </div>
@@ -64,14 +58,14 @@ export default function UniformForm({ initialSchedule }: { initialSchedule: Unif
               <label className="block text-xs font-medium text-slate-500 mb-1 md:hidden">สีธีม (Hex)</label>
               <input
                 type="color"
-                value={day.theme_color}
+                value={day.theme_color || '#1E3A8A'}
                 onChange={(e) => handleChange(index, 'theme_color', e.target.value)}
                 className="w-full h-11 px-2 py-1 rounded-xl border border-slate-200 cursor-pointer"
               />
             </div>
             
             <button
-              onClick={() => handleUpdate(day.day_of_week, day.uniform_name, day.theme_color)}
+              onClick={() => handleUpdate(day.day_of_week, day.uniform_name, day.theme_color || '#1E3A8A')}
               disabled={isSubmitting === day.day_of_week}
               className="shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-medium rounded-xl transition-all disabled:opacity-50"
             >

@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Trash2 } from 'lucide-react';
 import CleaningForm from './CleaningForm';
+import { DEFAULT_CLEANING_SCHEDULE, CleaningScheduleRow } from '@/utils/defaultSchedule';
 
 export const revalidate = 0;
 
@@ -22,6 +23,24 @@ export default async function CleaningPage() {
   if (error) {
     console.error('Error fetching cleaning schedule:', error);
   }
+
+  const scheduleMap = new Map<number, CleaningScheduleRow>();
+  DEFAULT_CLEANING_SCHEDULE.forEach(item => {
+    scheduleMap.set(item.day_of_week, { ...item });
+  });
+
+  if (schedule && schedule.length > 0) {
+    schedule.forEach((item: any) => {
+      scheduleMap.set(item.day_of_week, {
+        id: item.id,
+        day_of_week: item.day_of_week,
+        day_name: item.day_name || DEFAULT_CLEANING_SCHEDULE.find(d => d.day_of_week === item.day_of_week)?.day_name || `วัน ${item.day_of_week}`,
+        cleaners: item.cleaners || '-',
+      });
+    });
+  }
+
+  const finalSchedule = Array.from(scheduleMap.values()).sort((a, b) => a.day_of_week - b.day_of_week);
 
   return (
     <main className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 flex flex-col items-center">
@@ -45,11 +64,7 @@ export default async function CleaningPage() {
             </p>
           </div>
 
-          {schedule && schedule.length > 0 ? (
-            <CleaningForm initialData={schedule} />
-          ) : (
-            <div className="text-center text-slate-500 py-8">ไม่มีข้อมูลในระบบ (กรุณารัน SQL Migration ก่อน)</div>
-          )}
+          <CleaningForm initialData={finalSchedule} />
         </div>
       </div>
     </main>

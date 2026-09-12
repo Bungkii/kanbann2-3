@@ -23,14 +23,9 @@ import {
 import { createClient } from '@/utils/supabase/client';
 import toast from 'react-hot-toast';
 import { CLASS_PERIODS, LUNCH_PERIOD, DAYS_CONFIG, getCurrentScheduleStatus } from '@/utils/schedule';
+import { DEFAULT_CLASS_SCHEDULE, ScheduleRow } from '@/utils/defaultSchedule';
 
-export type ScheduleRow = {
-  id?: number;
-  day_of_week: number;
-  period: number;
-  subject: string;
-  teacher: string | null;
-};
+export type { ScheduleRow };
 
 type SelectedPeriodDetail = {
   dayVal: number;
@@ -40,6 +35,35 @@ type SelectedPeriodDetail = {
   timeStr: string;
 };
 
+function mergeWithDefaultSchedule(dbData: any[]): ScheduleRow[] {
+  const scheduleMap = new Map<string, ScheduleRow>();
+  DEFAULT_CLASS_SCHEDULE.forEach(item => {
+    scheduleMap.set(`${item.day_of_week}-${item.period}`, {
+      day_of_week: item.day_of_week,
+      period: item.period,
+      subject: item.subject,
+      teacher: item.teacher,
+    });
+  });
+
+  if (dbData && dbData.length > 0) {
+    dbData.forEach((item: any) => {
+      scheduleMap.set(`${item.day_of_week}-${item.period}`, {
+        id: item.id,
+        day_of_week: item.day_of_week,
+        period: item.period,
+        subject: item.subject || '',
+        teacher: item.teacher || null,
+      });
+    });
+  }
+
+  return Array.from(scheduleMap.values()).sort((a, b) => {
+    if (a.day_of_week !== b.day_of_week) return a.day_of_week - b.day_of_week;
+    return a.period - b.period;
+  });
+}
+
 export default function ScheduleViewer({ 
   initialSchedule, 
   isLoggedIn 
@@ -47,7 +71,7 @@ export default function ScheduleViewer({
   initialSchedule: ScheduleRow[]; 
   isLoggedIn: boolean; 
 }) {
-  const [schedule, setSchedule] = useState<ScheduleRow[]>(initialSchedule);
+  const [schedule, setSchedule] = useState<ScheduleRow[]>(() => mergeWithDefaultSchedule(initialSchedule));
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   const [selectedDay, setSelectedDay] = useState<number>(1);
   const [manualHighlightedPeriod, setManualHighlightedPeriod] = useState<number | 'lunch' | null>(null);
@@ -107,7 +131,7 @@ export default function ScheduleViewer({
             .order('period', { ascending: true });
           
           if (!error && data) {
-            setSchedule(data);
+            setSchedule(mergeWithDefaultSchedule(data));
             setLastUpdated(new Date());
             toast.success('ตารางสอนอัปเดตข้อมูลล่าสุดแล้ว ✨', { id: 'schedule-sync' });
           }
@@ -133,7 +157,7 @@ export default function ScheduleViewer({
 
       if (error) throw error;
       if (data) {
-        setSchedule(data);
+        setSchedule(mergeWithDefaultSchedule(data));
         setLastUpdated(new Date());
         toast.success('รีเฟรชข้อมูลตารางสอนเรียบร้อย');
       }
