@@ -5,8 +5,8 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
 
 function getAdminClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder';
   return createSupabaseClient(supabaseUrl, supabaseKey);
 }
 
@@ -24,6 +24,11 @@ export async function updateUniform(dayOfWeek: number, uniformName: string, them
 
   if (!user) {
     return { error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' };
+  }
+
+  const userRole = (user.user_metadata?.role || 'Student') as string;
+  if (userRole === 'Student') {
+    return { error: 'คุณไม่มีสิทธิ์ในการแก้ไขชุดเครื่องแบบ (ต้องเป็นผู้มียศ เช่น Leader, Finance, Admin, SuperAdmin)' };
   }
 
   const adminSupabase = getAdminClient();

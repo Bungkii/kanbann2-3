@@ -45,14 +45,18 @@ export async function sendCustomLineMessage(text: string) {
 import { createClient } from '@supabase/supabase-js';
 import { createCustomPollFlexMessage } from '@/utils/line/flex';
 
+function getLineSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder';
+  return createClient(supabaseUrl, supabaseKey);
+}
+
 export async function createCustomPoll(question: string, options: string[], endTimeStr: string) {
   if (!question || options.length < 2 || !endTimeStr) {
     return { error: 'กรุณากรอกข้อมูลโพลให้ครบถ้วน (คำถาม, ตัวเลือกอย่างน้อย 2 ข้อ, เวลาปิดโหวต)' };
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  const supabase = getLineSupabaseClient();
 
   // 1. Insert poll to database
   const { data: poll, error: insertError } = await supabase
@@ -71,9 +75,7 @@ export async function createCustomPoll(question: string, options: string[], endT
 }
 
 export async function getPrimjaStatus() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  const supabase = getLineSupabaseClient();
 
   const { data: statusData } = await supabase
     .from('system_settings')
@@ -94,9 +96,7 @@ export async function getPrimjaStatus() {
 }
 
 export async function setPrimjaStatus(status: 'active' | 'offline', offlineUntil?: string) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  const supabase = getLineSupabaseClient();
 
   const updates: { key: string, value: string, updated_at: string }[] = [
     { key: 'primja_status', value: status, updated_at: new Date().toISOString() },

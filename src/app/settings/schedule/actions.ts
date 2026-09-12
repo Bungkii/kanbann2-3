@@ -6,8 +6,8 @@ import { revalidatePath } from 'next/cache';
 import { DEFAULT_CLASS_SCHEDULE, ScheduleRow } from '@/utils/defaultSchedule';
 
 function getAdminClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder';
   return createSupabaseClient(supabaseUrl, supabaseKey);
 }
 
@@ -17,6 +17,11 @@ export async function updateClassSchedule(dayOfWeek: number, period: number, sub
 
   if (!user) {
     return { error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' };
+  }
+
+  const userRole = (user.user_metadata?.role || 'Student') as string;
+  if (userRole === 'Student') {
+    return { error: 'คุณไม่มีสิทธิ์ในการแก้ไขตารางสอน (ต้องเป็นผู้มียศ เช่น Leader, Finance, Admin, SuperAdmin)' };
   }
 
   const adminSupabase = getAdminClient();
@@ -51,6 +56,11 @@ export async function updateDaySchedule(dayOfWeek: number, periods: { period: nu
     return { error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' };
   }
 
+  const userRole = (user.user_metadata?.role || 'Student') as string;
+  if (userRole === 'Student') {
+    return { error: 'คุณไม่มีสิทธิ์ในการแก้ไขตารางสอน (ต้องเป็นผู้มียศ เช่น Leader, Finance, Admin, SuperAdmin)' };
+  }
+
   const adminSupabase = getAdminClient();
   const rows = periods.map(p => ({
     day_of_week: dayOfWeek,
@@ -80,6 +90,11 @@ export async function resetToDefaultSchedule() {
 
   if (!user) {
     return { error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' };
+  }
+
+  const userRole = (user.user_metadata?.role || 'Student') as string;
+  if (userRole === 'Student') {
+    return { error: 'คุณไม่มีสิทธิ์ในการรีเซ็ตตารางสอน (ต้องเป็นผู้มียศ เช่น Leader, Finance, Admin, SuperAdmin)' };
   }
 
   const adminSupabase = getAdminClient();

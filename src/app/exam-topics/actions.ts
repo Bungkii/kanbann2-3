@@ -1,7 +1,14 @@
 'use server';
 
 import { createClient } from '@/utils/supabase/server';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
+
+function getAdminClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder';
+  return createSupabaseClient(supabaseUrl, supabaseKey);
+}
 
 export type ExamTopic = {
   id: string;
@@ -16,8 +23,8 @@ export type ExamTopic = {
 };
 
 export async function getExamTopics() {
-  const supabase = await createClient();
-  const { data, error } = await supabase
+  const adminSupabase = getAdminClient();
+  const { data, error } = await adminSupabase
     .from('exam_topics')
     .select('*')
     .order('created_at', { ascending: true });
@@ -35,7 +42,7 @@ export async function addExamTopic(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' };
   }
 
   const subject = formData.get('subject') as string;
@@ -54,7 +61,8 @@ export async function addExamTopic(formData: FormData) {
   const mcq_count = parseInt(mcqCountStr) || 0;
   const essay_count = parseInt(essayCountStr) || 0;
 
-  const { error } = await supabase
+  const adminSupabase = getAdminClient();
+  const { error } = await adminSupabase
     .from('exam_topics')
     .insert({
       subject,
@@ -80,7 +88,7 @@ export async function updateExamTopic(id: string, formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' };
   }
 
   const subject = formData.get('subject') as string;
@@ -99,7 +107,8 @@ export async function updateExamTopic(id: string, formData: FormData) {
   const mcq_count = parseInt(mcqCountStr) || 0;
   const essay_count = parseInt(essayCountStr) || 0;
 
-  const { error } = await supabase
+  const adminSupabase = getAdminClient();
+  const { error } = await adminSupabase
     .from('exam_topics')
     .update({
       subject,
@@ -127,10 +136,11 @@ export async function deleteExamTopic(id: string) {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' };
   }
 
-  const { error } = await supabase
+  const adminSupabase = getAdminClient();
+  const { error } = await adminSupabase
     .from('exam_topics')
     .delete()
     .eq('id', id);

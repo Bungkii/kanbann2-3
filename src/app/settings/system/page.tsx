@@ -16,6 +16,11 @@ export default async function SystemSettingsPage() {
     redirect('/login');
   }
 
+  const currentUserRole = user.user_metadata?.role || 'Student';
+  if (currentUserRole === 'Student') {
+    redirect('/settings');
+  }
+
   const settings = await getSystemSettings();
 
   return (

@@ -1,7 +1,14 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
+
+function getAdminClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder';
+  return createSupabaseClient(supabaseUrl, supabaseKey);
+}
 
 // Helper: normalize a raw DB value to JS value
 // Handles both text columns (old schema) and JSONB columns (new schema)
@@ -21,8 +28,8 @@ function normalizeValue(raw: any): any {
 }
 
 export async function getSystemSettings() {
-  const supabase = await createClient();
-  const { data, error } = await supabase
+  const adminSupabase = getAdminClient();
+  const { data, error } = await adminSupabase
     .from('system_settings')
     .select('*');
 
@@ -44,11 +51,25 @@ export async function updateSystemSetting(key: string, value: any) {
   
   // Verify auth
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, error: 'Unauthorized' };
+  if (!user) return { success: false, error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' };
 
-  const { error } = await supabase
+  const userRole = (user.user_metadata?.role || 'Student') as string;
+  // Allow all ranked users (Leader, Finance, Admin, SuperAdmin) to update settings
+  if (userRole === 'Student') {
+    return { 
+      success: false, 
+      error: 'คุณไม่มีสิทธิ์ในการตั้งค่าระบบ (ต้องเป็นผู้มียศ เช่น Leader, Finance, Admin, SuperAdmin)' 
+    };
+  }
+
+  const adminSupabase = getAdminClient();
+  const { error } = await adminSupabase
     .from('system_settings')
-    .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+    .upsert({ 
+      key, 
+      value, 
+      updated_at: new Date().toISOString() 
+    }, { onConflict: 'key' });
 
   if (error) {
     console.error('Error updating setting:', error);
@@ -64,3 +85,4 @@ export async function updateSystemSetting(key: string, value: any) {
   revalidatePath('/');
   return { success: true };
 }
+
