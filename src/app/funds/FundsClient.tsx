@@ -245,7 +245,8 @@ export default function FundsClient({
     
     setLoading(true)
     setWeekStart(targetDateStr)
-    router.push(`/funds?week=${targetDateStr}`)
+    const basePath = isParentMode ? '/parent/funds' : '/funds'
+    router.push(`${basePath}?week=${targetDateStr}`)
     
     try {
       const data = await getFundsForWeek(targetDateStr)

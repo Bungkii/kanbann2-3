@@ -15,7 +15,10 @@ function getMonday(d: Date) {
   const day = d.getDay();
   const diff = d.getDate() - day + (day === 0 ? -6 : 1);
   d.setDate(diff);
-  return d.toISOString().split('T')[0];
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const date = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${date}`;
 }
 
 export default async function ParentFundsPage(props: {
@@ -38,6 +41,7 @@ export default async function ParentFundsPage(props: {
         isParentMode={true}
         fundsStats={fundsStats}
         currentWeekStart={currentWeekStart}
+        selectedWeek={weekStart}
         fundsData={fundsData}
         expenses={expenses}
         settings={settings}
