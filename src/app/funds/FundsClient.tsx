@@ -33,6 +33,13 @@ type FundsStats = {
   totalFunds: number;
 }
 
+type FundsSettings = {
+  startDate: string | null;
+  endDate: string | null;
+  finalExamDate: string | null;
+  recordedWeeks?: string[];
+}
+
 type FundsClientProps = {
   isLoggedIn: boolean;
   isParentMode?: boolean;
@@ -40,7 +47,7 @@ type FundsClientProps = {
   currentWeekStart: string;
   fundsData: FundRecord[];
   expenses: ExpenseRecord[];
-  settings: { startDate: string | null; endDate: string | null; finalExamDate: string | null; };
+  settings: FundsSettings;
 }
 
 export default function FundsClient({ isLoggedIn, isParentMode = false, fundsStats: initialFundsStats, currentWeekStart, fundsData: initialFundsData, expenses: initialExpenses, settings: initialSettings }: FundsClientProps) {
@@ -114,7 +121,7 @@ export default function FundsClient({ isLoggedIn, isParentMode = false, fundsSta
   }
 
   const weeksList = useMemo(() => {
-    const list = []
+    const weekSet = new Set<string>()
     const start = localSettings.startDate ? new Date(localSettings.startDate) : new Date('2024-05-01')
     // Find the first Monday
     start.setDate(start.getDate() - start.getDay() + (start.getDay() === 0 ? -6 : 1))
@@ -124,16 +131,21 @@ export default function FundsClient({ isLoggedIn, isParentMode = false, fundsSta
     
     let current = new Date(start)
     while (current <= end) {
-      list.push(current.toISOString().split('T')[0])
+      weekSet.add(current.toISOString().split('T')[0])
       current.setDate(current.getDate() + 7)
     }
     
-    // Make sure currentWeekStart is always in the list if no end date
-    if (!localSettings.endDate && !list.includes(currentWeekStart)) {
-      list.push(currentWeekStart)
+    // Always include current week
+    weekSet.add(currentWeekStart)
+
+    // Always include any week that was recorded in database history
+    if (localSettings.recordedWeeks && Array.isArray(localSettings.recordedWeeks)) {
+      localSettings.recordedWeeks.forEach((w: string) => {
+        if (w) weekSet.add(w)
+      })
     }
     
-    return list.reverse() // Newest first
+    return Array.from(weekSet).sort().reverse() // Newest first
   }, [localSettings, currentWeekStart])
 
   const changeWeek = async (direction: 'prev' | 'next' | string) => {

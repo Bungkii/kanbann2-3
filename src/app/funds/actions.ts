@@ -158,7 +158,14 @@ export async function getFundsSettings() {
     if (item.key === 'final_exam_date') finalExamDate = item.value
   })
   
-  return { startDate, endDate, finalExamDate }
+  // Also query distinct recorded weeks from class_funds to guarantee all past recorded weeks remain selectable
+  const { data: weekData } = await supabase
+    .from('class_funds')
+    .select('week_start_date')
+  
+  const recordedWeeks: string[] = Array.from(new Set((weekData || []).map((w: any) => w.week_start_date).filter(Boolean)))
+
+  return { startDate, endDate, finalExamDate, recordedWeeks }
 }
 
 export async function setFundsSettings(startDate: string, endDate: string, finalExamDate: string) {
