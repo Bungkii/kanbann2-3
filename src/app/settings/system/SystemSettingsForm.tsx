@@ -3,8 +3,15 @@
 import { useState } from "react";
 import { updateSystemSetting } from "./actions";
 import toast from "react-hot-toast";
-import { Download, Image, Link, X, Plus, GripVertical, ExternalLink, AlertTriangle, Eye, EyeOff, Calendar, Clock } from "lucide-react";
-import MaintenanceScreen from "@/components/MaintenanceScreen";
+import { Download, Image, Link, X, Plus, GripVertical, ExternalLink, AlertTriangle, Eye, EyeOff, Calendar, Clock, Sparkles } from "lucide-react";
+import MaintenanceScreen, { getTodayThaiDateText, formatThaiDate, formatMaintenanceDateRange } from "@/components/MaintenanceScreen";
+
+function toIsoDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
 
 const systemFeatures = [
   { key: "maintenance_mode_enabled", label: "โหมดปิดปรับปรุงระบบ (Maintenance Mode)", description: "บล็อคการเข้าใช้งานเว็บทั้งหมด (ต้องเข้า Database เพื่อเปิดใหม่)" },
@@ -52,11 +59,36 @@ export default function SystemSettingsForm({
 
   // Maintenance screen customizations
   const [maintenanceTitle, setMaintenanceTitle] = useState(initialSettings.maintenance_title || "ปิดปรับปรุงระบบชั่วคราว");
-  const [maintenanceDate, setMaintenanceDate] = useState(initialSettings.maintenance_date || "วันที่ 19 ก.ย. 2567");
-  const [maintenanceTime, setMaintenanceTime] = useState(initialSettings.maintenance_time || "เวลา 9.00 น. ถึง เวลา 18.00 น.");
+  const [maintenanceDate, setMaintenanceDate] = useState(() => initialSettings.maintenance_date || getTodayThaiDateText());
+  const [maintenanceStartDatePicker, setMaintenanceStartDatePicker] = useState<string>(() => toIsoDate(new Date()));
+  const [maintenanceEndDatePicker, setMaintenanceEndDatePicker] = useState<string>('');
+  const [maintenanceTime, setMaintenanceTime] = useState(initialSettings.maintenance_time || "เวลา 20.00 น. ถึง เวลา 00.00 น.");
   const [maintenanceNotice, setMaintenanceNotice] = useState(initialSettings.maintenance_notice || "ท่านจะไม่สามารถใช้งานแอปพลิเคชันได้ในเวลาดังกล่าว ขออภัยในความไม่สะดวก");
   const [isSavingMaintenance, setIsSavingMaintenance] = useState(false);
   const [showMaintenancePreview, setShowMaintenancePreview] = useState(false);
+
+  const handleDateRangeChange = (start: string, end: string) => {
+    setMaintenanceStartDatePicker(start);
+    setMaintenanceEndDatePicker(end);
+    if (!start) {
+      setMaintenanceDate(getTodayThaiDateText());
+      return;
+    }
+    const formatted = formatMaintenanceDateRange(start, end || undefined);
+    setMaintenanceDate(formatted);
+  };
+
+  const handleQuickPreset = (daysOffset: number) => {
+    const today = new Date();
+    const startStr = toIsoDate(today);
+    if (daysOffset === 0) {
+      handleDateRangeChange(startStr, '');
+    } else {
+      const endD = new Date(today);
+      endD.setDate(endD.getDate() + daysOffset);
+      handleDateRangeChange(startStr, toIsoDate(endD));
+    }
+  };
 
   // Popup images (array)
   const [popupImages, setPopupImages] = useState<PopupImage[]>(() => {
@@ -285,17 +317,61 @@ export default function SystemSettingsForm({
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
-              <Calendar size={13} className="text-amber-400" /> วันที่ปรับปรุง (Date)
-            </label>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                <Calendar size={13} className="text-amber-400" /> วันที่ปรับปรุง (Date)
+              </label>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleQuickPreset(0)}
+                  className="text-[10px] px-2 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 transition-colors cursor-pointer"
+                >
+                  วันนี้
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickPreset(1)}
+                  className="text-[10px] px-2 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors cursor-pointer"
+                >
+                  วันนี้-พรุ่งนี้
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <span className="block text-[10px] text-slate-400 mb-0.5">วันเริ่มต้น:</span>
+                <input
+                  type="date"
+                  value={maintenanceStartDatePicker}
+                  onChange={(e) => handleDateRangeChange(e.target.value, maintenanceEndDatePicker)}
+                  className="w-full px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:outline-none focus:ring-1 focus:ring-amber-500"
+                />
+              </div>
+              <span className="text-slate-500 text-xs self-end pb-2">ถึง</span>
+              <div className="flex-1">
+                <span className="block text-[10px] text-slate-400 mb-0.5">วันสิ้นสุด (ถ้ามี):</span>
+                <input
+                  type="date"
+                  value={maintenanceEndDatePicker}
+                  onChange={(e) => handleDateRangeChange(maintenanceStartDatePicker, e.target.value)}
+                  className="w-full px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:outline-none focus:ring-1 focus:ring-amber-500"
+                />
+              </div>
+            </div>
+
             <input
               type="text"
               value={maintenanceDate}
               onChange={(e) => setMaintenanceDate(e.target.value)}
-              placeholder="เช่น วันที่ 19 ก.ย. 2567"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm"
+              placeholder="เช่น วันที่ 12 ก.ย. 2568 หรือ วันที่ 12 ก.ย. 2568 ถึง วันที่ 13 ก.ย. 2568"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm font-medium"
             />
+            <p className="text-[11px] text-slate-400">
+              * ข้อความจะจัดรูปแบบภาษาไทยอัตโนมัติ และสามารถแก้ไขข้อความเองได้
+            </p>
           </div>
 
           <div>

@@ -4,6 +4,38 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { RefreshCw, MessageCircle, AlertCircle, Clock, Calendar } from 'lucide-react';
 
+const THAI_MONTHS_SHORT = [
+  'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
+  'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
+];
+
+export function getTodayThaiDateText(): string {
+  const d = new Date();
+  const day = d.getDate();
+  const month = THAI_MONTHS_SHORT[d.getMonth()];
+  const yearBE = d.getFullYear() + 543;
+  return `วันที่ ${day} ${month} ${yearBE}`;
+}
+
+export function formatThaiDate(dateInput: Date | string): string {
+  const d = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+  if (isNaN(d.getTime())) return '';
+  const day = d.getDate();
+  const month = THAI_MONTHS_SHORT[d.getMonth()];
+  const yearBE = d.getFullYear() + 543;
+  return `วันที่ ${day} ${month} ${yearBE}`;
+}
+
+export function formatMaintenanceDateRange(startDateInput: Date | string, endDateInput?: Date | string | null): string {
+  const startStr = formatThaiDate(startDateInput);
+  if (!endDateInput) return startStr;
+  
+  const endStr = formatThaiDate(endDateInput);
+  if (!endStr || startStr === endStr) return startStr;
+  
+  return `${startStr} ถึง ${endStr}`;
+}
+
 interface MaintenanceScreenProps {
   title?: string;
   dateText?: string;
@@ -14,11 +46,12 @@ interface MaintenanceScreenProps {
 
 export default function MaintenanceScreen({
   title = "ปิดปรับปรุงระบบชั่วคราว",
-  dateText = "วันที่ 12 ก.ย. 2568",
+  dateText,
   timeText = "เวลา 20.00 น. ถึง เวลา 00.00 น.",
   noticeText = "ท่านจะไม่สามารถใช้งานแอปพลิเคชันได้ในเวลาดังกล่าว ขออภัยในความไม่สะดวก",
   contactLine = "https://line.me/ti/p/~@primjaa"
 }: MaintenanceScreenProps) {
+  const displayDateText = dateText || getTodayThaiDateText();
   return (
     <main 
       role="main" 
@@ -59,7 +92,7 @@ export default function MaintenanceScreen({
         <div className="w-full max-w-md bg-slate-50 border border-slate-100 rounded-2xl p-5 mb-6 space-y-3 shadow-xs">
           <div className="flex items-center justify-center gap-2.5 text-slate-800 font-bold text-base sm:text-lg">
             <Calendar size={20} className="text-amber-500 shrink-0" />
-            <span>{dateText}</span>
+            <span>{displayDateText}</span>
           </div>
           <div className="flex items-center justify-center gap-2 text-slate-600 font-medium text-sm sm:text-base border-t border-slate-200/70 pt-2.5">
             <Clock size={16} className="text-slate-400 shrink-0" />
