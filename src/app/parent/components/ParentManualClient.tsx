@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Heart,
   CheckCircle2,
   Search,
   Calendar,
@@ -69,6 +68,10 @@ export default function ParentManualClient() {
       a: 'ระบบเชื่อมต่อด้วยฐานข้อมูลแบบเรียลไทม์ เมื่อนักเรียนเข้าสู่ระบบแล้วกดติ๊ก "เสร็จแล้ว" ในฝั่งนักเรียน ข้อมูลจะถูกบันทึกและส่งตรงมายังหน้าจอกระดานการบ้านของผู้ปกครองทันที พร้อมแถบเปอร์เซ็นต์ความคืบหน้าที่อัปเดตแบบสดๆ',
     },
     {
+      q: 'ทำไมลูกทำงานเสร็จแล้ว แต่ในระบบของผู้ปกครองยังไม่ขึ้นสถานะ "เสร็จแล้ว"?',
+      a: 'สาเหตุส่วนใหญ่เกิดจากนักเรียนยังไม่ได้เข้าสู่ระบบ (Sign In) ด้วยเลขประจำตัว 5 หลักบนเว็บไซต์นักเรียน (primjaa.bungkii.app) ส่งผลให้ระบบไม่สามารถระบุตัวตนและบันทึกข้อมูลการส่งงานเฉพาะบุคคลได้ แนะนำให้นักเรียนเข้าสู่ระบบก่อน จากนั้นเปิดหน้ากระดานการบ้านแล้วกดอัปเดตสถานะงานใหม่อีกครั้ง ข้อมูลจะซิงก์มายังหน้าจอของผู้ปกครองทันทีครับ',
+    },
+    {
       q: 'ถ้ามีลูกหลานหลายคนในห้อง สามารถเลือกหรือสลับได้ไหม?',
       a: 'สามารถทำได้สะดวกมากครับ เพียงกดปุ่ม "เปลี่ยน" บนแถบด้านบน หรือที่การ์ดข้อมูลนักเรียน แล้วเลือกชื่อลูกอีกคนได้ทันที ระบบจะสลับมาแสดงสถานะการบ้านของลูกคนใหม่ให้อัตโนมัติ',
     },
@@ -78,7 +81,7 @@ export default function ParentManualClient() {
     },
     {
       q: 'หากต้องการติดต่อเรื่องการบ้านหรือแจ้งข้อผิดพลาด ติดต่อทางไหนได้บ้าง?',
-      a: 'สามารถพิมพ์ข้อความถามในแชทบอท LINE "พริมจ๋า" หรือส่งต่อข้อความถึงตัวแทนห้อง/แอดมินห้อง ม.2/3 ได้ตลอดเวลาครับ',
+      a: 'สามารถพิมพ์ข้อความถามในแชทบอท LINE "พริมจ๋า" หรือส่งต่อข้อความถึงครูประจำชั้น / กดปุ่มรายงานปัญหา ได้ตลอดเวลาครับ',
     },
   ];
 
@@ -398,42 +401,6 @@ export default function ParentManualClient() {
               </div>
             );
           })}
-        </div>
-      </div>
-
-      {/* Bottom Callout Banner */}
-      <div className="rounded-3xl p-6 sm:p-8 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 text-white text-center shadow-[0_8px_30px_rgba(244,63,94,0.25)] relative overflow-hidden">
-        <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-        <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-
-        <div className="relative z-10 max-w-xl mx-auto space-y-4">
-          <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center mx-auto text-white">
-            <Heart size={24} />
-          </div>
-
-          <h3 className="text-xl sm:text-2xl font-bold tracking-tight">
-            ร่วมเป็นกำลังใจให้ลูกๆ ห้อง ม.2/3 ไปด้วยกันนะค้า
-          </h3>
-
-          <p className="text-white/90 text-xs sm:text-sm leading-relaxed">
-            พร้อมเริ่มใช้งานหรือยัง? เข้าสู่กระดานการบ้านและเลือกลูกของคุณได้เลย
-          </p>
-
-          <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
-            <Link
-              href={`${basePath}/assignments`}
-              className="px-6 py-3 rounded-full bg-white text-rose-600 hover:bg-rose-50 font-bold text-sm shadow-md transition-all hover:scale-105 active:scale-95"
-            >
-              ไปยังกระดานการบ้านเลย ↗
-            </Link>
-
-            <Link
-              href={basePath || '/'}
-              className="px-5 py-3 rounded-full bg-white/20 hover:bg-white/30 text-white font-medium text-sm transition-all"
-            >
-              กลับหน้าหลักผู้ปกครอง
-            </Link>
-          </div>
         </div>
       </div>
     </PageTransition>
