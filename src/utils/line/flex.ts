@@ -615,7 +615,7 @@ export function createCustomPollFlexMessage(pollId: string, question: string, op
 
 export function createUniformFlexMessage(dayName: string, uniformName: string, themeColor: string, isFuture: boolean = false) {
   const headerText = isFuture ? "👗 เครื่องแบบ" : "👗 เครื่องแบบวันนี้";
-  
+
   const contents: any[] = [
     {
       type: "text",
@@ -779,7 +779,7 @@ export function createNextPeriodFlexMessage(period: number, subject: string, tea
   };
 }
 
-export function createDailyScheduleFlexMessage(dayName: string, classes: {period: number, subject: string, teacher: string}[]) {
+export function createDailyScheduleFlexMessage(dayName: string, classes: { period: number, subject: string, teacher: string }[]) {
   const classBoxes = classes.map(c => ({
     type: "box",
     layout: "horizontal",
@@ -928,14 +928,14 @@ export function createFundsFlexMessage(paidCount: number, unpaidStudents: number
     return `${idx + 1}. เลขที่ ${num}`;
   });
 
-  const unpaidText = unpaidListFormatted.length > 0 
+  const unpaidText = unpaidListFormatted.length > 0
     ? unpaidListFormatted.join('\n')
     : '🎉 ทุกคนจ่ายเงินครบหมดแล้ว ขอบคุณมากครับ!';
-  
+
   const headerColor = isHardcore ? '#dc2626' : '#059669'; // Red for hardcore, Emerald for normal
   const title = isHardcore ? '🚨 ตาลทวงยับ! ใครยังไม่จ่ายเงินห้อง' : '💰 รายงานสถานะเงินห้อง ม.2/3';
   const subtitleLabel = isHardcore ? '🔥 รายชื่อคนยังไม่จ่าย (รีบโอนด่วน!):' : '📋 รายชื่อนักเรียนที่ยังไม่จ่าย:';
-  
+
   // Hero Banner image (Official Tarn Thuang Yab banner)
   const heroImageUrl = isHardcore
     ? 'https://i.ibb.co/NgqMpjdP/66dcfc9536a1.png'
@@ -964,7 +964,7 @@ export function createFundsFlexMessage(paidCount: number, unpaidStudents: number
         contents: [
           {
             type: 'text',
-            text: `📅 ประจำสัปดาห์: ${weekLabel}`,
+            text: `ประจำสัปดาห์: ${weekLabel}`,
             color: '#64748b',
             size: 'xs',
             weight: 'bold',
@@ -977,7 +977,7 @@ export function createFundsFlexMessage(paidCount: number, unpaidStudents: number
             contents: [
               {
                 type: 'text',
-                text: 'ยอดเงินกองกลางคงเหลือ',
+                text: 'ยอดเงินคงเหลือ',
                 color: '#64748b',
                 size: 'xs',
                 weight: 'bold'
@@ -1071,7 +1071,7 @@ export function createFundsFlexMessage(paidCount: number, unpaidStudents: number
             type: 'button',
             action: {
               type: 'uri',
-              label: '📱 ตรวจสอบสถานะ / เช็คชื่อ',
+              label: 'รายละเอียดเพิ่มเติม',
               uri: 'https://primjaa.bungkii.app/funds'
             },
             style: 'primary',
