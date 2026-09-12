@@ -27,9 +27,17 @@ This repository is **Kanbann (ระบบจัดการห้องเร�
 
 ## 📂 Project Routing & File Map
 
+### 🌐 Domain Separation Architecture
+- **🏠 Parent Domain (`https://kanbann.bungkii.app`):**
+  - Dedicated Parent Portal served cleanly at root `/` and sub-paths `/assignments`, `/funds`, `/exams`, and `/manual`.
+  - Student-specific paths (`/kanban`, `/add`, `/schedule`, `/summaries`, `/settings`, `/line`, `/election`, etc.) are automatically redirected to `https://primjaa.bungkii.app${pathname}` via `src/utils/supabase/middleware.ts`.
+- **🎓 Student Domain (`https://primjaa.bungkii.app`):**
+  - Full classroom student portal with Kanban task board, schedule, exam summaries, feeds, and settings.
+  - Parent paths (`/parent`, `/parent/manual`, `/parent/assignments`) accessed on this domain redirect to `https://kanbann.bungkii.app`.
+
 ### Web Application Routes (`src/app/`)
 - `/` (`page.tsx`): Main dashboard displaying system cards with real-time toggle states, countdowns, and quick actions.
-- `/kanban` (`page.tsx`): Kanban board with drag-and-drop (`@dnd-kit`), urgent/overdue filters, and progress tracking.
+- `/kanban` (`page.tsx`): Kanban board with drag-and-drop (`@dnd-kit`), urgent/overdue filters, and role-based permissions (`SuperAdmin`, `Admin`, `Leader`, `Finance` can edit/delete tasks).
 - `/add` (`page.tsx`): Homework creation drawer form with image uploads and rich text descriptions.
 - `/schedule` (`page.tsx`, `ScheduleViewer.tsx`): Room 3 timetable (ม.2/3) supporting:
   - Mobile: Daily cards view with weekday color codes.
@@ -47,7 +55,8 @@ This repository is **Kanbann (ระบบจัดการห้องเร�
   - `/settings/schedule`: Edit timetable entries (subject, teacher, room, periods).
   - `/settings/cleaning`: Manage weekday cleaning duty rosters.
   - `/settings/uniform`: Manage daily student uniform requirements.
-- `/parent` (`layout.tsx`, `page.tsx`, `/assignments`, `/exams`, `/funds`, `/manual`): **Parent Portal (ระบบผู้ปกครอง)** — Portal with White & Pink aesthetic tailored for parents to track urgent/overdue homework, live real-time task completion when their child marks tasks as done (`student_task_completions`), final exam countdown, subject exam scopes, study summaries, class funds, and the dedicated White & Pink Parent Manual (`/parent/manual`).
+- `/parent` (`layout.tsx`, `page.tsx`, `/assignments`, `/exams`, `/funds`, `/manual`): **Parent Portal (ระบบผู้ปกครอง)** — Portal with White & Pink aesthetic tailored for parents to track urgent/overdue homework, live real-time task completion when their child marks tasks as done (`student_task_completions`), final exam countdown, subject exam scopes, study summaries, class funds, and the dedicated Parent Manual (`/parent/manual` and `https://kanbann.bungkii.app/manual`).
+- `/manual` (`page.tsx`): Standalone route rendering `ParentManualClient` ensuring `https://kanbann.bungkii.app/manual` works universally across domains and preview environments.
 - `/login`: Revamped White & Pink login system using 5-digit student ID only (legacy email removed completely), Live Student Profile Detection & rank/role badge preview, password visibility toggle, Caps Lock indicator, and quick 1-click access for parents.
 - `/api/student-task-completion`: API for fetching and updating per-student homework completion statuses with live sync to parents.
 
@@ -139,3 +148,4 @@ All commands are processed in `src/app/api/webhook/line/route.ts`:
    - The bot checks `primja_status` in the `system_settings` table before executing commands. If set to `offline`, it notifies the user of maintenance with the expected return time (`primja_offline_until`). Ensure any new command prefix is registered in `isCommand` inside `route.ts`.
 5. **Database Migrations:**
    - Database schemas and updates live in `/supabase/*.sql`. The consolidated master schema is `supabase/setup.sql` or `supabase/FULL_SETUP_2025.sql`.
+   - Child task completion sync table: `supabase/migration_student_task_completions.sql` (creates `student_task_completions` with RLS).
