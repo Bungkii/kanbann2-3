@@ -130,7 +130,7 @@ export default function LoginForm({ initialMessage }: LoginFormProps) {
     setUsername(id);
     const match = STUDENTS.find((s) => s.student_id === id);
     if (match) {
-      toast.success(`เลือก ${match.first_name} (${match.nickname}) แล้ว`, { icon: '🌸' });
+      toast.success(`เลือก ${match.first_name} (${match.nickname}) แล้ว`);
     }
   };
 
@@ -147,10 +147,15 @@ export default function LoginForm({ initialMessage }: LoginFormProps) {
       try {
         localStorage.setItem('parent_selected_student', JSON.stringify(selectedChild));
       } catch {}
-      toast.success(`เข้าสู่ระบบในฐานะผู้ปกครองน้อง${selectedChild.nickname} สำเร็จ!`, { icon: '🌸' });
-      router.push('/parent');
+      toast.success(`เข้าสู่ระบบในฐานะผู้ปกครองน้อง${selectedChild.nickname} สำเร็จ!`);
+    }
+    if (
+      typeof window !== 'undefined' &&
+      (window.location.hostname.includes('primjaa') || !window.location.hostname.includes('kanbann'))
+    ) {
+      window.location.href = 'https://kanbann.bungkii.app';
     } else {
-      router.push('/parent');
+      router.push('/');
     }
   };
 
@@ -216,7 +221,7 @@ export default function LoginForm({ initialMessage }: LoginFormProps) {
       );
 
       if (res.success) {
-        toast.success('รีเซ็ตรหัสผ่านสำเร็จเรียบร้อยแล้ว!', { icon: '🌸', duration: 5000 });
+        toast.success('รีเซ็ตรหัสผ่านสำเร็จเรียบร้อยแล้ว!', { duration: 5000 });
         setUsername(forgotStudentId.trim());
         setPassword(res.newPassword || `bBb@${forgotStudentId.trim()}`);
         setShowForgotModal(false);
@@ -231,7 +236,7 @@ export default function LoginForm({ initialMessage }: LoginFormProps) {
 
   return (
     <>
-      {/* 🌸 Dual Mode Switcher Tabs (นักเรียน vs ผู้ปกครอง) */}
+      {/* Dual Mode Switcher Tabs (นักเรียน vs ผู้ปกครอง) */}
       <div className="flex bg-pink-100/60 p-1 rounded-2xl mb-6 border border-pink-200/60">
         <button
           type="button"
@@ -326,7 +331,7 @@ export default function LoginForm({ initialMessage }: LoginFormProps) {
             </div>
           </div>
 
-          {/* 🌸 Live Student Profile Preview Card (เมื่อพิมพ์ครบ 5 หลัก) */}
+          {/* Live Student Profile Preview Card (เมื่อพิมพ์ครบ 5 หลัก) */}
           {detectedStudent && (
             <div className="p-3.5 rounded-2xl bg-gradient-to-r from-pink-50/80 via-rose-50/50 to-white border border-pink-200 shadow-2xs animate-in fade-in zoom-in-95 duration-200">
               <div className="flex items-center justify-between gap-3">
@@ -467,7 +472,7 @@ export default function LoginForm({ initialMessage }: LoginFormProps) {
 
           <div className="mt-2">
             <SubmitButton pendingText="กำลังตรวจสอบข้อมูล...">
-              เข้าสู่ระบบ (Sign In) 🌸
+              เข้าสู่ระบบ (Sign In)
             </SubmitButton>
           </div>
         </form>
@@ -564,17 +569,18 @@ export default function LoginForm({ initialMessage }: LoginFormProps) {
           </button>
 
           {/* Quick link to Parent Manual */}
-          <Link
-            href="/parent/manual"
+          <a
+            href="https://kanbann.bungkii.app/manual"
             className="w-full py-2.5 px-4 rounded-2xl bg-white hover:bg-rose-50/50 text-rose-700 font-semibold text-xs border border-pink-200 shadow-2xs transition-all flex items-center justify-center gap-2"
+            title="เปิดอ่านคู่มือการใช้งานสำหรับผู้ปกครอง (kanbann.bungkii.app/manual)"
           >
             <BookOpen size={14} className="text-rose-500" />
             <span>เปิดอ่านคู่มือการใช้งานสำหรับผู้ปกครอง 📖</span>
-          </Link>
+          </a>
         </div>
       )}
 
-      {/* 🌸 Forgot Password Modal */}
+      {/* Forgot Password Modal */}
       {showForgotModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-pink-100 relative">

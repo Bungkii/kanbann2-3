@@ -89,7 +89,7 @@ export default function ParentAssignmentsClient({ initialTasks }: { initialTasks
                 const matchedTask = tasks.find((t) => t.id === tId);
                 const taskName = matchedTask ? matchedTask.subject : 'การบ้าน';
                 toast.success(
-                  `🌸 น้อง${selectedStudent.nickname || selectedStudent.first_name} เพิ่งทำงานวิชา "${taskName}" เสร็จแล้ว! 🎉`,
+                  `น้อง${selectedStudent.nickname || selectedStudent.first_name} เพิ่งทำงานวิชา "${taskName}" เสร็จแล้ว! 🎉`,
                   {
                     duration: 6000,
                     style: {
@@ -240,7 +240,7 @@ export default function ParentAssignmentsClient({ initialTasks }: { initialTasks
 
   return (
     <div className="flex flex-col h-full">
-      {/* 🌸 Child Status Banner (White & Pink Aesthetic) */}
+      {/* Child Status Banner (White & Pink Aesthetic) */}
       {selectedStudent ? (
         <div className="mb-6 rounded-3xl p-5 sm:p-6 bg-gradient-to-r from-rose-50/90 via-pink-50/60 to-white border border-pink-200/80 shadow-[0_4px_24px_rgba(244,63,94,0.06)] relative overflow-hidden">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

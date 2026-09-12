@@ -71,7 +71,7 @@ export default async function ParentHomePage() {
       {/* Student Identification & Persistence Banner */}
       <ParentStudentBanner />
 
-      {/* 🌸 White & Pink Parent Guide Banner */}
+      {/* White & Pink Parent Guide Banner */}
       <div className="w-full max-w-4xl mb-8">
         <Link
           href={manualHref}
@@ -85,7 +85,7 @@ export default async function ParentHomePage() {
               <div className="min-w-0">
                 <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                   <h3 className="text-base sm:text-lg font-extrabold text-slate-800 group-hover:text-rose-600 transition-colors">
-                    คู่มือการใช้งานสำหรับผู้ปกครอง 🌸
+                    คู่มือการใช้งานสำหรับผู้ปกครอง
                   </h3>
                   <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700">
                     แนะนำ

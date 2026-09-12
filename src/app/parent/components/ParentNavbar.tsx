@@ -30,7 +30,7 @@ export default function ParentNavbar() {
       href: `${basePath}/exams`,
     },
     {
-      label: 'คู่มือ 🌸',
+      label: 'คู่มือ',
       href: `${basePath}/manual`,
     },
   ];
@@ -117,14 +117,14 @@ export default function ParentNavbar() {
               })}
 
               {/* Pink Accent Action Pill */}
-              <Link
-                href="/kanban"
+              <a
+                href="https://primjaa.bungkii.app/kanban"
                 className="ml-1 inline-flex items-center gap-1.5 px-4 lg:px-5 py-1.5 rounded-full bg-[#eb6885] hover:bg-[#e05977] text-white text-sm font-medium shadow-xs transition-all duration-200 hover:shadow-sm"
-                title="สลับไปยังหน้าหลักของนักเรียน"
+                title="สลับไปยังหน้าหลักของนักเรียน (primjaa.bungkii.app)"
               >
                 <span>ระบบนักเรียน</span>
                 <ArrowUpRight size={14} className="stroke-[2.2]" />
-              </Link>
+              </a>
             </nav>
           </div>
 
@@ -158,13 +158,14 @@ export default function ParentNavbar() {
               )}
             </button>
 
-            <Link
-              href="/kanban"
+            <a
+              href="https://primjaa.bungkii.app/kanban"
               className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#eb6885] text-white text-xs font-medium shadow-xs shrink-0"
+              title="สลับไปยังระบบนักเรียน"
             >
               <span>นักเรียน</span>
               <ArrowUpRight size={12} />
-            </Link>
+            </a>
           </div>
         </div>
       </header>

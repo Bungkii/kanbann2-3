@@ -12,17 +12,38 @@ export async function updateSession(request: NextRequest) {
     host.startsWith('kanbann.bungkii.app') ||
     (host.startsWith('kanbann.') && !host.includes('vercel.app'))
 
-  // 1. Student-only routes must NEVER be on parent domain
+  // 1. Student-only routes must NEVER be on parent domain (redirect to primjaa.bungkii.app)
   if (
     isParentDomain &&
-    (pathname.startsWith('/election') ||
+    (pathname.startsWith('/kanban') ||
+      pathname.startsWith('/add') ||
+      pathname.startsWith('/schedule') ||
+      pathname.startsWith('/summaries') ||
+      pathname.startsWith('/settings') ||
+      pathname.startsWith('/election') ||
       pathname.startsWith('/evaluate-boss') ||
-      pathname.startsWith('/homework-feed'))
+      pathname.startsWith('/homework-feed') ||
+      pathname.startsWith('/line') ||
+      pathname.startsWith('/exam-topics'))
   ) {
     return NextResponse.redirect(`https://primjaa.bungkii.app${pathname}`)
   }
 
-  // 2. If parent domain is accessed with /parent prefix, redirect to clean root path
+  // 2. Parent-only routes when accessed on student domain (primjaa.bungkii.app) -> redirect to kanbann.bungkii.app
+  if (
+    !isParentDomain &&
+    (host.startsWith('primjaa.bungkii.app') || host.startsWith('primjaa.'))
+  ) {
+    if (pathname === '/parent') {
+      return NextResponse.redirect('https://kanbann.bungkii.app')
+    }
+    if (pathname.startsWith('/parent/')) {
+      const cleanPath = pathname.replace(/^\/parent/, '')
+      return NextResponse.redirect(`https://kanbann.bungkii.app${cleanPath}`)
+    }
+  }
+
+  // 3. If parent domain is accessed with /parent prefix, redirect to clean root path
   if (isParentDomain) {
     if (pathname === '/parent') {
       const url = request.nextUrl.clone()
@@ -36,7 +57,7 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  // 3. Rewrite clean root paths on parent domain directly to /parent pages
+  // 4. Rewrite clean root paths on parent domain directly to /parent pages
   let rewriteUrl: URL | null = null
   if (
     isParentDomain &&
@@ -50,7 +71,8 @@ export async function updateSession(request: NextRequest) {
     } else if (
       pathname.startsWith('/assignments') ||
       pathname.startsWith('/exams') ||
-      pathname.startsWith('/funds')
+      pathname.startsWith('/funds') ||
+      pathname.startsWith('/manual')
     ) {
       rewriteUrl = request.nextUrl.clone()
       rewriteUrl.pathname = `/parent${pathname}`

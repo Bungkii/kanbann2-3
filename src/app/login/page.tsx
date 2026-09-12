@@ -7,7 +7,7 @@ type Props = {
 };
 
 export const metadata = {
-  title: 'เข้าสู่ระบบ 🌸 | พริมทวงยิก ม.2/3',
+  title: 'เข้าสู่ระบบ | พริมทวงยิก ม.2/3',
   description: 'ระบบเข้าสู่ระบบด้วยเลขประจำตัวนักเรียน และทางเข้าสำหรับผู้ปกครองห้อง ม.2/3',
 };
 
@@ -27,16 +27,17 @@ export default async function LoginPage(props: Props) {
       </Link>
 
       {/* Parent Manual Quick Link (Top Right) */}
-      <Link
-        href="/parent/manual"
+      <a
+        href="https://kanbann.bungkii.app/manual"
         className="absolute right-4 top-4 sm:right-6 sm:top-6 py-2 px-4 rounded-full no-underline text-rose-700 bg-white/90 hover:bg-rose-50 border border-pink-200/80 shadow-2xs backdrop-blur-md flex items-center gap-2 text-xs sm:text-sm font-semibold transition-all hover:scale-105 z-20"
+        title="เปิดดูคู่มือผู้ปกครอง (kanbann.bungkii.app/manual)"
       >
         <BookOpen size={14} className="text-rose-500" />
-        <span className="hidden sm:inline">คู่มือผู้ปกครอง 🌸</span>
-        <span className="sm:hidden">คู่มือ 🌸</span>
-      </Link>
+        <span className="hidden sm:inline">คู่มือผู้ปกครอง</span>
+        <span className="sm:hidden">คู่มือ</span>
+      </a>
 
-      {/* Subtle ambient pink sakura glows */}
+      {/* Subtle ambient pink glows */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -top-32 -right-32 w-[420px] h-[420px] bg-rose-200/30 rounded-full blur-3xl" />
         <div className="absolute -bottom-32 -left-32 w-[420px] h-[420px] bg-pink-200/30 rounded-full blur-3xl" />
@@ -46,7 +47,7 @@ export default async function LoginPage(props: Props) {
       <div className="w-full max-w-md relative z-10 my-auto">
         {/* App branding header */}
         <div className="text-center mb-6">
-          {/* 🌸 LOGO SLOT: โลโก้ของระบบ (สามารถเปลี่ยนรูปได้ที่นี่หรือแทนที่ /icons/icon-192.jpg) */}
+          {/* Logo container */}
           <div className="w-20 h-20 sm:w-22 sm:h-22 rounded-3xl mx-auto mb-3.5 bg-white p-2 border-2 border-pink-200 shadow-[0_8px_30px_rgba(244,63,94,0.15)] flex items-center justify-center relative group">
             <img
               src="/icons/icon-192.jpg"
@@ -60,7 +61,6 @@ export default async function LoginPage(props: Props) {
 
           <h1 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight flex items-center justify-center gap-2">
             <span>เข้าสู่ระบบ</span>
-            <span className="text-rose-500 text-xl">🌸</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
             พริมทวงยิก · ระบบห้องเรียน & ผู้ปกครอง ม.2/3

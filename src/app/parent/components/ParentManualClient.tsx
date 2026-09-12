@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
   Heart,
   CheckCircle2,
@@ -26,6 +27,10 @@ import toast from 'react-hot-toast';
 import PageTransition from '@/components/PageTransition';
 
 export default function ParentManualClient() {
+  const pathname = usePathname();
+  const isUnderParent = pathname.startsWith('/parent');
+  const basePath = isUnderParent ? '/parent' : '';
+
   const [copied, setCopied] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
@@ -34,7 +39,7 @@ export default function ParentManualClient() {
       navigator.clipboard.writeText(window.location.href);
       setCopied(true);
       toast.success('คัดลอกลิงก์คู่มือเรียบร้อยแล้ว!', {
-        icon: '🌸',
+        icon: '📋',
         style: {
           borderRadius: '16px',
           background: '#FFF1F2',
@@ -49,7 +54,7 @@ export default function ParentManualClient() {
   const handleShareLine = () => {
     if (typeof window !== 'undefined') {
       const url = encodeURIComponent(window.location.href);
-      const text = encodeURIComponent('🌸 คู่มือการใช้งานระบบติดตามการบ้านห้อง ม.2/3 สำหรับผู้ปกครอง: ');
+      const text = encodeURIComponent('คู่มือการใช้งานระบบติดตามการบ้านห้อง ม.2/3 สำหรับผู้ปกครอง: ');
       window.open(`https://line.me/R/msg/text/?${text}${url}`, '_blank');
     }
   };
@@ -79,7 +84,7 @@ export default function ParentManualClient() {
 
   return (
     <PageTransition className="max-w-5xl mx-auto py-4 sm:py-8 px-2 sm:px-4 space-y-10">
-      {/* 🌸 Hero Header (White & Pink Aesthetic) */}
+      {/* Hero Header (White & Pink Aesthetic) */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-rose-50/90 via-pink-50/70 to-white border border-pink-200/80 p-6 sm:p-10 shadow-[0_10px_40px_rgba(244,63,94,0.08)]">
         {/* Soft background ambient glows */}
         <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-pink-300/20 rounded-full blur-3xl pointer-events-none" />
@@ -95,7 +100,7 @@ export default function ParentManualClient() {
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-800 tracking-tight leading-tight">
               ยินดีต้อนรับสู่ระบบติดตามงาน <br className="hidden sm:inline" />
               <span className="bg-gradient-to-r from-rose-500 to-pink-600 bg-clip-text text-transparent">
-                สำหรับผู้ปกครองห้อง ม.2/3 🌸
+                สำหรับผู้ปกครองห้อง ม.2/3
               </span>
             </h1>
 
@@ -107,7 +112,7 @@ export default function ParentManualClient() {
             {/* Quick Action Buttons */}
             <div className="mt-6 flex flex-wrap items-center justify-center md:justify-start gap-3">
               <Link
-                href="/parent/assignments"
+                href={`${basePath}/assignments`}
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-bold text-sm shadow-[0_4px_16px_rgba(244,63,94,0.3)] transition-all hover:scale-105 active:scale-95"
               >
                 <span>ไปที่กระดานการบ้าน</span>
@@ -154,7 +159,7 @@ export default function ParentManualClient() {
         </div>
       </div>
 
-      {/* 🌸 6 Key Step Cards in White & Pink */}
+      {/* 6 Key Step Cards in White & Pink */}
       <div className="space-y-6">
         <div className="text-center sm:text-left">
           <h2 className="text-xl sm:text-2xl font-black text-slate-800 flex items-center justify-center sm:justify-start gap-2">
@@ -351,7 +356,7 @@ export default function ParentManualClient() {
         </div>
       </div>
 
-      {/* 🌸 Interactive FAQ Section */}
+      {/* Interactive FAQ Section */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-pink-100 shadow-[0_6px_30px_rgba(0,0,0,0.03)]">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
@@ -396,7 +401,7 @@ export default function ParentManualClient() {
         </div>
       </div>
 
-      {/* 🌸 Bottom Callout Banner */}
+      {/* Bottom Callout Banner */}
       <div className="rounded-3xl p-6 sm:p-8 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 text-white text-center shadow-[0_8px_30px_rgba(244,63,94,0.25)] relative overflow-hidden">
         <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
         <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
@@ -407,7 +412,7 @@ export default function ParentManualClient() {
           </div>
 
           <h3 className="text-xl sm:text-2xl font-bold tracking-tight">
-            ร่วมเป็นกำลังใจให้ลูกๆ ห้อง ม.2/3 ไปด้วยกันนะค้า 🌸
+            ร่วมเป็นกำลังใจให้ลูกๆ ห้อง ม.2/3 ไปด้วยกันนะค้า
           </h3>
 
           <p className="text-white/90 text-xs sm:text-sm leading-relaxed">
@@ -416,14 +421,14 @@ export default function ParentManualClient() {
 
           <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
             <Link
-              href="/parent/assignments"
+              href={`${basePath}/assignments`}
               className="px-6 py-3 rounded-full bg-white text-rose-600 hover:bg-rose-50 font-bold text-sm shadow-md transition-all hover:scale-105 active:scale-95"
             >
               ไปยังกระดานการบ้านเลย ↗
             </Link>
 
             <Link
-              href="/parent"
+              href={basePath || '/'}
               className="px-5 py-3 rounded-full bg-white/20 hover:bg-white/30 text-white font-medium text-sm transition-all"
             >
               กลับหน้าหลักผู้ปกครอง
