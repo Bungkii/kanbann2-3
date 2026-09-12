@@ -17,7 +17,7 @@ export default function Error({
   }, [error]);
 
   return (
-    <main 
+    <main
       role="main"
       className="relative min-h-screen w-full flex flex-col items-center justify-between overflow-hidden bg-[#0A0E17] text-white px-4 py-8 select-none"
     >
@@ -34,14 +34,14 @@ export default function Error({
       </div>
 
       {/* Main Container */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 24, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
         className="relative z-10 w-full max-w-lg mx-auto flex flex-col items-center text-center my-auto py-6"
       >
         {/* Glowing Error Octagon Badge */}
-        <motion.div 
+        <motion.div
           initial={{ scale: 0.8 }}
           animate={{ scale: 1 }}
           transition={{ type: 'spring', stiffness: 200, damping: 14 }}
@@ -77,7 +77,7 @@ export default function Error({
             <RefreshCw size={16} />
             ลองใหม่อีกครั้ง
           </button>
-          
+
           <Link
             href="/"
             className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-white/10 hover:bg-white/15 text-white text-sm font-semibold border border-white/10 backdrop-blur-md transition-all active:scale-95 cursor-pointer"
