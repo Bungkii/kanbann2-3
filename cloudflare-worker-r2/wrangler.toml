@@ -1,0 +1,19 @@
+name = "kanbann-r2-worker"
+main = "src/worker.js"
+compatibility_date = "2024-09-01"
+
+# 🪣 Cloudflare R2 Bucket Binding
+# ให้สร้าง R2 Bucket ชื่อ 'kanbann-storage' ใน Cloudflare Dashboard แล้วผูกกับ Worker
+[[r2_buckets]]
+binding = "MY_BUCKET"
+bucket_name = "kanbann-storage"
+preview_bucket_name = "kanbann-storage-preview"
+
+[vars]
+PUBLIC_URL = "https://cdn.bungkii.app"
+AUTH_SECRET = "" # ใส่ Secret Token หากต้องการจำกัดสิทธิ์อัปโหลด หรือปล่อยว่างเพื่อให้อัปโหลดแบบเปิด
+
+# 🌐 Custom Domain บน Cloudflare (cdn.bungkii.app)
+routes = [
+  { pattern = "cdn.bungkii.app/*", zone_name = "bungkii.app" }
+]

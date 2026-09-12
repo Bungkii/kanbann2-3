@@ -10,7 +10,11 @@ This repository is **Kanbann (ระบบจัดการห้องเร�
 
 - **Core Framework:** Next.js 16 (App Router), React 19, TypeScript 5.9
 - **Styling:** Tailwind CSS v4 (`@tailwindcss/postcss`, PostCSS), Emotion / Styled-Components (compat)
-- **Database & Storage:** Supabase (PostgreSQL, Row Level Security, Storage Buckets, Auth)
+- **Database:** Supabase (PostgreSQL, Row Level Security, Auth)
+- **Storage & Upload Architecture:**
+  - 🖼️ **Images:** ImgBB API (`uploadImageToImgBB`)
+  - 📁 **All Other Files & Documents:** Cloudflare R2 Storage via Cloudflare Worker (`uploadFileToR2`) rooted at **`https://cdn.bungkii.app`**
+  - 🤖 **Smart Uploader:** `uploadFileSmart` (`src/utils/upload.ts`) & standalone Worker in `cloudflare-worker-r2/`
 - **Supabase Clients:**
   - Server Components & Server Actions: `@/utils/supabase/server` (`createClient()`)
   - Client Components: `@/utils/supabase/client` (`createClient()`)

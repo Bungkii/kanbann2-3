@@ -10,6 +10,10 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'cdn.bungkii.app',
+      },
+      {
+        protocol: 'https',
         hostname: 'storage.cnintercon.tech',
       },
       {

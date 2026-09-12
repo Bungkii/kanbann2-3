@@ -1,0 +1,14 @@
+{
+  "name": "kanbann-r2-worker",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker for uploading and serving all file types to Cloudflare R2 Storage for Kanbann ม.2/3",
+  "main": "src/worker.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "wrangler": "^3.111.0"
+  }
+}
