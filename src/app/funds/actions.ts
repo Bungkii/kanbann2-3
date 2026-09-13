@@ -1,7 +1,46 @@
 'use server'
 
 import { createClient } from '@/utils/supabase/server'
+import { getCurrentStudentSession } from '@/utils/studentAuth'
 import { revalidatePath } from 'next/cache'
+
+/**
+ * Checks if the current request is from an authenticated user (Supabase Auth OR Student Session).
+ */
+async function getAuthenticatedOperator() {
+  const studentSession = await getCurrentStudentSession()
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user && !studentSession) {
+    return null
+  }
+
+  return {
+    userId: user?.id || (studentSession ? `student-${studentSession.student_id}` : null),
+    role: studentSession?.role || (user?.user_metadata?.role as string) || 'Student',
+    studentSession,
+    user,
+  }
+}
+
+function isValidUUID(id?: string | null): boolean {
+  if (!id) return false
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
+}
+
+function normalizeValue(raw: any): any {
+  if (raw === null || raw === undefined) return null
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw)
+      return parsed
+    } catch {
+      return raw
+    }
+  }
+  return raw
+}
 
 export async function getFundsForWeek(weekStartDate: string) {
   const supabase = await createClient()
@@ -70,20 +109,16 @@ export async function getExpenses() {
   return data || []
 }
 
-function isValidUUID(id?: string | null): boolean {
-  if (!id) return false
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
-}
-
 export async function addExpense(amount: number, description: string, receiptUrl: string | null) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'กรุณาล็อกอินก่อน' }
+  const operator = await getAuthenticatedOperator()
+  if (!operator) return { error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
   const { createClient: createSupabaseClient } = await import('@supabase/supabase-js')
   const adminSupabase = createSupabaseClient(supabaseUrl, supabaseKey)
+
+  const createdBy = operator.user && isValidUUID(operator.user.id) ? operator.user.id : null
 
   const { error } = await adminSupabase
     .from('class_expenses')
@@ -91,19 +126,19 @@ export async function addExpense(amount: number, description: string, receiptUrl
       amount,
       description,
       receipt_url: receiptUrl,
-      created_by: isValidUUID(user.id) ? user.id : null
+      created_by: createdBy
     })
 
   if (error) return { error: error.message }
   
   revalidatePath('/funds')
+  revalidatePath('/parent/funds')
   return { success: true }
 }
 
 export async function deleteExpense(id: string) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'กรุณาล็อกอินก่อน' }
+  const operator = await getAuthenticatedOperator()
+  if (!operator) return { error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -118,6 +153,7 @@ export async function deleteExpense(id: string) {
   if (error) return { error: error.message }
   
   revalidatePath('/funds')
+  revalidatePath('/parent/funds')
   return { success: true }
 }
 
@@ -126,23 +162,9 @@ export async function getTotalFunds() {
   return totalFunds
 }
 
-function normalizeValue(raw: any): any {
-  if (raw === null || raw === undefined) return null
-  if (typeof raw === 'string') {
-    try {
-      const parsed = JSON.parse(raw)
-      return parsed
-    } catch {
-      return raw
-    }
-  }
-  return raw
-}
-
 export async function setFundsBalanceAdjustment(amount: number) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'กรุณาล็อกอินก่อน' }
+  const operator = await getAuthenticatedOperator()
+  if (!operator) return { error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' }
   
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -160,6 +182,7 @@ export async function setFundsBalanceAdjustment(amount: number) {
   if (error) return { error: error.message }
   
   revalidatePath('/funds')
+  revalidatePath('/parent/funds')
   return { success: true }
 }
 
@@ -181,7 +204,7 @@ export async function getFundsSettings() {
     if (item.key === 'final_exam_date') finalExamDate = typeof val === 'string' ? val : (val ? String(val) : null)
   })
   
-  // Also query distinct recorded weeks from class_funds to guarantee all past recorded weeks remain selectable
+  // Also query distinct recorded weeks from class_funds
   const { data: weekData } = await supabase
     .from('class_funds')
     .select('week_start_date')
@@ -192,9 +215,8 @@ export async function getFundsSettings() {
 }
 
 export async function setFundsSettings(startDate: string, endDate: string, finalExamDate: string) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'กรุณาล็อกอินก่อน' }
+  const operator = await getAuthenticatedOperator()
+  if (!operator) return { error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' }
   
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -215,15 +237,14 @@ export async function setFundsSettings(startDate: string, endDate: string, final
   if (error) return { error: error.message }
   
   revalidatePath('/funds')
+  revalidatePath('/parent/funds')
   return { success: true }
 }
 
 export async function toggleFundStatus(weekStartDate: string, studentNumber: number, isPaid: boolean, amount: number = 20) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    return { error: 'กรุณาล็อกอินก่อน' }
+  const operator = await getAuthenticatedOperator()
+  if (!operator) {
+    return { error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' }
   }
 
   // Use service role to bypass RLS
@@ -231,6 +252,8 @@ export async function toggleFundStatus(weekStartDate: string, studentNumber: num
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
   const { createClient: createSupabaseClient } = await import('@supabase/supabase-js')
   const adminSupabase = createSupabaseClient(supabaseUrl, supabaseKey)
+
+  const updatedBy = operator.user && isValidUUID(operator.user.id) ? operator.user.id : null
 
   const { error } = await adminSupabase
     .from('class_funds')
@@ -240,7 +263,7 @@ export async function toggleFundStatus(weekStartDate: string, studentNumber: num
       is_paid: isPaid,
       amount: amount,
       updated_at: new Date().toISOString(),
-      updated_by: isValidUUID(user?.id) ? user.id : null
+      updated_by: updatedBy
     }, {
       onConflict: 'week_start_date,student_number'
     })
@@ -251,5 +274,91 @@ export async function toggleFundStatus(weekStartDate: string, studentNumber: num
   }
   
   revalidatePath('/funds')
+  revalidatePath('/parent/funds')
   return { success: true }
+}
+
+/**
+ * Resets the class funds cycle:
+ * 1. Preserves net remaining balance by converting it to the new Starting Balance Adjustment (funds_balance_adjustment).
+ * 2. Keeps 100% of all expense history (class_expenses).
+ * 3. Clears old student payment records (class_funds).
+ * 4. Sets new cycle dates (funds_start_date, funds_end_date, final_exam_date).
+ */
+export async function resetFundsCycleAction(params?: {
+  newStartDate?: string | null;
+  newEndDate?: string | null;
+  newExamDate?: string | null;
+}) {
+  const operator = await getAuthenticatedOperator()
+  if (!operator) {
+    return { error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' }
+  }
+
+  // 1. Calculate current fund statistics
+  const currentFunds = await getFundsData()
+  const currentRemainingBalance = currentFunds.totalFunds
+  const currentExpenses = currentFunds.sumExpenses
+
+  // Accounting formula:
+  // totalFunds = sumPaid + adjustment - sumExpenses
+  // When class_funds is cleared, sumPaid becomes 0.
+  // To preserve currentRemainingBalance:
+  // currentRemainingBalance = 0 + newAdjustment - currentExpenses
+  // => newAdjustment = currentRemainingBalance + currentExpenses
+  const newAdjustment = currentRemainingBalance + currentExpenses
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+  const { createClient: createSupabaseClient } = await import('@supabase/supabase-js')
+  const adminSupabase = createSupabaseClient(supabaseUrl, supabaseKey)
+
+  // 2. Clear all student weekly payments in class_funds
+  const { error: clearFundsError } = await adminSupabase
+    .from('class_funds')
+    .delete()
+    .gte('student_number', 0)
+
+  if (clearFundsError) {
+    console.error('Error clearing class_funds:', clearFundsError)
+    return { error: `เกิดข้อผิดพลาดในการล้างประวัติการเก็บเงิน: ${clearFundsError.message}` }
+  }
+
+  // 3. Upsert new adjustment and new cycle dates into system_settings
+  const now = new Date().toISOString()
+  const settingsUpdates: Array<{ key: string; value: any; updated_at: string }> = [
+    {
+      key: 'funds_balance_adjustment',
+      value: newAdjustment,
+      updated_at: now,
+    }
+  ]
+
+  if (params?.newStartDate) {
+    settingsUpdates.push({ key: 'funds_start_date', value: params.newStartDate, updated_at: now })
+  }
+  if (params?.newEndDate) {
+    settingsUpdates.push({ key: 'funds_end_date', value: params.newEndDate, updated_at: now })
+  }
+  if (params?.newExamDate) {
+    settingsUpdates.push({ key: 'final_exam_date', value: params.newExamDate, updated_at: now })
+  }
+
+  const { error: settingsError } = await adminSupabase
+    .from('system_settings')
+    .upsert(settingsUpdates, { onConflict: 'key' })
+
+  if (settingsError) {
+    console.error('Error updating system_settings:', settingsError)
+    return { error: `เกิดข้อผิดพลาดในการบันทึกการตั้งค่า: ${settingsError.message}` }
+  }
+
+  revalidatePath('/funds')
+  revalidatePath('/parent/funds')
+  revalidatePath('/')
+  return {
+    success: true,
+    remainingBalance: currentRemainingBalance,
+    newAdjustment,
+  }
 }

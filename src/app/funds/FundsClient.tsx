@@ -21,7 +21,12 @@ import {
   Image as ImageIcon, 
   FileSpreadsheet, 
   FileText, 
-  Calendar 
+  Calendar,
+  AlertTriangle,
+  CalendarDays,
+  Check,
+  Sparkles,
+  ShieldAlert
 } from 'lucide-react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
@@ -31,7 +36,8 @@ import {
   addExpense, 
   deleteExpense, 
   getFundsForWeek, 
-  setFundsSettings 
+  setFundsSettings,
+  resetFundsCycleAction
 } from './actions'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { STUDENTS } from '@/data/students'
@@ -147,11 +153,19 @@ export default function FundsClient({
   }, [searchParams, weekStart])
 
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [modalTab, setModalTab] = useState<'adjust' | 'dates' | 'reset'>('adjust')
   const [adjType, setAdjType] = useState<'add' | 'sub' | 'set'>('set')
   const [adjAmount, setAdjAmount] = useState('')
   const [settingStartDate, setSettingStartDate] = useState(localSettings.startDate || '')
   const [settingEndDate, setSettingEndDate] = useState(localSettings.endDate || '')
   const [settingExamDate, setSettingExamDate] = useState(localSettings.finalExamDate || '')
+  
+  // Reset Cycle State
+  const [resetConfirmText, setResetConfirmText] = useState('')
+  const [isResettingCycle, setIsResettingCycle] = useState(false)
+  const [resetStartDate, setResetStartDate] = useState(localSettings.startDate || getMonday(new Date()))
+  const [resetEndDate, setResetEndDate] = useState(localSettings.endDate || '')
+  const [resetExamDate, setResetExamDate] = useState(localSettings.finalExamDate || '')
   
   // Edit Student Amount State
   const [editingStudent, setEditingStudent] = useState<{ num: number, amount: number, isPaid: boolean } | null>(null)
@@ -188,11 +202,26 @@ export default function FundsClient({
     return Array.from({ length: maxNo }, (_, i) => i + 1)
   }, [localFundsData])
 
-  // Robust, timezone-safe generation of available weeks
+  // Robust, timezone-safe generation of available weeks based on configured cycle
   const weeksList = useMemo(() => {
     const weekSet = new Set<string>()
-    const startStr = localSettings.startDate ? getMonday(localSettings.startDate) : '2024-05-13'
-    const endStr = localSettings.endDate ? getMonday(localSettings.endDate) : (currentWeekStart ? getMonday(currentWeekStart) : formatDateISO(new Date()))
+    
+    const defaultStart = () => {
+      const now = new Date()
+      return getMonday(new Date(now.getFullYear(), now.getMonth(), 1))
+    }
+
+    const startStr = localSettings.startDate ? getMonday(localSettings.startDate) : defaultStart()
+    
+    let endStr: string
+    if (localSettings.endDate) {
+      endStr = getMonday(localSettings.endDate)
+    } else {
+      const sDate = parseDateParts(startStr)
+      const defaultEnd = new Date(sDate)
+      defaultEnd.setDate(defaultEnd.getDate() + 7 * 11) // 12 weeks total
+      endStr = getMonday(defaultEnd)
+    }
 
     const startDate = parseDateParts(startStr)
     const endDate = parseDateParts(endStr)
@@ -201,7 +230,7 @@ export default function FundsClient({
     const limitEnd = startDate <= endDate ? new Date(endDate) : new Date(startDate)
 
     let count = 0
-    while (cur <= limitEnd && count < 150) {
+    while (cur <= limitEnd && count < 60) {
       weekSet.add(formatDateISO(cur))
       cur.setDate(cur.getDate() + 7)
       count++
@@ -212,15 +241,34 @@ export default function FundsClient({
       weekSet.add(getMonday(currentWeekStart))
     }
 
-    // Always include any week that was recorded in database history
+    // Only include recorded weeks if they are within or after the cycle's start date
     if (localSettings.recordedWeeks && Array.isArray(localSettings.recordedWeeks)) {
       localSettings.recordedWeeks.forEach((w: string) => {
-        if (w) weekSet.add(getMonday(w))
+        if (w && (!localSettings.startDate || w >= startStr)) {
+          weekSet.add(getMonday(w))
+        }
       })
     }
 
     return Array.from(weekSet).sort().reverse() // Newest first
   }, [localSettings, currentWeekStart])
+
+  const chronologicalWeeks = useMemo(() => {
+    return Array.from(new Set(weeksList)).sort()
+  }, [weeksList])
+
+  const getWeekOptionLabel = (w: string) => {
+    const idx = chronologicalWeeks.indexOf(w)
+    const start = parseDateParts(w)
+    const end = new Date(start)
+    end.setDate(end.getDate() + 6)
+    
+    const startStr = `${start.getDate()} ${start.toLocaleDateString('th-TH', { month: 'short' })}`
+    const endStr = `${end.getDate()} ${end.toLocaleDateString('th-TH', { month: 'short', year: '2-digit' })}`
+    
+    const isThisWeek = w === currentWeekStart ? ' ⭐ (สัปดาห์นี้)' : ''
+    return `สัปดาห์ที่ ${idx + 1}: ${startStr} – ${endStr}${isThisWeek}`
+  }
 
   const changeWeek = async (direction: 'prev' | 'next' | string) => {
     let targetDateStr = direction
@@ -309,14 +357,64 @@ export default function FundsClient({
 
   const submitSettings = async () => {
     setLoading(true)
+    const toastId = toast.loading('กำลังบันทึกการตั้งค่าวันที่...')
     const result = await setFundsSettings(settingStartDate, settingEndDate, settingExamDate)
     setLoading(false)
     if (result.error) {
-      toast.error(result.error)
+      toast.error(result.error, { id: toastId })
     } else {
-      toast.success('บันทึกการตั้งค่าระบบเรียบร้อย')
+      toast.success('บันทึกรอบวันที่เก็บเงินเรียบร้อยแล้ว!', { id: toastId })
+      setLocalSettings(prev => ({
+        ...prev,
+        startDate: settingStartDate,
+        endDate: settingEndDate,
+        finalExamDate: settingExamDate
+      }))
       setIsModalOpen(false)
       window.location.reload()
+    }
+  }
+
+  const handleResetCycle = async () => {
+    if (resetConfirmText.trim() !== 'ยืนยัน') {
+      return toast.error('กรุณาพิมพ์คำว่า "ยืนยัน" ในช่องเพื่อยืนยันการรีเซ็ต')
+    }
+
+    const confirmMsg = `ยืนยันรีเซ็ตรอบเก็บเงินใหม่?\n\n• ยอดเงินคงเหลือสุทธิ ${localFundsStats.totalFunds.toLocaleString()} บาท จะถูกยกไปเป็นเงินตั้งต้น\n• ประวัติรายจ่ายทั้งหมด ${localExpenses.length} รายการ จะถูกเก็บไว้ครบถ้วน\n• ประวัติการติ๊กเงินของนักเรียนจะถูกล้างเพื่อเริ่มรอบใหม่`
+    if (!window.confirm(confirmMsg)) {
+      return
+    }
+
+    setIsResettingCycle(true)
+    const toastId = toast.loading('กำลังรีเซ็ตระบบและยกยอดเงินคงเหลือ...')
+
+    try {
+      const res = await resetFundsCycleAction({
+        newStartDate: resetStartDate || null,
+        newEndDate: resetEndDate || null,
+        newExamDate: resetExamDate || null,
+      })
+
+      if (res.error) {
+        toast.error(res.error, { id: toastId })
+        setIsResettingCycle(false)
+        return
+      }
+
+      toast.success(
+        `รีเซ็ตระบบเริ่มใหม่สำเร็จ! ยอดคงเหลือ ${res.remainingBalance?.toLocaleString()} บาท ถูกยกมาเป็นเงินตั้งต้นเรียบร้อย`,
+        { id: toastId, duration: 6000 }
+      )
+      
+      setIsModalOpen(false)
+      setResetConfirmText('')
+      
+      setTimeout(() => {
+        window.location.href = isParentMode ? '/parent/funds' : '/funds'
+      }, 600)
+    } catch (err: any) {
+      toast.error(err.message || 'เกิดข้อผิดพลาดในการรีเซ็ต', { id: toastId })
+      setIsResettingCycle(false)
     }
   }
 
@@ -712,16 +810,16 @@ export default function FundsClient({
           </button>
           
           <div className="text-center flex-1 mx-4">
-            <h2 className="text-xl font-bold text-slate-800 flex items-center justify-center gap-2">
-              สัปดาห์ 
+            <h2 className="text-lg sm:text-xl font-bold text-slate-800 flex flex-wrap items-center justify-center gap-2">
+              <span>สัปดาห์:</span>
               <select
                 value={weekStart}
                 onChange={(e) => changeWeek(e.target.value)}
-                className="bg-transparent border-b-2 border-slate-300 font-bold focus:outline-none focus:border-indigo-500 pb-1 text-center cursor-pointer"
+                className="bg-white px-3 py-1.5 rounded-xl border border-slate-200 font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base cursor-pointer shadow-2xs max-w-[280px] truncate"
               >
-                {weeksList.map(w => (
+                {weeksList.map((w) => (
                   <option key={w} value={w}>
-                    {new Date(w).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}
+                    {getWeekOptionLabel(w)}
                   </option>
                 ))}
               </select>
@@ -1050,128 +1148,264 @@ export default function FundsClient({
             animate={{ opacity: 1, scale: 1 }}
             className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto"
           >
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
-              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                <Settings className="text-indigo-500" size={24} />
-                ตั้งค่ายอดเงินห้อง
-              </h2>
-              <button onClick={() => setIsModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors">
-                <X size={20} />
+            {/* Tab Navigation Header */}
+            <div className="flex border-b border-slate-200 px-6 bg-slate-50/60">
+              <button
+                type="button"
+                onClick={() => setModalTab('adjust')}
+                className={`py-3 px-3 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer flex items-center gap-1.5 ${
+                  modalTab === 'adjust'
+                    ? 'border-indigo-600 text-indigo-600 bg-white'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <HandCoins size={15} />
+                <span>ปรับยอดเงิน</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setModalTab('dates')}
+                className={`py-3 px-3 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer flex items-center gap-1.5 ${
+                  modalTab === 'dates'
+                    ? 'border-indigo-600 text-indigo-600 bg-white'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <Calendar size={15} />
+                <span>รอบวันที่</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setModalTab('reset')}
+                className={`py-3 px-3 sm:px-4 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer flex items-center gap-1.5 ${
+                  modalTab === 'reset'
+                    ? 'border-rose-600 text-rose-600 bg-white'
+                    : 'border-transparent text-slate-500 hover:text-rose-600'
+                }`}
+              >
+                <RotateCcw size={15} />
+                <span>รีเซ็ตเริ่มรอบใหม่</span>
               </button>
             </div>
             
             <div className="p-6 space-y-6">
-              <div className="bg-slate-50 p-4 rounded-2xl space-y-2 text-sm border border-slate-100">
-                <div className="flex justify-between text-slate-600">
-                  <span>เงินที่เก็บได้จริง (จากตารางติ๊ก):</span>
-                  <span className="font-semibold text-slate-800">{localFundsStats.sumPaid.toLocaleString()} ฿</span>
-                </div>
-                <div className="flex justify-between text-slate-600">
-                  <span>ยอดปรับฐาน (ที่ถูกหัก/เพิ่ม):</span>
-                  <span className={`font-semibold ${localFundsStats.adjustment < 0 ? 'text-rose-500' : localFundsStats.adjustment > 0 ? 'text-emerald-500' : 'text-slate-400'}`}>
-                    {localFundsStats.adjustment > 0 ? '+' : ''}{localFundsStats.adjustment.toLocaleString()} ฿
-                  </span>
-                </div>
-                <div className="flex justify-between text-rose-600">
-                  <span>หักรายจ่ายทั้งหมด:</span>
-                  <span className="font-semibold">-{localFundsStats.sumExpenses.toLocaleString()} ฿</span>
-                </div>
-                <div className="border-t border-slate-200 pt-2 mt-2 flex justify-between font-bold text-base text-slate-800">
-                  <span>ยอดเงินสุทธิปัจจุบัน:</span>
-                  <span className="text-indigo-600">{localFundsStats.totalFunds.toLocaleString()} ฿</span>
-                </div>
-              </div>
+              {/* TAB 1: ADJUSTMENT */}
+              {modalTab === 'adjust' && (
+                <div className="space-y-6 animate-in fade-in duration-150">
+                  <div className="bg-slate-50 p-4 rounded-2xl space-y-2 text-sm border border-slate-100">
+                    <div className="flex justify-between text-slate-600">
+                      <span>เงินที่เก็บได้จริง (จากตารางติ๊ก):</span>
+                      <span className="font-semibold text-slate-800">{localFundsStats.sumPaid.toLocaleString()} ฿</span>
+                    </div>
+                    <div className="flex justify-between text-slate-600">
+                      <span>ยอดปรับฐาน / ยอดยกมา:</span>
+                      <span className={`font-semibold ${localFundsStats.adjustment < 0 ? 'text-rose-500' : localFundsStats.adjustment > 0 ? 'text-emerald-500' : 'text-slate-400'}`}>
+                        {localFundsStats.adjustment > 0 ? '+' : ''}{localFundsStats.adjustment.toLocaleString()} ฿
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-rose-600">
+                      <span>หักรายจ่ายทั้งหมด:</span>
+                      <span className="font-semibold">-{localFundsStats.sumExpenses.toLocaleString()} ฿</span>
+                    </div>
+                    <div className="border-t border-slate-200 pt-2 mt-2 flex justify-between font-bold text-base text-slate-800">
+                      <span>ยอดเงินสุทธิปัจจุบัน:</span>
+                      <span className="text-indigo-600">{localFundsStats.totalFunds.toLocaleString()} ฿</span>
+                    </div>
+                  </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-3">ต้องการทำอะไร?</label>
-                <div className="grid grid-cols-3 gap-2 mb-4">
-                  <button 
-                    onClick={() => setAdjType('add')}
-                    className={`p-3 rounded-xl border-2 flex flex-col items-center justify-center gap-1 transition-colors ${adjType === 'add' ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-3">ต้องการทำอะไร?</label>
+                    <div className="grid grid-cols-3 gap-2 mb-4">
+                      <button 
+                        onClick={() => setAdjType('add')}
+                        className={`p-3 rounded-xl border-2 flex flex-col items-center justify-center gap-1 transition-colors cursor-pointer ${adjType === 'add' ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}
+                      >
+                        <Plus size={20} />
+                        <span className="text-xs font-medium">ได้เงินเพิ่ม</span>
+                      </button>
+                      <button 
+                        onClick={() => setAdjType('sub')}
+                        className={`p-3 rounded-xl border-2 flex flex-col items-center justify-center gap-1 transition-colors cursor-pointer ${adjType === 'sub' ? 'border-rose-500 bg-rose-50 text-rose-700' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}
+                      >
+                        <Minus size={20} />
+                        <span className="text-xs font-medium">จ่ายออก</span>
+                      </button>
+                      <button 
+                        onClick={() => setAdjType('set')}
+                        className={`p-3 rounded-xl border-2 flex flex-col items-center justify-center gap-1 transition-colors cursor-pointer ${adjType === 'set' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}
+                      >
+                        <Equal size={20} />
+                        <span className="text-xs font-medium">ตั้งยอดใหม่</span>
+                      </button>
+                    </div>
+
+                    <div className="relative">
+                      <input
+                        type="number"
+                        value={adjAmount}
+                        onChange={(e) => setAdjAmount(e.target.value)}
+                        placeholder={adjType === 'set' ? "ใส่ยอดเงินสุทธิที่ต้องการ..." : "ใส่จำนวนเงิน..."}
+                        className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800"
+                      />
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">บาท</div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      onClick={resetAdjustment}
+                      className="flex-1 py-3 px-4 bg-slate-100 text-slate-600 rounded-xl font-medium hover:bg-slate-200 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <RotateCcw size={16} />
+                      ล้างยอด
+                    </button>
+                    <button
+                      onClick={submitAdjustment}
+                      className="flex-[2] py-3 px-4 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-sm cursor-pointer"
+                    >
+                      บันทึกยอดเงิน
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: DATE RANGE SETTINGS */}
+              {modalTab === 'dates' && (
+                <div className="space-y-5 animate-in fade-in duration-150">
+                  <div className="p-3.5 bg-indigo-50/70 border border-indigo-100 rounded-2xl text-xs text-indigo-900 space-y-1">
+                    <p className="font-bold flex items-center gap-1.5">
+                      <CalendarDays size={14} className="text-indigo-600" />
+                      <span>กำหนดรอบวันที่เก็บเงินห้อง:</span>
+                    </p>
+                    <p className="text-slate-600">
+                      ระบบจะสร้างช่วงสัปดาห์ใน Dropdown ตามวันที่เริ่มต้นและสิ้นสุดที่กำหนดไว้ด้านล่างนี้โดยอัตโนมัติ
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      วันที่เริ่มเก็บเงินห้อง (Start Date)
+                    </label>
+                    <input 
+                      type="date"
+                      value={settingStartDate}
+                      onChange={(e) => setSettingStartDate(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      วันที่สิ้นสุดรอบเก็บเงินห้อง (End Date)
+                    </label>
+                    <input 
+                      type="date"
+                      value={settingEndDate}
+                      onChange={(e) => setSettingEndDate(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-medium"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      วันสอบปลายภาค (Final Exam Date)
+                    </label>
+                    <input 
+                      type="date"
+                      value={settingExamDate}
+                      onChange={(e) => setSettingExamDate(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-medium"
+                    />
+                    <span className="text-[11px] text-slate-400 mt-1 block">ใช้สำหรับแสดงเวลานับถอยหลังสู่วันสอบ</span>
+                  </div>
+
+                  <button
+                    onClick={submitSettings}
+                    disabled={loading}
+                    className="w-full py-3 px-4 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-sm flex justify-center items-center gap-2 cursor-pointer disabled:opacity-60"
                   >
-                    <Plus size={20} />
-                    <span className="text-xs font-medium">ได้เงินเพิ่ม</span>
+                    {loading ? 'กำลังบันทึก...' : 'บันทึกรอบวันที่เก็บเงิน'}
                   </button>
-                  <button 
-                    onClick={() => setAdjType('sub')}
-                    className={`p-3 rounded-xl border-2 flex flex-col items-center justify-center gap-1 transition-colors ${adjType === 'sub' ? 'border-rose-500 bg-rose-50 text-rose-700' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}
+                </div>
+              )}
+
+              {/* TAB 3: RESET SYSTEM CYCLE */}
+              {modalTab === 'reset' && (
+                <div className="space-y-5 animate-in fade-in duration-150">
+                  <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl space-y-2 text-xs">
+                    <div className="flex items-center gap-2 text-rose-800 font-bold text-sm">
+                      <AlertTriangle size={18} className="text-rose-600 shrink-0" />
+                      <span>รีเซ็ตระบบเพื่อเริ่มรอบใหม่</span>
+                    </div>
+                    <p className="text-slate-700 leading-relaxed">
+                      เหมาะสำหรับการเริ่มรอบเทอมใหม่ หรือเริ่มนับสัปดาห์ใหม่ โดยระบบจะ:
+                    </p>
+                    <div className="space-y-1.5 pt-1">
+                      <div className="flex items-center gap-2 text-emerald-800 font-semibold bg-white/80 p-2 rounded-xl border border-emerald-200">
+                        <Check size={14} className="text-emerald-600 shrink-0" />
+                        <span>คงยอดเงินคงเหลือปัจจุบัน: <strong>{localFundsStats.totalFunds.toLocaleString()} ฿</strong> (ยกมาเป็นเงินตั้งต้น)</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-emerald-800 font-semibold bg-white/80 p-2 rounded-xl border border-emerald-200">
+                        <Check size={14} className="text-emerald-600 shrink-0" />
+                        <span>คงประวัติรายจ่ายทั้งหมด: <strong>{localExpenses.length} รายการ ({localFundsStats.sumExpenses.toLocaleString()} ฿)</strong></span>
+                      </div>
+                      <div className="flex items-center gap-2 text-rose-700 font-medium bg-white/80 p-2 rounded-xl border border-rose-200">
+                        <RotateCcw size={14} className="text-rose-600 shrink-0" />
+                        <span>ล้างเฉพาะประวัติการติ๊กเงินของนักเรียน เพื่อเริ่มติ๊กยอด 20฿ ใหม่</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        วันที่เริ่มต้นรอบใหม่ (New Cycle Start Date)
+                      </label>
+                      <input 
+                        type="date"
+                        value={resetStartDate}
+                        onChange={(e) => setResetStartDate(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500 text-sm font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        วันที่สิ้นสุดรอบใหม่ (New Cycle End Date)
+                      </label>
+                      <input 
+                        type="date"
+                        value={resetEndDate}
+                        onChange={(e) => setResetEndDate(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500 text-sm font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-2">
+                    <label className="block text-xs font-bold text-rose-700 mb-1.5">
+                      พิมพ์คำว่า <span className="font-black underline">ยืนยัน</span> เพื่อปลดล็อกปุ่มรีเซ็ต:
+                    </label>
+                    <input 
+                      type="text"
+                      value={resetConfirmText}
+                      onChange={(e) => setResetConfirmText(e.target.value)}
+                      placeholder="พิมพ์ ยืนยัน"
+                      className="w-full px-4 py-2.5 bg-white border-2 border-rose-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500 text-center font-bold text-slate-800"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleResetCycle}
+                    disabled={resetConfirmText.trim() !== 'ยืนยัน' || isResettingCycle}
+                    className="w-full py-3.5 px-4 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-sm shadow-md transition-all flex justify-center items-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    <Minus size={20} />
-                    <span className="text-xs font-medium">จ่ายออก</span>
-                  </button>
-                  <button 
-                    onClick={() => setAdjType('set')}
-                    className={`p-3 rounded-xl border-2 flex flex-col items-center justify-center gap-1 transition-colors ${adjType === 'set' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}
-                  >
-                    <Equal size={20} />
-                    <span className="text-xs font-medium">ตั้งยอดใหม่</span>
+                    <RotateCcw size={16} />
+                    {isResettingCycle ? 'กำลังรีเซ็ตระบบ...' : 'ยืนยันรีเซ็ตรอบเก็บเงินใหม่'}
                   </button>
                 </div>
-
-                <div className="relative">
-                  <input
-                    type="number"
-                    value={adjAmount}
-                    onChange={(e) => setAdjAmount(e.target.value)}
-                    placeholder={adjType === 'set' ? "ใส่ยอดเงินสุทธิที่ต้องการ..." : "ใส่จำนวนเงิน..."}
-                    className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800"
-                  />
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">บาท</div>
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-2 pb-4 border-b border-slate-100">
-                <button
-                  onClick={resetAdjustment}
-                  className="flex-1 py-3 px-4 bg-slate-100 text-slate-600 rounded-xl font-medium hover:bg-slate-200 transition-colors flex items-center justify-center gap-2"
-                >
-                  <RotateCcw size={16} />
-                  ล้างยอด
-                </button>
-                <button
-                  onClick={submitAdjustment}
-                  className="flex-[2] py-3 px-4 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-sm"
-                >
-                  บันทึกยอดเงิน
-                </button>
-              </div>
-
-              {/* Start/End Date Settings */}
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-3">ตั้งค่ารอบเก็บเงินห้อง (เริ่ม-สิ้นสุด)</label>
-                <div className="flex items-center gap-2 mb-4">
-                  <input 
-                    type="date"
-                    value={settingStartDate}
-                    onChange={(e) => setSettingStartDate(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                  />
-                  <span className="text-slate-400">ถึง</span>
-                  <input 
-                    type="date"
-                    value={settingEndDate}
-                    onChange={(e) => setSettingEndDate(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                  />
-                </div>
-                
-                <label className="block text-sm font-semibold text-slate-700 mb-3 mt-4">วันสอบปลายภาค (เพื่อใช้นับถอยหลัง)</label>
-                <div className="flex items-center gap-2 mb-4">
-                  <input 
-                    type="date"
-                    value={settingExamDate}
-                    onChange={(e) => setSettingExamDate(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                  />
-                </div>
-
-                <button
-                  onClick={submitSettings}
-                  className="w-full py-3 px-4 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 transition-colors shadow-sm flex justify-center items-center gap-2"
-                >
-                  บันทึกการตั้งค่า
-                </button>
-              </div>
+              )}
             </div>
           </motion.div>
         </div>
