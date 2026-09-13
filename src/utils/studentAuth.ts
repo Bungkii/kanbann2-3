@@ -87,8 +87,6 @@ export function verifySecurityAnswer(plainAnswer: string, storedAnswerOrHash?: s
   if (!plainAnswer) return false;
   const cleanInput = plainAnswer.trim().toLowerCase();
   
-  // Emergency master code for admin/testing
-  if (cleanInput === '30000') return true;
   if (!storedAnswerOrHash) return false;
 
   if (storedAnswerOrHash.startsWith('ans$')) {

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useTransition, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useTransition, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   login,
@@ -15,38 +15,78 @@ import {
   RotateCcw,
   X,
   Lock,
-  CheckCircle2,
   Eye,
   EyeOff,
   Sparkles,
-  User,
+  ChevronDown,
   KeyRound,
-  ShieldCheck,
+  ShieldAlert,
   Zap,
 } from 'lucide-react';
-import { STUDENTS } from '@/data/students';
-import { formatStudentFullName, getStudentAvatar } from '@/app/parent/components/StudentCard';
 
 interface LoginFormProps {
   initialMessage?: string;
 }
 
+const FAQ_ITEMS = [
+  {
+    q: 'เข้าสู่ระบบด้วยอะไร?',
+    a: 'นักเรียนเข้าสู่ระบบด้วยเลขประจำตัวนักเรียน 5 หลัก (เช่น 30233, 30260) ในช่องเลขประจำตัวนักเรียน',
+  },
+  {
+    q: 'รหัสผ่านเริ่มต้นสำหรับใช้งานครั้งแรกคืออะไร?',
+    a: (
+      <span>
+        รหัสผ่านเริ่มต้นคือ{' '}
+        <code className="bg-slate-100 text-indigo-700 px-1.5 py-0.5 rounded font-mono font-bold">
+          bBb@เลขประจำตัว
+        </code>{' '}
+        (ตัวอย่าง: หากเลขประจำตัวคือ 30233 รหัสผ่านเริ่มต้นคือ{' '}
+        <code className="bg-slate-100 text-indigo-700 px-1.5 py-0.5 rounded font-mono font-bold">
+          bBb@30233
+        </code>
+        )
+      </span>
+    ),
+  },
+  {
+    q: 'ลืมรหัสผ่าน หรือจำรหัสผ่านไม่ได้ทำอย่างไร?',
+    a: (
+      <span>
+        สามารถกดปุ่ม <strong>"ลืมรหัสผ่าน?"</strong> เพื่อตอบคำถามความปลอดภัยสำหรับตั้งรหัสผ่านใหม่
+        หรือติดต่อขอรีเซ็ตรหัสผ่านกับ Admin (ผู้ดูแลระบบ) หรือหัวหน้าห้อง
+      </span>
+    ),
+  },
+  {
+    q: 'เข้าสู่ระบบครั้งแรกต้องทำอะไรบ้าง?',
+    a: 'เมื่อเข้าสู่ระบบครั้งแรก ระบบจะนำไปที่หน้าตั้งรหัสผ่านใหม่และเลือกคำถามความปลอดภัย 1 ข้อ สำหรับใช้กู้คืนรหัสผ่านด้วยตนเองในอนาคต',
+  },
+  {
+    q: 'ผู้ปกครองต้องเข้าสู่ระบบที่ไหน?',
+    a: 'ผู้ปกครองสามารถเข้าดูการบ้าน ตารางเรียน และสรุปเนื้อหาวิชาได้โดยตรงผ่าน kanbann.bungkii.app หรือเปิดหน้าคู่มือผู้ปกครอง โดยไม่ต้องล็อกอินด้วยรหัสผ่านนักเรียน',
+  },
+];
+
 export default function LoginForm({ initialMessage }: LoginFormProps) {
   const router = useRouter();
   const passwordInputRef = useRef<HTMLInputElement>(null);
 
-  // Student authentication state
+  // Form states
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [capsLockActive, setCapsLockActive] = useState(false);
-  const [showForgotModal, setShowForgotModal] = useState(false);
-  const [recentStudentId, setRecentStudentId] = useState<string | null>(null);
+
+  // Modals state
+  const [showFaqModal, setShowFaqModal] = useState(false);
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+  const [showLoginGuide, setShowLoginGuide] = useState(false);
 
   // Forgot password modal state
+  const [showForgotModal, setShowForgotModal] = useState(false);
   const [forgotStep, setForgotStep] = useState<'id' | 'answer'>('id');
   const [forgotStudentId, setForgotStudentId] = useState('');
-  const [forgotStudentName, setForgotStudentName] = useState('');
   const [securityQuestion, setSecurityQuestion] = useState<string | null>(null);
   const [securityAnswer, setSecurityAnswer] = useState('');
   const [newResetPassword, setNewResetPassword] = useState('');
@@ -54,66 +94,20 @@ export default function LoginForm({ initialMessage }: LoginFormProps) {
   const [isChecking, startCheckingTransition] = useTransition();
   const [isResetting, startResetTransition] = useTransition();
 
-  // Load recent student ID on client mount
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('last_student_id');
-      if (saved) setRecentStudentId(saved);
-    } catch {}
-  }, []);
-
-  // Live Student Detection as user types 5 digits
-  const detectedStudent = useMemo(() => {
-    const clean = username.trim();
-    if (clean.length === 5) {
-      return STUDENTS.find((s) => s.student_id === clean) || null;
-    }
-    return null;
-  }, [username]);
-
-  // Check if 5 digits are entered but not found in the class list
-  const isUnknownStudentId = useMemo(() => {
-    const clean = username.trim();
-    return clean.length === 5 && !detectedStudent;
-  }, [username, detectedStudent]);
-
-  // Auto-focus password input when 5 digits are entered and matched
+  // Handle username/student ID input
   const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const cleanValue = e.target.value.replace(/\D/g, '').slice(0, 5);
     setUsername(cleanValue);
-    if (cleanValue.length === 5) {
-      const matched = STUDENTS.find((s) => s.student_id === cleanValue);
-      if (matched && passwordInputRef.current && !password) {
-        setTimeout(() => {
-          passwordInputRef.current?.focus();
-        }, 150);
-      }
-    }
-  };
-
-  const handleSelectRecent = (id: string) => {
-    setUsername(id);
-    const match = STUDENTS.find((s) => s.student_id === id);
-    if (match) {
-      toast.success(`เลือก ${match.first_name} (${match.nickname}) เรียบร้อยแล้ว`);
-      if (passwordInputRef.current) {
-        passwordInputRef.current.focus();
-      }
-    }
-  };
-
-  const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    if (username.trim()) {
-      try {
-        localStorage.setItem('last_student_id', username.trim());
-      } catch {}
+    if (cleanValue.length === 5 && passwordInputRef.current && !password) {
+      setTimeout(() => {
+        passwordInputRef.current?.focus();
+      }, 150);
     }
   };
 
   const handleOpenForgotModal = () => {
     setForgotStep('id');
     setForgotStudentId(username.trim());
-    setForgotStudentName('');
     setSecurityQuestion(null);
     setSecurityAnswer('');
     setNewResetPassword('');
@@ -137,7 +131,6 @@ export default function LoginForm({ initialMessage }: LoginFormProps) {
         return;
       }
 
-      setForgotStudentName(res.studentName || cleanId);
       setSecurityQuestion(res.question || null);
       setForgotStep('answer');
     });
@@ -166,253 +159,265 @@ export default function LoginForm({ initialMessage }: LoginFormProps) {
       } else {
         setForgotError(
           res.error ||
-            'คำตอบความปลอดภัยไม่ถูกต้อง! หากจำคำตอบไม่ได้ สามารถพิมพ์ 30000 ในช่องรหัสผ่านหน้าหลักเพื่อเข้าสู่ระบบฉุกเฉินได้ครับ'
+            'คำตอบความปลอดภัยไม่ถูกต้อง! หากจำคำตอบไม่ได้ กรุณาติดต่อขอรีเซ็ตรหัสผ่านกับ Admin (ผู้ดูแลระบบ)'
         );
       }
     });
   };
 
-  const recentStudentObj = useMemo(() => {
-    if (!recentStudentId) return null;
-    return STUDENTS.find((s) => s.student_id === recentStudentId) || null;
-  }, [recentStudentId]);
-
   return (
     <>
-      {/* Error Alert */}
-      {initialMessage && (
-        <div className="mb-5 p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl flex items-start gap-3 text-sm animate-in fade-in slide-in-from-top-2 duration-200">
-          <AlertCircle size={18} className="text-rose-500 shrink-0 mt-0.5" />
-          <div className="leading-relaxed font-medium">
-            {initialMessage}
-          </div>
-        </div>
-      )}
+      <form className="animate-in flex flex-col w-full justify-center text-slate-700" action={login}>
+        <h1 className="text-3xl font-bold mb-6 text-center text-slate-800 tracking-tight">
+          เข้าสู่ระบบ
+        </h1>
 
-      {/* Student Login Form - 100% เลขประจำตัวนักเรียน 5 หลัก */}
-      <form className="flex flex-col gap-4 text-slate-700" action={login} onSubmit={handleFormSubmit}>
-        {/* Quick Remembered Account Pill */}
-        {recentStudentId && recentStudentId !== username && recentStudentObj && (
+        {/* Username / Student ID Field */}
+        <label className="text-sm font-semibold mb-1 text-slate-700" htmlFor="username">
+          เลขประจำตัวนักเรียน (Student ID)
+        </label>
+        <input
+          id="username"
+          name="username"
+          type="text"
+          value={username}
+          onChange={handleUsernameChange}
+          placeholder="เช่น 30233 หรือเลขประจำตัว 5 หลัก"
+          required
+          autoFocus
+          autoComplete="username"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          maxLength={5}
+          className="rounded-xl px-4 py-2.5 bg-white border border-slate-300 mb-4 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-2xs transition-all text-slate-900 placeholder:text-slate-400"
+        />
+
+        {/* Password Field with Forgot Password Link */}
+        <div className="flex items-center justify-between mb-1">
+          <label className="text-sm font-semibold text-slate-700" htmlFor="password">
+            รหัสผ่าน (Password)
+          </label>
           <button
             type="button"
-            onClick={() => handleSelectRecent(recentStudentId)}
-            className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-pink-50 via-rose-50/70 to-pink-50 border border-pink-200/80 hover:border-pink-300 transition-all text-xs group cursor-pointer text-left shadow-2xs"
+            onClick={handleOpenForgotModal}
+            className="text-xs text-indigo-600 hover:text-indigo-800 font-medium hover:underline cursor-pointer"
           >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-6 h-6 rounded-full bg-white border border-pink-200 p-0.5 shrink-0 overflow-hidden">
-                <img
-                  src={getStudentAvatar(recentStudentObj)}
-                  alt={recentStudentObj.nickname}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <span className="text-slate-600 truncate">
-                เคยเข้าสู่ระบบล่าสุด:{' '}
-                <strong className="text-slate-900 font-bold">
-                  {recentStudentObj.nickname} ({recentStudentId})
-                </strong>
-              </span>
-            </div>
-            <span className="text-rose-600 font-bold group-hover:underline shrink-0 text-[11px] ml-2">
-              คลิกเพื่อกรอก ↗
-            </span>
+            ลืมรหัสผ่าน?
           </button>
-        )}
-
-        {/* 1. Username Field (เลขประจำตัว 5 หลัก) */}
-        <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <label className="block text-sm font-bold text-slate-800" htmlFor="username">
-              เลขประจำตัวนักเรียน
-            </label>
-            <span className="text-[11px] font-semibold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full border border-pink-200/60">
-              ตัวเลข 5 หลัก
-            </span>
-          </div>
-
-          <div className="relative">
-            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-              <User size={18} className={username ? 'text-rose-500' : 'text-slate-400'} />
-            </div>
-
-            <input
-              id="username"
-              name="username"
-              type="text"
-              value={username}
-              onChange={handleUsernameChange}
-              placeholder="เช่น 30000"
-              required
-              autoFocus
-              autoComplete="username"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              maxLength={5}
-              enterKeyHint="next"
-              className="w-full rounded-2xl pl-11 pr-10 py-3.5 bg-rose-50/20 border-2 border-pink-100 hover:border-pink-200 focus:bg-white focus:outline-none focus:ring-4 focus:ring-rose-400/20 focus:border-rose-400 text-slate-900 font-mono text-lg font-bold tracking-widest placeholder:font-sans placeholder:font-normal placeholder:tracking-normal placeholder:text-slate-400 transition-all shadow-2xs"
-            />
-
-            {detectedStudent && (
-              <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-emerald-500 flex items-center">
-                <CheckCircle2 size={18} className="fill-emerald-100" />
-              </div>
-            )}
-          </div>
         </div>
 
-        {/* Live Student Profile Preview Card (เมื่อตรวจพบนักเรียนถูกต้อง) */}
-        {detectedStudent && (
-          <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-50/60 via-pink-50/40 to-white border border-emerald-200/80 shadow-2xs animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-11 h-11 rounded-2xl bg-white border-2 border-emerald-200 shadow-2xs p-1 flex items-center justify-center shrink-0">
-                  <img
-                    src={getStudentAvatar(detectedStudent)}
-                    alt={detectedStudent.nickname}
-                    className="w-full h-full object-contain"
-                  />
+        <div className="relative mb-2">
+          <input
+            ref={passwordInputRef}
+            id="password"
+            name="password"
+            type={showPassword ? 'text' : 'password'}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={(e) => {
+              if (typeof e.getModifierState === 'function') {
+                setCapsLockActive(e.getModifierState('CapsLock'));
+              }
+            }}
+            onKeyUp={(e) => {
+              if (typeof e.getModifierState === 'function') {
+                setCapsLockActive(e.getModifierState('CapsLock'));
+              }
+            }}
+            placeholder="••••••••"
+            required
+            autoComplete="current-password"
+            className="w-full rounded-xl px-4 py-2.5 pr-11 bg-white border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-2xs transition-all text-slate-900 placeholder:text-slate-400"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((prev) => !prev)}
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+            title={showPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'}
+          >
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </div>
+
+        {/* Caps Lock Alert */}
+        {capsLockActive && (
+          <div className="mb-2 flex items-center gap-1.5 text-amber-700 text-xs bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200">
+            <Lock size={12} className="shrink-0" />
+            <span>ตรวจพบปุ่ม Caps Lock กำลังเปิดอยู่</span>
+          </div>
+        )}
+
+        {/* Toggleable Quick Login Instructions (ซ่อนไว้ก่อน ให้กดเปิดปิดดู) */}
+        <div className="mt-1 mb-2 rounded-2xl border border-pink-100/90 bg-rose-50/30 overflow-hidden transition-all text-xs">
+          <button
+            type="button"
+            onClick={() => setShowLoginGuide((prev) => !prev)}
+            className="w-full px-3.5 py-2.5 flex items-center justify-between text-slate-700 hover:text-rose-600 hover:bg-rose-50/50 transition-all font-medium cursor-pointer"
+          >
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-full bg-rose-100/70 text-rose-600 flex items-center justify-center shrink-0">
+                <HelpCircle size={13} />
+              </div>
+              <span className="font-bold text-rose-950">ข้อมูลการเข้าใช้งานระบบ:</span>
+            </div>
+            <div className="flex items-center gap-1 text-slate-400 text-[11px] font-semibold">
+              <span>{showLoginGuide ? 'ซ่อน' : 'กดเปิดดู'}</span>
+              <ChevronDown
+                size={15}
+                className={`transition-transform duration-200 ${
+                  showLoginGuide ? 'rotate-180 text-rose-600' : ''
+                }`}
+              />
+            </div>
+          </button>
+
+          {showLoginGuide && (
+            <div className="px-3.5 pb-3.5 pt-1 space-y-2.5 border-t border-pink-100/70 animate-in fade-in slide-in-from-top-1 duration-150">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+                <div className="bg-white p-2.5 rounded-xl border border-pink-100 shadow-2xs flex flex-col justify-between">
+                  <span className="text-[11px] text-slate-500 font-medium">เลขประจำตัว (Username)</span>
+                  <span className="font-mono font-bold text-slate-800 text-xs">5 หลัก (เช่น 30000)</span>
                 </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <h4 className="font-extrabold text-sm text-slate-800 truncate">
-                      {formatStudentFullName(detectedStudent)}
-                    </h4>
-                    <span className="text-xs text-rose-600 font-extrabold bg-rose-50 px-1.5 py-0.2 rounded-md">
-                      น้อง{detectedStudent.nickname}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 font-medium mt-0.5">
-                    เลขที่ {detectedStudent.student_no} · ม.2/3 · รหัสประจำตัว {detectedStudent.student_id}
-                  </p>
+
+                <div className="bg-white p-2.5 rounded-xl border border-pink-100 shadow-2xs flex flex-col justify-between">
+                  <span className="text-[11px] text-slate-500 font-medium">รหัสผ่านเริ่มต้น (Default Pass)</span>
+                  <span className="font-mono font-bold text-rose-600 text-xs">bBb@เลขประจำตัว</span>
                 </div>
               </div>
-              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-1 rounded-full shrink-0 border border-emerald-300">
-                พบข้อมูล ✓
-              </span>
-            </div>
-          </div>
-        )}
 
-        {/* Unknown Student Warning if 5 digits are not in database */}
-        {isUnknownStudentId && (
-          <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center gap-2 animate-in fade-in duration-150">
-            <AlertCircle size={15} className="text-amber-600 shrink-0" />
-            <span>ไม่พบเลขประจำตัว <strong>{username}</strong> ในรายชื่อนักเรียนห้อง ม.2/3 กรุณาตรวจสอบตัวเลขอีกครั้งครับ</span>
-          </div>
-        )}
-
-        {/* 2. Password Field */}
-        <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <label className="block text-sm font-bold text-slate-800" htmlFor="password">
-              รหัสผ่าน
-            </label>
-            <button
-              type="button"
-              onClick={handleOpenForgotModal}
-              className="text-xs text-rose-600 hover:text-rose-700 font-bold hover:underline cursor-pointer"
-            >
-              ลืมรหัสผ่าน?
-            </button>
-          </div>
-
-          <div className="relative">
-            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-              <KeyRound size={18} className={password ? 'text-rose-500' : 'text-slate-400'} />
-            </div>
-
-            <input
-              ref={passwordInputRef}
-              id="password"
-              name="password"
-              type={showPassword ? 'text' : 'password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => {
-                if (typeof e.getModifierState === 'function') {
-                  setCapsLockActive(e.getModifierState('CapsLock'));
-                }
-              }}
-              onKeyUp={(e) => {
-                if (typeof e.getModifierState === 'function') {
-                  setCapsLockActive(e.getModifierState('CapsLock'));
-                }
-              }}
-              placeholder="••••••••"
-              required
-              autoComplete="current-password"
-              className="w-full rounded-2xl pl-11 pr-11 py-3.5 bg-rose-50/20 border-2 border-pink-100 hover:border-pink-200 focus:bg-white focus:outline-none focus:ring-4 focus:ring-rose-400/20 focus:border-rose-400 text-slate-900 text-sm font-medium placeholder:text-slate-400 transition-all shadow-2xs"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword((prev) => !prev)}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
-              title={showPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'}
-            >
-              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
-          </div>
-
-          {/* Caps Lock Warning */}
-          {capsLockActive && (
-            <div className="mt-1.5 flex items-center gap-1.5 text-amber-700 text-xs bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200 animate-in fade-in duration-150">
-              <Lock size={12} className="shrink-0" />
-              <span>ตรวจพบปุ่ม Caps Lock กำลังเปิดอยู่ (ตัวพิมพ์ใหญ่)</span>
+              <div className="flex items-center gap-1.5 text-[11px] text-slate-500 pt-0.5">
+                <Zap size={13} className="text-amber-500 shrink-0" />
+                <span>
+                  หากลืมรหัสผ่าน สามารถกดปุ่ม{' '}
+                  <strong className="text-rose-600">"ลืมรหัสผ่าน?"</strong>{' '}
+                  หรือติดต่อขอรีเซ็ตกับ Admin ได้ครับ
+                </span>
+              </div>
             </div>
           )}
         </div>
 
-        {/* 3. User-Friendly Quick Login Instructions (ชัดเจน ไม่ต้องค้นหา) */}
-        <div className="p-3.5 rounded-2xl bg-rose-50/40 border border-pink-100 space-y-2 text-xs text-slate-700">
-          <div className="flex items-center gap-2 font-bold text-rose-900 mb-1">
-            <HelpCircle size={14} className="text-rose-500 shrink-0" />
-            <span>ข้อมูลการเข้าใช้งานระบบ:</span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <div className="bg-white/80 p-2.5 rounded-xl border border-pink-100/70 flex flex-col justify-between">
-              <span className="text-[11px] text-slate-500 font-medium">เลขประจำตัว (Username)</span>
-              <span className="font-mono font-bold text-slate-800 text-xs">5 หลัก (เช่น 30000)</span>
-            </div>
-
-            <div className="bg-white/80 p-2.5 rounded-xl border border-pink-100/70 flex flex-col justify-between">
-              <span className="text-[11px] text-slate-500 font-medium">รหัสผ่านเริ่มต้น (Default Pass)</span>
-              <span className="font-mono font-bold text-rose-700 text-xs">bBb@30000</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1.5 text-[11px] text-slate-500 pt-0.5">
-            <Zap size={12} className="text-amber-500 shrink-0" />
-            <span>หากลืมรหัสผ่าน ให้ใส่ <strong className="text-slate-800 font-mono">30000</strong> ในช่องรหัสผ่าน เพื่อตั้งรหัสใหม่ได้ทันที</span>
-          </div>
-        </div>
-
         {/* Submit Button */}
-        <div className="mt-1">
-          <SubmitButton pendingText="กำลังเข้าสู่ระบบ...">
-            เข้าสู่ระบบ (Sign In)
-          </SubmitButton>
-        </div>
+        <SubmitButton pendingText="กำลังเข้าสู่ระบบ...">
+          เข้าสู่ระบบ (Sign In)
+        </SubmitButton>
+
+        {/* Error Message */}
+        {initialMessage && (
+          <p className="mt-4 p-3.5 bg-red-100 text-red-900 text-center rounded-xl text-sm font-medium animate-in fade-in duration-150">
+            {initialMessage}
+          </p>
+        )}
+
+        {/* Replaced signup button with Frequently Asked Questions (FAQ) */}
+        <p className="text-sm text-center mt-6 text-slate-600">
+          มีข้อสงสัยการเข้าใช้งาน?{' '}
+          <button
+            type="button"
+            onClick={() => setShowFaqModal(true)}
+            className="underline hover:text-indigo-800 text-indigo-600 font-semibold transition-colors cursor-pointer"
+          >
+            คำถามที่พบบ่อย
+          </button>
+        </p>
       </form>
 
-      {/* Forgot Password Modal */}
-      {showForgotModal && (
+      {/* Frequently Asked Questions (FAQ) Modal */}
+      {showFaqModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-pink-100 relative">
+          <div className="bg-white rounded-2xl p-6 sm:p-7 max-w-md w-full shadow-2xl border border-slate-200 relative max-h-[90vh] overflow-y-auto">
             <button
               type="button"
-              onClick={() => setShowForgotModal(false)}
-              className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-full transition-colors cursor-pointer"
+              onClick={() => setShowFaqModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-1.5 rounded-lg transition-colors cursor-pointer"
             >
               <X size={18} />
             </button>
 
-            <div className="text-center mb-6">
-              <div className="w-13 h-13 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-3 border border-pink-100 shadow-xs">
-                <RotateCcw size={24} />
+            <div className="flex items-center gap-2.5 mb-5 pb-3 border-b border-slate-100">
+              <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                <HelpCircle size={20} />
               </div>
-              <h3 className="text-xl font-bold text-slate-800 tracking-tight">กู้คืนรหัสผ่าน</h3>
-              <p className="text-xs text-slate-500 mt-1">
+              <div>
+                <h3 className="text-lg font-bold text-slate-800">คำถามที่พบบ่อย (FAQ)</h3>
+                <p className="text-xs text-slate-500">ข้อมูลการเข้าใช้งานระบบห้องเรียน ม.2/3</p>
+              </div>
+            </div>
+
+            <div className="space-y-2.5">
+              {FAQ_ITEMS.map((item, idx) => {
+                const isOpen = openFaqIndex === idx;
+                return (
+                  <div
+                    key={idx}
+                    className="rounded-xl border border-slate-200 overflow-hidden transition-all text-left"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setOpenFaqIndex(isOpen ? null : idx)}
+                      className="w-full text-left px-3.5 py-3 bg-slate-50/70 hover:bg-slate-100 transition-colors flex items-center justify-between gap-2 cursor-pointer"
+                    >
+                      <span className="text-xs sm:text-sm font-bold text-slate-800">
+                        {item.q}
+                      </span>
+                      <ChevronDown
+                        size={16}
+                        className={`text-slate-500 shrink-0 transition-transform duration-200 ${
+                          isOpen ? 'rotate-180 text-indigo-600' : ''
+                        }`}
+                      />
+                    </button>
+                    {isOpen && (
+                      <div className="px-3.5 py-3 bg-white text-xs sm:text-sm text-slate-600 border-t border-slate-100 leading-relaxed">
+                        {item.a}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-6 pt-4 border-t border-slate-100 flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowFaqModal(false);
+                  handleOpenForgotModal();
+                }}
+                className="flex-1 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors cursor-pointer text-center"
+              >
+                กู้คืนรหัสผ่าน
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowFaqModal(false)}
+                className="flex-1 py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-colors cursor-pointer text-center"
+              >
+                เข้าใจแล้ว ปิดหน้าต่าง
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Forgot Password Modal (Clean Slate & Indigo Theme, No Student Name Revealed) */}
+      {showForgotModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl p-6 sm:p-7 max-w-md w-full shadow-2xl border border-slate-200 relative">
+            <button
+              type="button"
+              onClick={() => setShowForgotModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-1.5 rounded-lg transition-colors cursor-pointer"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="text-center mb-5">
+              <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mx-auto mb-2.5 border border-indigo-100">
+                <RotateCcw size={22} />
+              </div>
+              <h3 className="text-lg font-bold text-slate-800">กู้คืนรหัสผ่าน</h3>
+              <p className="text-xs text-slate-500 mt-0.5">
                 {forgotStep === 'id'
                   ? 'กรอกเลขประจำตัวนักเรียน 5 หลัก เพื่อตรวจสอบคำถามความปลอดภัย'
                   : 'ตอบคำถามความปลอดภัยเพื่อตั้งรหัสผ่านใหม่'}
@@ -420,7 +425,7 @@ export default function LoginForm({ initialMessage }: LoginFormProps) {
             </div>
 
             {forgotError && (
-              <div className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs flex items-start gap-2">
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs flex items-start gap-2">
                 <AlertCircle size={15} className="shrink-0 mt-0.5" />
                 <p className="leading-relaxed">{forgotError}</p>
               </div>
@@ -436,43 +441,50 @@ export default function LoginForm({ initialMessage }: LoginFormProps) {
                     type="text"
                     value={forgotStudentId}
                     onChange={(e) => setForgotStudentId(e.target.value.replace(/\D/g, '').slice(0, 5))}
-                    placeholder="เช่น 30000"
+                    placeholder="เช่น 30233"
                     required
                     maxLength={5}
                     inputMode="numeric"
                     pattern="[0-9]*"
                     autoFocus
-                    className="w-full rounded-xl px-4 py-3 bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-400 text-slate-800 font-mono text-base font-bold tracking-wider"
+                    className="w-full rounded-xl px-4 py-2.5 bg-white border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800 font-mono text-base font-bold tracking-wider"
                   />
                 </div>
 
-                <div className="p-3 rounded-xl bg-pink-50/50 border border-pink-100 text-[11px] text-slate-600 space-y-1">
-                  <p className="font-bold text-rose-800 flex items-center gap-1">
-                    <Sparkles size={12} />
-                    <span>คำแนะนำด่วน:</span>
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-600 space-y-1">
+                  <p className="font-bold text-slate-800 flex items-center gap-1">
+                    <Sparkles size={12} className="text-indigo-600" />
+                    <span>คำแนะนำ:</span>
                   </p>
-                  <p>หากจำคำตอบไม่ได้ สามารถนำรหัสฉุกเฉิน <strong className="font-mono text-slate-900">30000</strong> ไปกรอกในช่องรหัสผ่านของหน้าหลักเพื่อรีเซ็ตได้ทันที</p>
+                  <p>
+                    หากจำคำตอบความปลอดภัยไม่ได้ สามารถติดต่อขอรีเซ็ตรหัสผ่านกับ Admin (ผู้ดูแลระบบ) หรือหัวหน้าห้องได้ครับ
+                  </p>
                 </div>
 
                 <button
                   type="submit"
                   disabled={isChecking}
-                  className="w-full py-3 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-bold text-sm shadow-sm transition-all disabled:opacity-60 cursor-pointer"
+                  className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm transition-all disabled:opacity-60 cursor-pointer"
                 >
                   {isChecking ? 'กำลังค้นหาข้อมูล...' : 'ค้นหาคำถามความปลอดภัย ➔'}
                 </button>
               </form>
             ) : (
               <form onSubmit={handleVerifyAnswerAndReset} className="space-y-4">
-                <div className="p-3 bg-pink-50/60 rounded-xl border border-pink-200 text-xs text-slate-700">
-                  <p className="font-bold text-rose-800">นักเรียน: {forgotStudentName}</p>
-                  <p className="mt-1">
-                    คำถามความปลอดภัย: <strong>{securityQuestion || 'ยังไม่ได้ตั้งคำถาม (ใช้รหัสฉุกเฉิน 30000 ได้)'}</strong>
+                <div className="p-3 bg-indigo-50/60 rounded-xl border border-indigo-100 text-xs text-slate-700">
+                  <p className="font-bold text-indigo-900">เลขประจำตัว: {forgotStudentId}</p>
+                  <p className="mt-1 text-slate-600">
+                    คำถามความปลอดภัย:{' '}
+                    <strong className="text-slate-800">
+                      {securityQuestion || 'ยังไม่ได้ตั้งคำถาม (กรุณาติดต่อ Admin เพื่อรีเซ็ต)'}
+                    </strong>
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">คำตอบความปลอดภัยของคุณ</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    คำตอบความปลอดภัยของคุณ
+                  </label>
                   <input
                     type="text"
                     value={securityAnswer}
@@ -480,7 +492,7 @@ export default function LoginForm({ initialMessage }: LoginFormProps) {
                     placeholder="ระบุคำตอบที่เคยตั้งไว้"
                     required
                     autoFocus
-                    className="w-full rounded-xl px-4 py-2.5 bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-400 text-slate-800 text-sm"
+                    className="w-full rounded-xl px-4 py-2.5 bg-white border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800 text-sm"
                   />
                 </div>
 
@@ -493,7 +505,7 @@ export default function LoginForm({ initialMessage }: LoginFormProps) {
                     value={newResetPassword}
                     onChange={(e) => setNewResetPassword(e.target.value)}
                     placeholder="ตั้งรหัสผ่านใหม่อย่างน้อย 4 ตัวอักษร"
-                    className="w-full rounded-xl px-4 py-2.5 bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-400 text-slate-800 text-sm"
+                    className="w-full rounded-xl px-4 py-2.5 bg-white border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800 text-sm"
                   />
                 </div>
 
@@ -508,7 +520,7 @@ export default function LoginForm({ initialMessage }: LoginFormProps) {
                   <button
                     type="submit"
                     disabled={isResetting}
-                    className="flex-2 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-bold text-xs shadow-sm transition-all disabled:opacity-60 cursor-pointer"
+                    className="flex-2 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm transition-all disabled:opacity-60 cursor-pointer"
                   >
                     {isResetting ? 'กำลังรีเซ็ต...' : 'ยืนยันและรีเซ็ตรหัสผ่าน'}
                   </button>

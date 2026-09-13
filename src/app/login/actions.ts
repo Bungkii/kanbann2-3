@@ -20,21 +20,6 @@ export async function login(formData: FormData) {
     redirect(`/login?message=${encodeURIComponent('กรุณากรอกเลขประจำตัวและรหัสผ่าน')}`)
   }
 
-  // 1. Check if it's a student ID login (e.g. 5 digits like 30000)
-  // Support emergency reset/recovery code 30000
-  if (password === '30000') {
-    const account = await getStudentAccountById(username)
-    if (account) {
-      const { resetStudentPassword } = await import('@/utils/studentAuth')
-      await resetStudentPassword(username)
-      const refreshed = await getStudentAccountById(username)
-      if (refreshed) {
-        await setStudentSessionCookies(refreshed)
-        revalidatePath('/', 'layout')
-        redirect('/login/first-time')
-      }
-    }
-  }
 
   const studentAccount = await verifyStudentCredentials(username, password)
   if (studentAccount) {
@@ -56,7 +41,7 @@ export async function login(formData: FormData) {
   if (existingAccount) {
     redirect(
       `/login?message=${encodeURIComponent(
-        'รหัสผ่านไม่ถูกต้อง (รหัสเริ่มต้นของนักเรียนคือ bBb@ตามด้วยเลขประจำตัว เช่น bBb@' + username + ' หรือใส่ 30000 หากลืมรหัสผ่าน)'
+        'รหัสผ่านไม่ถูกต้อง (รหัสเริ่มต้นของนักเรียนคือ bBb@ตามด้วยเลขประจำตัว เช่น bBb@' + username + ')'
       )}`
     )
   }
@@ -145,16 +130,11 @@ export async function signup() {
   )
 }
 
-export async function resetForgottenPasswordAction(studentId: string, resetCode: string) {
+export async function resetForgottenPasswordAction(studentId: string) {
   const cleanId = (studentId || '').trim()
-  const cleanCode = (resetCode || '').trim()
 
   if (!cleanId) {
     return { success: false, error: 'กรุณากรอกเลขประจำตัวนักเรียน' }
-  }
-
-  if (cleanCode !== '30000') {
-    return { success: false, error: 'รหัสกู้คืนไม่ถูกต้อง (กรุณาใส่ 30000)' }
   }
 
   const account = await getStudentAccountById(cleanId)
