@@ -1,11 +1,22 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
-import { BookOpen, ArrowLeft, Upload, X, Image as ImageIcon, FileText, Link as LinkIcon, FileUp, ChevronDown, User } from 'lucide-react';
+import {
+  BookOpen,
+  ArrowLeft,
+  Upload,
+  X,
+  Image as ImageIcon,
+  FileText,
+  Link as LinkIcon,
+  FileUp,
+  ChevronDown,
+  User,
+} from 'lucide-react';
+import { createExamSummary, getCurrentStudentForSummaries } from '../actions';
 
 type SelectedFile = {
   file: File;
@@ -36,21 +47,36 @@ export default function UploadSummaryPage() {
   const [linkError, setLinkError] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   const router = useRouter();
-  const supabase = createClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    let isMounted = true;
     const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error('คุณต้องล็อกอินก่อนถึงจะแชร์สรุปสอบได้');
-        router.push('/login?redirect=/summaries/upload');
+      try {
+        const student = await getCurrentStudentForSummaries();
+        if (!student) {
+          toast.error('คุณต้องล็อกอินก่อนถึงจะแชร์สรุปสอบได้');
+          router.push('/login?redirect=/summaries/upload');
+          return;
+        }
+        if (isMounted) {
+          if (!uploaderName) {
+            setUploaderName(student.nickname || student.full_name || '');
+          }
+          setIsCheckingAuth(false);
+        }
+      } catch {
+        if (isMounted) setIsCheckingAuth(false);
       }
     };
     checkAuth();
-  }, [supabase.auth, router]);
+    return () => {
+      isMounted = false;
+    };
+  }, [router]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -58,7 +84,7 @@ export default function UploadSummaryPage() {
 
     const newFiles: SelectedFile[] = [];
 
-    Array.from(files).forEach(file => {
+    Array.from(files).forEach((file) => {
       if (file.size > 20 * 1024 * 1024) {
         toast.error(`ไฟล์ ${file.name} ใหญ่เกินไป (จำกัด 20MB)`);
         return;
@@ -69,9 +95,11 @@ export default function UploadSummaryPage() {
       if (file.type.startsWith('image/')) {
         const reader = new FileReader();
         reader.onloadend = () => {
-          setSelectedFiles(prev => prev.map(f =>
-            f.file === file ? { ...f, preview: reader.result as string } : f
-          ));
+          setSelectedFiles((prev) =>
+            prev.map((f) =>
+              f.file === file ? { ...f, preview: reader.result as string } : f
+            )
+          );
         };
         reader.readAsDataURL(file);
       }
@@ -79,12 +107,12 @@ export default function UploadSummaryPage() {
       newFiles.push(entry);
     });
 
-    setSelectedFiles(prev => [...prev, ...newFiles]);
+    setSelectedFiles((prev) => [...prev, ...newFiles]);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const removeFile = (index: number) => {
-    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const isPdf = (file: File) => file.type === 'application/pdf' || file.name.endsWith('.pdf');
@@ -148,67 +176,53 @@ export default function UploadSummaryPage() {
     const toastId = toast.loading('กำลังบันทึก...');
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('กรุณาล็อกอินก่อน');
+      let uploadedUrls: string[] = [];
 
       if (attachmentType === 'file') {
-        // Upload files
-        const uploadedUrls: string[] = [];
-
         const { uploadFileSmart } = await import('@/utils/upload');
         for (let i = 0; i < selectedFiles.length; i++) {
           const { file } = selectedFiles[i];
-          toast.loading(`กำลังอัปโหลด ${i + 1}/${selectedFiles.length}...`, { id: toastId });
-
+          toast.loading(`กำลังอัปโหลดไฟล์ที่ ${i + 1}/${selectedFiles.length}...`, { id: toastId });
           const publicUrl = await uploadFileSmart(file);
           uploadedUrls.push(publicUrl);
         }
-
-          const { error: dbError } = await supabase
-            .from('exam_summaries')
-            .insert({
-              title: title.trim(),
-              subject: subjectValue,
-              description: description.trim(),
-              file_url: uploadedUrls[0] || '',
-              file_urls: uploadedUrls,
-              uploader_id: user.id,
-              uploader_name: uploaderName.trim() || null,
-              attachment_type: 'file',
-              term: term,
-            });
-
-        if (dbError) throw dbError;
-      } else {
-        // Link mode
-        const { error: dbError } = await supabase
-          .from('exam_summaries')
-          .insert({
-            title: title.trim(),
-            subject: subjectValue,
-            description: description.trim(),
-            file_url: linkUrl.trim(),
-            file_urls: [],
-            uploader_id: user.id,
-            uploader_name: uploaderName.trim() || null,
-            attachment_type: 'link',
-            link_url: linkUrl.trim(),
-            term: term,
-          });
-
-        if (dbError) throw dbError;
       }
 
-      toast.success('อัปโหลดสรุปสอบสำเร็จ! 🎉', { id: toastId });
+      toast.loading('กำลังบันทึกข้อมูลสรุปสอบ...', { id: toastId });
+
+      const res = await createExamSummary({
+        title: title.trim(),
+        subject: subjectValue,
+        description: description.trim(),
+        uploaderName: uploaderName.trim() || undefined,
+        attachmentType,
+        fileUrls: uploadedUrls,
+        linkUrl: linkUrl.trim() || undefined,
+        term: term,
+      });
+
+      if (res.error) {
+        throw new Error(res.error);
+      }
+
+      toast.success('แชร์สรุปสอบสำเร็จแล้ว! 🎉', { id: toastId });
       router.push('/summaries');
       router.refresh();
     } catch (error: any) {
       console.error('Error uploading:', error);
-      toast.error(error.message || 'เกิดข้อผิดพลาดในการอัปโหลด', { id: toastId });
+      toast.error(error.message || 'เกิดข้อผิดพลาดในการแชร์สรุปสอบ', { id: toastId });
     } finally {
       setLoading(false);
     }
   };
+
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-rose-500"></div>
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-slate-50 p-4 md:p-8">
@@ -218,9 +232,9 @@ export default function UploadSummaryPage() {
           <div>
             <h1 className="text-3xl font-bold text-slate-800 flex items-center gap-2">
               <Upload className="text-rose-500" />
-              อัปโหลดสรุปสอบ
+              แชร์สรุปสอบ
             </h1>
-            <p className="text-slate-500 mt-1">แบ่งปันความรู้ให้เพื่อนๆ เตรียมตัวสอบกลางภาค</p>
+            <p className="text-slate-500 mt-1">แบ่งปันความรู้ให้เพื่อนๆ เตรียมตัวสอบ</p>
           </div>
           <Link
             href="/summaries"
@@ -232,7 +246,10 @@ export default function UploadSummaryPage() {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="bg-white rounded-3xl p-6 md:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100">
+        <form
+          onSubmit={handleSubmit}
+          className="bg-white rounded-3xl p-6 md:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100"
+        >
           <div className="space-y-6">
             {/* Title */}
             <div>
@@ -245,7 +262,7 @@ export default function UploadSummaryPage() {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all"
-                placeholder="เช่น สรุปสูตรคณิต, ไฟล์ติวสังคม"
+                placeholder="เช่น สรุปสูตรคณิต, ตะลุยโจทย์วิทย์, ติวสังคมปลายภาค"
                 required
               />
             </div>
@@ -264,12 +281,17 @@ export default function UploadSummaryPage() {
                   required
                 >
                   <option value="">-- เลือกวิชา --</option>
-                  {SUBJECT_LIST.map(s => (
-                    <option key={s.value} value={s.value}>{s.label}</option>
+                  {SUBJECT_LIST.map((s) => (
+                    <option key={s.value} value={s.value}>
+                      {s.label}
+                    </option>
                   ))}
                   <option value="อื่นๆ">อื่นๆ (โปรดระบุ)</option>
                 </select>
-                <ChevronDown size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <ChevronDown
+                  size={18}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                />
               </div>
               {subject === 'อื่นๆ' && (
                 <input
@@ -301,7 +323,10 @@ export default function UploadSummaryPage() {
                   <option value="1/70">1/70</option>
                   <option value="2/70">2/70</option>
                 </select>
-                <ChevronDown size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <ChevronDown
+                  size={18}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                />
               </div>
             </div>
 
@@ -379,18 +404,30 @@ export default function UploadSummaryPage() {
                 {selectedFiles.length > 0 && (
                   <div className="space-y-3 mb-4">
                     {selectedFiles.map((sf, index) => (
-                      <div key={index} className="bg-slate-50 border border-slate-100 rounded-2xl p-3 flex items-center justify-between group">
+                      <div
+                        key={index}
+                        className="bg-slate-50 border border-slate-100 rounded-2xl p-3 flex items-center justify-between group"
+                      >
                         <div className="flex items-center gap-3 overflow-hidden">
                           {sf.preview ? (
-                            <img src={sf.preview} alt="Preview" className="w-12 h-12 object-cover rounded-lg shrink-0" />
+                            <img
+                              src={sf.preview}
+                              alt="Preview"
+                              className="w-12 h-12 object-cover rounded-lg shrink-0"
+                            />
                           ) : (
                             <div className="bg-rose-100 text-rose-600 p-2.5 rounded-xl shrink-0">
                               {isPdf(sf.file) ? <FileText size={20} /> : <ImageIcon size={20} />}
                             </div>
                           )}
                           <div className="truncate">
-                            <p className="text-slate-800 font-medium truncate text-sm">{sf.file.name}</p>
-                            <p className="text-slate-400 text-xs">{(sf.file.size / (1024 * 1024)).toFixed(2)} MB • {isPdf(sf.file) ? 'PDF' : 'รูปภาพ'}</p>
+                            <p className="text-slate-800 font-medium truncate text-sm">
+                              {sf.file.name}
+                            </p>
+                            <p className="text-slate-400 text-xs">
+                              {(sf.file.size / (1024 * 1024)).toFixed(2)} MB •{' '}
+                              {isPdf(sf.file) ? 'PDF' : 'รูปภาพ'}
+                            </p>
                           </div>
                         </div>
                         <button
@@ -415,7 +452,9 @@ export default function UploadSummaryPage() {
                   <p className="text-slate-600 font-medium mb-1">
                     {selectedFiles.length > 0 ? 'คลิกเพื่อเพิ่มไฟล์' : 'คลิกเพื่อเลือกไฟล์'}
                   </p>
-                  <p className="text-slate-400 text-sm">รองรับ .pdf, .jpg, .png (สูงสุด 20MB ต่อไฟล์ • เลือกได้หลายไฟล์)</p>
+                  <p className="text-slate-400 text-sm">
+                    รองรับ .pdf, .jpg, .png, .webp (สูงสุด 20MB ต่อไฟล์ • เลือกได้หลายไฟล์)
+                  </p>
                 </div>
 
                 <input
@@ -461,14 +500,32 @@ export default function UploadSummaryPage() {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={loading || !title || (!subject || (subject === 'อื่นๆ' && !customSubject)) || (attachmentType === 'file' && selectedFiles.length === 0) || (attachmentType === 'link' && (!linkUrl || !!linkError))}
-              className="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-4 rounded-2xl shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              disabled={
+                loading ||
+                !title ||
+                !subject ||
+                (subject === 'อื่นๆ' && !customSubject) ||
+                (attachmentType === 'file' && selectedFiles.length === 0) ||
+                (attachmentType === 'link' && (!linkUrl || !!linkError))
+              }
+              className="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-4 rounded-2xl shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
             >
               {loading ? (
                 <>
                   <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
                   </svg>
                   กำลังอัปโหลด...
                 </>

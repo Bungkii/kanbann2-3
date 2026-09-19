@@ -26,6 +26,7 @@ import {
 
 interface LoginFormProps {
   initialMessage?: string;
+  initialRedirect?: string;
 }
 
 const FAQ_ITEMS = [
@@ -68,7 +69,7 @@ const FAQ_ITEMS = [
   },
 ];
 
-export default function LoginForm({ initialMessage }: LoginFormProps) {
+export default function LoginForm({ initialMessage, initialRedirect }: LoginFormProps) {
   const router = useRouter();
   const passwordInputRef = useRef<HTMLInputElement>(null);
 
@@ -168,6 +169,7 @@ export default function LoginForm({ initialMessage }: LoginFormProps) {
   return (
     <>
       <form className="animate-in flex flex-col w-full justify-center text-slate-700" action={login}>
+        {initialRedirect && <input type="hidden" name="redirect" value={initialRedirect} />}
         <h1 className="text-3xl font-bold mb-6 text-center text-slate-800 tracking-tight">
           เข้าสู่ระบบ
         </h1>

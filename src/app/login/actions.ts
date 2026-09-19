@@ -15,11 +15,13 @@ import {
 export async function login(formData: FormData) {
   const username = ((formData.get('username') || formData.get('email') || '') as string).trim()
   const password = ((formData.get('password') || '') as string).trim()
+  const redirectParam = ((formData.get('redirect') || '') as string).trim()
+
+  const redirectErrorSuffix = redirectParam ? `&redirect=${encodeURIComponent(redirectParam)}` : ''
 
   if (!username || !password) {
-    redirect(`/login?message=${encodeURIComponent('กรุณากรอกเลขประจำตัวและรหัสผ่าน')}`)
+    redirect(`/login?message=${encodeURIComponent('กรุณากรอกเลขประจำตัวและรหัสผ่าน')}${redirectErrorSuffix}`)
   }
-
 
   const studentAccount = await verifyStudentCredentials(username, password)
   if (studentAccount) {
@@ -32,7 +34,8 @@ export async function login(formData: FormData) {
     if (!hasCompletedSetup) {
       redirect('/login/first-time')
     } else {
-      redirect('/kanban')
+      const isValidRedirect = redirectParam && redirectParam.startsWith('/') && !redirectParam.startsWith('//');
+      redirect(isValidRedirect ? redirectParam : '/kanban')
     }
   }
 
@@ -42,7 +45,7 @@ export async function login(formData: FormData) {
     redirect(
       `/login?message=${encodeURIComponent(
         'รหัสผ่านไม่ถูกต้อง (รหัสเริ่มต้นของนักเรียนคือ bBb@ตามด้วยเลขประจำตัว เช่น bBb@' + username + ')'
-      )}`
+      )}${redirectErrorSuffix}`
     )
   }
 
@@ -51,13 +54,13 @@ export async function login(formData: FormData) {
     redirect(
       `/login?message=${encodeURIComponent(
         'ระบบยกเลิกการเข้าสู่ระบบด้วยอีเมลแล้ว กรุณาเข้าสู่ระบบด้วยเลขประจำตัวนักเรียน 5 หลัก (เช่น 30000)'
-      )}`
+      )}${redirectErrorSuffix}`
     )
   }
 
   // 4. Default invalid message
   redirect(
-    `/login?message=${encodeURIComponent('ไม่พบเลขประจำตัวนักเรียนนี้ กรุณาตรวจสอบเลขประจำตัว 5 หลักของคุณ')}`
+    `/login?message=${encodeURIComponent('ไม่พบเลขประจำตัวนักเรียนนี้ กรุณาตรวจสอบเลขประจำตัว 5 หลักของคุณ')}${redirectErrorSuffix}`
   )
 }
 

@@ -1,17 +1,22 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { createClient } from '@/utils/supabase/client';
+import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { BookOpen, ArrowLeft, Upload, X, Image as ImageIcon, FileText, Link as LinkIcon, FileUp, ChevronDown, User, Edit } from 'lucide-react';
-
-type SelectedFile = {
-  file: File;
-  preview?: string;
-};
+import {
+  ArrowLeft,
+  FileText,
+  ChevronDown,
+  User,
+  Edit,
+} from 'lucide-react';
+import {
+  getExamSummaryById,
+  updateExamSummary,
+  getCurrentStudentForSummaries,
+} from '../../actions';
 
 const SUBJECT_LIST = [
   { label: 'คณิตศาสตร์', value: 'คณิตศาสตร์' },
@@ -34,74 +39,80 @@ export default function EditSummaryPage() {
   const [attachmentType, setAttachmentType] = useState<'file' | 'link'>('file');
   const [linkUrl, setLinkUrl] = useState('');
   const [linkError, setLinkError] = useState('');
-  
-  // For files, we might have existing files and new files.
-  // To keep it simple, we don't allow modifying existing files easily without re-uploading,
-  // or we just show them and let them add more. Let's just allow editing text and link.
+
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
   const router = useRouter();
   const params = useParams();
   const summaryId = params.id as string;
-  const supabase = createClient();
 
   useEffect(() => {
+    let isMounted = true;
     const fetchSummary = async () => {
       setInitialLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error('กรุณาล็อกอินก่อน');
-        router.push('/login?redirect=/summaries');
-        return;
-      }
+      try {
+        const student = await getCurrentStudentForSummaries();
+        if (!student) {
+          toast.error('กรุณาล็อกอินก่อน');
+          router.push('/login?redirect=/summaries');
+          return;
+        }
 
-      const { data, error } = await supabase
-        .from('exam_summaries')
-        .select('*')
-        .eq('id', summaryId)
-        .single();
+        const res = await getExamSummaryById(summaryId);
+        if (res.error || !res.summary) {
+          toast.error(res.error || 'ไม่พบข้อมูลสรุปสอบ');
+          router.push('/summaries');
+          return;
+        }
 
-      if (error || !data) {
-        toast.error('ไม่พบข้อมูลสรุปสอบ');
+        const data = res.summary;
+        const canEdit =
+          student.canManageAll ||
+          data.uploader_id === student.student_id ||
+          data.uploader_id === `student_${student.student_id}`;
+
+        if (!canEdit) {
+          toast.error('คุณไม่มีสิทธิ์แก้ไขสรุปสอบนี้');
+          router.push('/summaries');
+          return;
+        }
+
+        if (isMounted) {
+          setTitle(data.title);
+          if (SUBJECT_LIST.find((s) => s.value === data.subject)) {
+            setSubject(data.subject);
+          } else {
+            setSubject('อื่นๆ');
+            setCustomSubject(data.subject);
+          }
+          setUploaderName(data.uploader_name || '');
+          setDescription(data.description || '');
+          setAttachmentType((data.attachment_type as any) || 'file');
+          setLinkUrl(data.link_url || data.file_url || '');
+          setInitialLoading(false);
+        }
+      } catch (err: any) {
+        toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูล');
         router.push('/summaries');
-        return;
       }
-
-      if (data.uploader_id !== user.id) {
-        // Now everyone can edit, so we don't block them, but you can add a toast notification if needed.
-        // toast('คุณกำลังแก้ไขสรุปสอบของคนอื่น', { icon: 'ℹ️' });
-      }
-
-      setTitle(data.title);
-      if (SUBJECT_LIST.find(s => s.value === data.subject)) {
-        setSubject(data.subject);
-      } else {
-        setSubject('อื่นๆ');
-        setCustomSubject(data.subject);
-      }
-      setUploaderName(data.uploader_name || '');
-      setDescription(data.description || '');
-      setAttachmentType(data.attachment_type || 'file');
-      setLinkUrl(data.link_url || data.file_url || '');
-      
-      setInitialLoading(false);
     };
-    
+
     if (summaryId) fetchSummary();
-  }, [summaryId, supabase, router]);
+    return () => {
+      isMounted = false;
+    };
+  }, [summaryId, router]);
 
   const validateLink = (url: string) => {
     if (!url.trim()) {
       setLinkError('');
       return true;
     }
-    // Block Instagram links
     if (/instagram\.com/i.test(url)) {
       setLinkError('ไม่สามารถแปะลิงก์ Instagram ได้ กรุณาใช้ลิงก์อื่น เช่น Google Drive, OneDrive');
       return false;
     }
-    // Basic URL validation
     try {
       new URL(url);
       setLinkError('');
@@ -145,24 +156,18 @@ export default function EditSummaryPage() {
     const toastId = toast.loading('กำลังบันทึก...');
 
     try {
-      const updateData: any = {
+      const res = await updateExamSummary(summaryId, {
         title: title.trim(),
         subject: subjectValue,
         description: description.trim(),
-        uploader_name: uploaderName.trim() || null,
-      };
+        uploaderName: uploaderName.trim() || undefined,
+        attachmentType,
+        linkUrl: linkUrl.trim() || undefined,
+      });
 
-      if (attachmentType === 'link') {
-        updateData.link_url = linkUrl.trim();
-        updateData.file_url = linkUrl.trim(); // Keep backwards compatibility
+      if (res.error) {
+        throw new Error(res.error);
       }
-
-      const { error: dbError } = await supabase
-        .from('exam_summaries')
-        .update(updateData)
-        .eq('id', summaryId);
-
-      if (dbError) throw dbError;
 
       toast.success('อัปเดตสรุปสอบสำเร็จ! 🎉', { id: toastId });
       router.push('/summaries');
@@ -184,7 +189,7 @@ export default function EditSummaryPage() {
   }
 
   return (
-    <motion.main 
+    <motion.main
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
@@ -210,7 +215,10 @@ export default function EditSummaryPage() {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="bg-white rounded-3xl p-6 md:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100">
+        <form
+          onSubmit={handleSubmit}
+          className="bg-white rounded-3xl p-6 md:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100"
+        >
           <div className="space-y-6">
             {/* Title */}
             <div>
@@ -242,12 +250,17 @@ export default function EditSummaryPage() {
                   required
                 >
                   <option value="">-- เลือกวิชา --</option>
-                  {SUBJECT_LIST.map(s => (
-                    <option key={s.value} value={s.value}>{s.label}</option>
+                  {SUBJECT_LIST.map((s) => (
+                    <option key={s.value} value={s.value}>
+                      {s.label}
+                    </option>
                   ))}
                   <option value="อื่นๆ">อื่นๆ (โปรดระบุ)</option>
                 </select>
-                <ChevronDown size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <ChevronDown
+                  size={18}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                />
               </div>
               {subject === 'อื่นๆ' && (
                 <input
@@ -292,7 +305,7 @@ export default function EditSummaryPage() {
               />
             </div>
 
-            {/* Link Section (only editable if it was a link, or we just let them edit link if it is one) */}
+            {/* Link Section */}
             {attachmentType === 'link' && (
               <div>
                 <label htmlFor="linkUrl" className="block text-sm font-medium text-slate-700 mb-2">
@@ -321,25 +334,44 @@ export default function EditSummaryPage() {
               </div>
             )}
 
-            {/* If it's a file, show a message that files cannot be changed here, only text */}
+            {/* If it's a file */}
             {attachmentType === 'file' && (
               <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl text-blue-700 text-sm flex gap-3 items-start">
                 <FileText className="shrink-0 mt-0.5" size={18} />
-                <p>การแก้ไขไฟล์แนบโดยตรงยังไม่รองรับในขณะนี้ คุณสามารถแก้ไขได้เฉพาะชื่อวิชาและคำอธิบายเท่านั้น</p>
+                <p>
+                  การแก้ไขไฟล์แนบโดยตรงยังไม่รองรับในขณะนี้ คุณสามารถแก้ไขได้เฉพาะชื่อวิชาและคำอธิบายเท่านั้น
+                </p>
               </div>
             )}
 
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={loading || !title || (!subject || (subject === 'อื่นๆ' && !customSubject)) || (attachmentType === 'link' && (!linkUrl || !!linkError))}
-              className="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-4 rounded-2xl shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              disabled={
+                loading ||
+                !title ||
+                !subject ||
+                (subject === 'อื่นๆ' && !customSubject) ||
+                (attachmentType === 'link' && (!linkUrl || !!linkError))
+              }
+              className="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-4 rounded-2xl shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
             >
               {loading ? (
                 <>
                   <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
                   </svg>
                   กำลังบันทึก...
                 </>

@@ -2,30 +2,35 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
-import { getExamSummaries } from './actions';
+import {
+  getExamSummaries,
+  deleteExamSummary,
+  getCurrentStudentForSummaries,
+  type SummaryItem,
+} from './actions';
 import Countdown from '@/components/Countdown';
 import {
-  BookOpen, Download, FileText, ArrowLeft, Upload, Clock,
-  Image as ImageIcon, Search, ExternalLink, ChevronDown,
-  ChevronLeft, ChevronRight, X, Link as LinkIcon, User, Edit, Trash2
+  BookOpen,
+  Download,
+  FileText,
+  ArrowLeft,
+  Upload,
+  Clock,
+  Image as ImageIcon,
+  Search,
+  ExternalLink,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  Link as LinkIcon,
+  User,
+  Edit,
+  Trash2,
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { motion } from 'framer-motion';
-
-type SummaryData = {
-  id: string;
-  title: string;
-  subject: string;
-  description: string;
-  file_url: string;
-  file_urls?: string[];
-  uploader_id?: string;
-  uploader_name?: string;
-  attachment_type?: string;
-  link_url?: string;
-  term?: string;
-  created_at: string;
-};
+import toast from 'react-hot-toast';
 
 // Subject normalization map
 const SUBJECT_ALIASES: Record<string, string> = {
@@ -64,30 +69,47 @@ function timeAgo(dateStr: string): string {
 }
 
 export default function SummariesPage() {
-  const [summaries, setSummaries] = useState<SummaryData[]>([]);
+  const [summaries, setSummaries] = useState<SummaryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
   const [lightboxImgs, setLightboxImgs] = useState<string[]>([]);
   const [lightboxIdx, setLightboxIdx] = useState(0);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [finalExamDate, setFinalExamDate] = useState("2026-09-22T00:00:00+07:00");
+  const [currentStudent, setCurrentStudent] = useState<{
+    student_id: string;
+    full_name: string;
+    nickname: string;
+    role: string;
+    canManageAll: boolean;
+  } | null>(null);
+  const [finalExamDate, setFinalExamDate] = useState('2026-09-22T00:00:00+07:00');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const supabase = createClient();
 
   useEffect(() => {
     const fetchUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) setCurrentUserId(user.id);
+      try {
+        const student = await getCurrentStudentForSummaries();
+        if (student) setCurrentStudent(student);
+      } catch (e) {
+        console.error('Error fetching student session:', e);
+      }
     };
     const fetchSettings = async () => {
-      const { data } = await supabase.from('system_settings').select('value').eq('key', 'final_exam_date').single();
-      if (data?.value) setFinalExamDate(`${data.value}T00:00:00+07:00`);
+      try {
+        const { data } = await supabase
+          .from('system_settings')
+          .select('value')
+          .eq('key', 'final_exam_date')
+          .single();
+        if (data?.value) setFinalExamDate(`${data.value}T00:00:00+07:00`);
+      } catch {}
     };
     fetchUser();
     fetchSettings();
     fetchSummaries();
-  }, [supabase.auth]);
+  }, [supabase]);
 
   const fetchSummaries = async () => {
     setIsLoading(true);
@@ -98,14 +120,38 @@ export default function SummariesPage() {
     setIsLoading(false);
   };
 
+  const handleDelete = async (id: string, title: string) => {
+    if (!window.confirm(`คุณต้องการลบสรุปสอบ "${title}" ใช่หรือไม่?`)) {
+      return;
+    }
+
+    setDeletingId(id);
+    const toastId = toast.loading('กำลังลบสรุปสอบ...');
+
+    try {
+      const res = await deleteExamSummary(id);
+      if (res.error) {
+        toast.error(res.error, { id: toastId });
+        return;
+      }
+      toast.success('ลบสรุปสอบสำเร็จแล้ว', { id: toastId });
+      setSummaries((prev) => prev.filter((s) => s.id !== id));
+    } catch (err: any) {
+      toast.error(err.message || 'เกิดข้อผิดพลาดในการลบ', { id: toastId });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const subjects = useMemo(() => {
-    const set = new Set(summaries.map(s => normalizeSubject(s.subject)));
+    const set = new Set(summaries.map((s) => normalizeSubject(s.subject)));
     return Array.from(set).sort();
   }, [summaries]);
 
   const filtered = useMemo(() => {
-    return summaries.filter(s => {
-      const matchSearch = !searchQuery ||
+    return summaries.filter((s) => {
+      const matchSearch =
+        !searchQuery ||
         s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         s.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (s.description || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -115,7 +161,7 @@ export default function SummariesPage() {
     });
   }, [summaries, searchQuery, selectedSubject]);
 
-  const getUrls = (summary: SummaryData): string[] => {
+  const getUrls = (summary: SummaryItem): string[] => {
     if (summary.file_urls && summary.file_urls.length > 0) return summary.file_urls;
     if (summary.file_url) return [summary.file_url];
     return [];
@@ -132,11 +178,11 @@ export default function SummariesPage() {
   };
 
   const goLightboxPrev = useCallback(() => {
-    setLightboxIdx(prev => (prev > 0 ? prev - 1 : lightboxImgs.length - 1));
+    setLightboxIdx((prev) => (prev > 0 ? prev - 1 : lightboxImgs.length - 1));
   }, [lightboxImgs.length]);
 
   const goLightboxNext = useCallback(() => {
-    setLightboxIdx(prev => (prev < lightboxImgs.length - 1 ? prev + 1 : 0));
+    setLightboxIdx((prev) => (prev < lightboxImgs.length - 1 ? prev + 1 : 0));
   }, [lightboxImgs.length]);
 
   // Keyboard navigation for lightbox
@@ -169,7 +215,7 @@ export default function SummariesPage() {
   };
 
   return (
-    <motion.main 
+    <motion.main
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
@@ -244,11 +290,16 @@ export default function SummariesPage() {
               className="w-full appearance-none bg-white rounded-2xl border border-slate-200 px-4 py-3 pr-10 focus:outline-none focus:ring-2 focus:ring-rose-500 text-slate-700 shadow-sm cursor-pointer"
             >
               <option value="">วิชาทั้งหมด</option>
-              {subjects.map(sub => (
-                <option key={sub} value={sub}>{sub}</option>
+              {subjects.map((sub) => (
+                <option key={sub} value={sub}>
+                  {sub}
+                </option>
               ))}
             </select>
-            <ChevronDown size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <ChevronDown
+              size={18}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+            />
           </div>
         </div>
 
@@ -286,29 +337,40 @@ export default function SummariesPage() {
               {filtered.map((summary) => {
                 const isLink = summary.attachment_type === 'link';
                 const urls = getUrls(summary);
-                const pdfUrls = urls.filter(u => getFileType(u) === 'pdf');
-                const imageUrls = isLink ? [] : urls.filter(u => getFileType(u) === 'image');
-                const firstUrl = isLink ? (summary.link_url || summary.file_url) : urls[0];
+                const pdfUrls = urls.filter((u) => getFileType(u) === 'pdf');
+                const imageUrls = isLink ? [] : urls.filter((u) => getFileType(u) === 'image');
+                const firstUrl = isLink ? summary.link_url || summary.file_url : urls[0];
+
+                const canManageThis =
+                  currentStudent &&
+                  (currentStudent.canManageAll ||
+                    summary.uploader_id === currentStudent.student_id ||
+                    summary.uploader_id === `student_${currentStudent.student_id}`);
 
                 return (
-                  <div key={summary.id} className="bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-rose-100/50 hover:-translate-y-1 transition-all duration-300 flex flex-col h-full group relative overflow-hidden">
+                  <div
+                    key={summary.id}
+                    className="bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-rose-100/50 hover:-translate-y-1 transition-all duration-300 flex flex-col h-full group relative overflow-hidden"
+                  >
                     <div className="absolute top-0 right-0 w-24 h-24 bg-rose-50 rounded-bl-full -z-0 opacity-50 group-hover:scale-110 transition-transform duration-500 pointer-events-none"></div>
+
                     {/* Action buttons (Edit/Delete) */}
-                    {(currentUserId === summary.uploader_id) && (
-                      <div className="absolute top-4 left-4 z-10 flex gap-2">
-                        <Link 
+                    {canManageThis && (
+                      <div className="absolute top-4 left-4 z-10 flex gap-1.5">
+                        <Link
                           href={`/summaries/edit/${summary.id}`}
-                          className="bg-white/80 hover:bg-white text-slate-500 hover:text-amber-500 p-2 rounded-full backdrop-blur-sm transition-all shadow-sm"
+                          className="bg-white/90 hover:bg-white text-slate-600 hover:text-amber-500 p-2 rounded-full backdrop-blur-sm transition-all shadow-sm border border-slate-100"
                           title="แก้ไขสรุปสอบ"
                         >
-                          <Edit size={16} />
+                          <Edit size={15} />
                         </Link>
-                        <button 
-                          disabled
-                          className="bg-white/80 text-slate-300 p-2 rounded-full backdrop-blur-sm cursor-not-allowed shadow-sm"
-                          title="ติดต่อผู้ดูแลระบบเพื่อลบสรุปสอบนี้"
+                        <button
+                          onClick={() => handleDelete(summary.id, summary.title)}
+                          disabled={deletingId === summary.id}
+                          className="bg-white/90 hover:bg-white text-slate-600 hover:text-red-500 p-2 rounded-full backdrop-blur-sm transition-all shadow-sm border border-slate-100 cursor-pointer disabled:opacity-50"
+                          title="ลบสรุปสอบนี้"
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={15} />
                         </button>
                       </div>
                     )}
@@ -319,7 +381,7 @@ export default function SummariesPage() {
                         href={firstUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="absolute top-4 right-4 text-slate-300 hover:text-rose-500 bg-white/80 hover:bg-white p-2 rounded-full backdrop-blur-sm transition-all z-10 shadow-sm"
+                        className="absolute top-4 right-4 text-slate-400 hover:text-rose-500 bg-white/90 hover:bg-white p-2 rounded-full backdrop-blur-sm transition-all z-10 shadow-sm border border-slate-100"
                         title="เปิดไฟล์"
                       >
                         <ExternalLink size={16} />
@@ -328,14 +390,32 @@ export default function SummariesPage() {
 
                     {/* Image thumbnails */}
                     {imageUrls.length > 0 && (
-                      <div className={`grid ${imageUrls.length === 1 ? 'grid-cols-1' : imageUrls.length === 2 ? 'grid-cols-2' : 'grid-cols-3'} gap-0.5 rounded-t-2xl overflow-hidden`}>
+                      <div
+                        className={`grid ${
+                          imageUrls.length === 1
+                            ? 'grid-cols-1'
+                            : imageUrls.length === 2
+                            ? 'grid-cols-2'
+                            : 'grid-cols-3'
+                        } gap-0.5 rounded-t-2xl overflow-hidden`}
+                      >
                         {imageUrls.slice(0, 3).map((url, i) => (
-                          <div key={i} className="relative aspect-[4/3] cursor-pointer overflow-hidden" onClick={() => openLightbox(imageUrls, i)}>
+                          <div
+                            key={i}
+                            className="relative aspect-[4/3] cursor-pointer overflow-hidden"
+                            onClick={() => openLightbox(imageUrls, i)}
+                          >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={url} alt={`Preview ${i + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                            <img
+                              src={url}
+                              alt={`Preview ${i + 1}`}
+                              className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                            />
                             {i === 2 && imageUrls.length > 3 && (
                               <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                                <span className="text-white font-bold text-lg">+{imageUrls.length - 3}</span>
+                                <span className="text-white font-bold text-lg">
+                                  +{imageUrls.length - 3}
+                                </span>
                               </div>
                             )}
                           </div>
@@ -427,7 +507,7 @@ export default function SummariesPage() {
                               {imageUrls.length > 0 && !pdfUrls.length && (
                                 <button
                                   onClick={() => openLightbox(imageUrls, 0)}
-                                  className="bg-rose-500 hover:bg-rose-600 text-white text-xs font-medium px-3 py-1.5 rounded-full transition-colors flex items-center gap-1"
+                                  className="bg-rose-500 hover:bg-rose-600 text-white text-xs font-medium px-3 py-1.5 rounded-full transition-colors flex items-center gap-1 cursor-pointer"
                                 >
                                   <ImageIcon size={12} />
                                   ดูรูป
@@ -454,7 +534,7 @@ export default function SummariesPage() {
         >
           {/* Close button */}
           <button
-            className="absolute top-6 right-6 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-3 rounded-full backdrop-blur-sm transition-all z-20"
+            className="absolute top-6 right-6 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-3 rounded-full backdrop-blur-sm transition-all z-20 cursor-pointer"
             onClick={closeLightbox}
           >
             <X size={24} />
@@ -468,8 +548,11 @@ export default function SummariesPage() {
           {/* Prev Arrow */}
           {lightboxImgs.length > 1 && (
             <button
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-3 rounded-full backdrop-blur-sm transition-all z-20"
-              onClick={(e) => { e.stopPropagation(); goLightboxPrev(); }}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-3 rounded-full backdrop-blur-sm transition-all z-20 cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                goLightboxPrev();
+              }}
             >
               <ChevronLeft size={28} />
             </button>
@@ -478,8 +561,11 @@ export default function SummariesPage() {
           {/* Next Arrow */}
           {lightboxImgs.length > 1 && (
             <button
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-3 rounded-full backdrop-blur-sm transition-all z-20"
-              onClick={(e) => { e.stopPropagation(); goLightboxNext(); }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-3 rounded-full backdrop-blur-sm transition-all z-20 cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                goLightboxNext();
+              }}
             >
               <ChevronRight size={28} />
             </button>
@@ -495,11 +581,14 @@ export default function SummariesPage() {
           />
 
           {/* Bottom Controls */}
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 z-20" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 z-20"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Save Button */}
             <button
               onClick={() => handleSaveImage(lightboxImgs[lightboxIdx])}
-              className="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white font-medium px-5 py-2.5 rounded-full backdrop-blur-sm transition-all"
+              className="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white font-medium px-5 py-2.5 rounded-full backdrop-blur-sm transition-all cursor-pointer"
             >
               <Download size={18} />
               บันทึกรูป
@@ -512,7 +601,9 @@ export default function SummariesPage() {
                   <button
                     key={i}
                     onClick={() => setLightboxIdx(i)}
-                    className={`w-2.5 h-2.5 rounded-full transition-all ${i === lightboxIdx ? 'bg-white scale-125' : 'bg-white/40 hover:bg-white/70'}`}
+                    className={`w-2.5 h-2.5 rounded-full transition-all cursor-pointer ${
+                      i === lightboxIdx ? 'bg-white scale-125' : 'bg-white/40 hover:bg-white/70'
+                    }`}
                   />
                 ))}
               </div>

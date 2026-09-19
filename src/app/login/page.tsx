@@ -13,6 +13,7 @@ export const metadata = {
 export default async function LoginPage(props: Props) {
   const searchParams = await props.searchParams;
   const message = searchParams?.message as string | undefined;
+  const redirectParam = searchParams?.redirect as string | undefined;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center px-4 sm:px-6 py-12 relative font-sans selection:bg-indigo-500 selection:text-white">
@@ -39,7 +40,7 @@ export default async function LoginPage(props: Props) {
       </Link>
 
       <div className="w-full max-w-md my-auto">
-        <LoginForm initialMessage={message} />
+        <LoginForm initialMessage={message} initialRedirect={redirectParam} />
       </div>
     </div>
   );
