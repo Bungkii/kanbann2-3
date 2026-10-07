@@ -48,6 +48,10 @@ export async function getCurrentUserRank() {
 // Get all forms
 export async function getFormsList() {
   const admin = getAdminClient();
+  const user = await getCurrentUserRank();
+
+  // If user is ranked, they can see public forms + their own created private forms
+  // Or all forms if they are Leader/Admin/SuperAdmin
   const { data, error } = await admin
     .from('forms')
     .select('*, form_responses(count)')
@@ -57,7 +61,19 @@ export async function getFormsList() {
     console.error("Error fetching forms:", error);
     return [];
   }
-  return data || [];
+
+  const list = data || [];
+  // Filter for regular users: only show 'public' forms (or forms with no visibility set)
+  if (!user.isRanked) {
+    return list.filter((f) => !f.visibility || f.visibility === 'public');
+  }
+
+  // Ranked users can see public forms + their own private forms + SuperAdmin/Leader can see all
+  return list.filter((f) => {
+    if (!f.visibility || f.visibility === 'public') return true;
+    if (['Leader', 'SuperAdmin', 'Admin'].includes(user.role)) return true;
+    return f.creator_id === user.id;
+  });
 }
 
 // Get a single form by ID
@@ -98,6 +114,7 @@ export async function createForm(formData: {
   description?: string;
   max_points?: number | null;
   allow_anonymous?: boolean;
+  visibility?: 'public' | 'private';
   questions: any[];
 }) {
   const user = await getCurrentUserRank();
@@ -120,6 +137,8 @@ export async function createForm(formData: {
       creator_role: user.role,
       is_active: true,
       allow_anonymous: formData.allow_anonymous || false,
+      visibility: formData.visibility || 'public',
+      max_points: formData.max_points ?? null,
       questions: formData.questions || [],
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -132,6 +151,66 @@ export async function createForm(formData: {
   }
 
   revalidatePath('/form');
+  return { success: true, form: data };
+}
+
+// Update an existing form (Owner or Admin/Leader/SuperAdmin)
+export async function updateForm(formId: string, formData: {
+  title: string;
+  description?: string;
+  max_points?: number | null;
+  allow_anonymous?: boolean;
+  visibility?: 'public' | 'private';
+  questions: any[];
+}) {
+  const user = await getCurrentUserRank();
+  if (!user.isRanked) {
+    return { success: false, error: "คุณไม่มีสิทธิ์แก้ไขแบบสอบถาม" };
+  }
+
+  if (!formData.title?.trim()) {
+    return { success: false, error: "กรุณาระบุหัวข้อแบบสอบถาม" };
+  }
+
+  const admin = getAdminClient();
+
+  // Verify ownership or admin privileges
+  const { data: existingForm } = await admin
+    .from('forms')
+    .select('id, creator_id')
+    .eq('id', formId)
+    .single();
+
+  if (!existingForm) {
+    return { success: false, error: "ไม่พบแบบสอบถามที่ต้องการแก้ไข" };
+  }
+
+  const canEdit = ['Leader', 'SuperAdmin', 'Admin'].includes(user.role) || existingForm.creator_id === user.id;
+  if (!canEdit) {
+    return { success: false, error: "คุณสามารถแก้ไขได้เฉพาะแบบสอบถามที่คุณสร้างขึ้นเท่านั้น" };
+  }
+
+  const { data, error } = await admin
+    .from('forms')
+    .update({
+      title: formData.title.trim(),
+      description: formData.description?.trim() || '',
+      allow_anonymous: formData.allow_anonymous || false,
+      visibility: formData.visibility || 'public',
+      max_points: formData.max_points ?? null,
+      questions: formData.questions || [],
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', formId)
+    .select()
+    .single();
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath('/form');
+  revalidatePath(`/form?id=${formId}`);
   return { success: true, form: data };
 }
 
@@ -188,12 +267,27 @@ export async function submitFormResponse(formId: string, answers: Record<string,
 
   const cookieStore = await cookies();
   const session = getStudentSessionFromCookies(cookieStore as any);
+  
+  // Try Supabase auth if session cookie isn't available
   let respondentId = session?.student_id || null;
   let respondentName = session?.full_name || null;
 
+  if (!respondentId) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      respondentId = user.id;
+      respondentName = user.user_metadata?.full_name || user.email || 'ผู้ใช้ระบบ';
+    }
+  }
+
+  // If user requested anonymous and form allows it
   if (isAnonymous && form.allow_anonymous) {
     respondentId = null;
     respondentName = 'ผู้ไม่ประสงค์ออกนาม';
+  } else if (!respondentName && !respondentId) {
+    // Guest respondent without login
+    respondentName = 'ผู้ตอบทั่วไป';
   }
 
   const { error: insertError } = await admin

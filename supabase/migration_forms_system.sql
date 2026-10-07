@@ -16,18 +16,26 @@ CREATE TABLE IF NOT EXISTS public.forms (
     creator_role TEXT,                   -- ยศผู้สร้าง (Leader, Finance, Admin, SuperAdmin)
     is_active BOOLEAN DEFAULT true,       -- เปิด/ปิดรับคำตอบ
     allow_anonymous BOOLEAN DEFAULT false,-- อนุญาตให้ตอบแบบไม่ระบุตัวตนหรือไม่
+    visibility TEXT DEFAULT 'public',     -- 'public' (ค้นหาและแสดงในรายการ) หรือ 'private' (ส่วนตัว เข้าถึงผ่านลิงก์เท่านั้น)
+    max_points NUMERIC DEFAULT NULL,      -- คะแนนเต็มรวม (ถ้ามี)
     questions JSONB NOT NULL DEFAULT '[]'::jsonb
     -- questions schema:
     -- [
     --   {
     --     "id": "q1",
     --     "title": "คำถามข้อที่ 1",
-    --     "type": "short_answer" | "paragraph" | "radio" | "checkbox" | "rating",
+    --     "type": "short_answer" | "paragraph" | "multiple_choice" | "checkboxes" | "dropdown" | "rating" | "linear_scale" | "date" | "time" | "file_upload",
     --     "required": true,
-    --     "options": ["ตัวเลือก 1", "ตัวเลือก 2"] -- (ถ้ามี)
+    --     "options": ["ตัวเลือก 1", "ตัวเลือก 2"],
+    --     "correct_answer": "คำตอบที่ถูกต้อง",
+    --     "points": 5
     --   }
     -- ]
 );
+
+-- เพิ่มคอลัมน์ใหม่อัตโนมัติ (กรณีสร้างตารางไปแล้ว)
+ALTER TABLE public.forms ADD COLUMN IF NOT EXISTS visibility TEXT DEFAULT 'public';
+ALTER TABLE public.forms ADD COLUMN IF NOT EXISTS max_points NUMERIC DEFAULT NULL;
 
 -- 2. ตารางบันทึกการส่งคำตอบ (Form Responses)
 CREATE TABLE IF NOT EXISTS public.form_responses (

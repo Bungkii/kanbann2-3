@@ -16,6 +16,7 @@ import {
   HeartHandshake,
   X,
   ArrowLeft,
+  Share2,
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -35,6 +36,43 @@ export default function SingleFormResponder({
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
+
+  const handleShare = async () => {
+    if (typeof window === "undefined") return;
+    const url = window.location.href;
+    const shareData = {
+      title: `แบบสอบถาม: ${form.title}`,
+      text: `ขอเชิญร่วมตอบแบบสอบถามห้อง ม.2/3: ${form.title}`,
+      url: url,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch (err: any) {
+        if (err.name === "AbortError") return;
+      }
+    }
+
+    // Fallback to clipboard
+    try {
+      await navigator.clipboard.writeText(url);
+      setIsCopied(true);
+      toast.success("คัดลอกลิงก์แบบสอบถามแล้ว!");
+      setTimeout(() => setIsCopied(false), 2500);
+    } catch {
+      toast.error("ไม่สามารถคัดลอกลิงก์ได้");
+    }
+  };
+
+  const handleShareLine = () => {
+    if (typeof window === "undefined") return;
+    const url = encodeURIComponent(window.location.href);
+    const text = encodeURIComponent(`ขอเชิญร่วมตอบแบบสอบถาม ม.2/3: ${form.title}\n`);
+    window.open(`https://line.me/R/msg/text/?${text}${url}`, "_blank");
+  };
 
   const questions = form.questions || [];
 
@@ -132,7 +170,7 @@ export default function SingleFormResponder({
     >
       <div className="max-w-4xl mx-auto">
         {/* Top Header - Pink Brand Style (Exact Evaluate Boss) */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 font-sans border-b-4 border-pink-500 pb-2 inline-block">
               {form.title}
@@ -143,43 +181,84 @@ export default function SingleFormResponder({
               </p>
             )}
           </div>
-          <Link href="/form" className="text-pink-600 hover:underline text-sm font-semibold shrink-0">
-            ดูแบบสอบถามอื่น
-          </Link>
+          <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+            <button
+              type="button"
+              onClick={handleShare}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-pink-200 text-pink-600 hover:bg-pink-50 text-xs font-bold transition-all shadow-2xs cursor-pointer active:scale-95"
+              title="แชร์แบบสอบถาม"
+            >
+              <Share2 size={14} />
+              <span>{isCopied ? "คัดลอกแล้ว!" : "แชร์"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleShareLine}
+              className="flex items-center gap-1 px-3 py-2 rounded-xl bg-[#06C755] hover:bg-[#05b34c] text-white text-xs font-bold transition-all shadow-2xs cursor-pointer active:scale-95"
+              title="แชร์ไปยัง LINE"
+            >
+              <span>LINE</span>
+            </button>
+            <Link href="/form" className="text-slate-600 hover:text-pink-600 text-xs font-semibold px-2 py-1">
+              ดูแบบสอบถามอื่น
+            </Link>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Respondent Profile Bar & Anonymous Choice */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-pink-50 rounded-full flex items-center justify-center border-2 border-pink-100 overflow-hidden text-pink-600 font-bold">
+              <div className="w-12 h-12 bg-pink-50 rounded-full flex items-center justify-center border-2 border-pink-100 overflow-hidden text-pink-600 font-bold shrink-0">
                 {currentStudent ? String(currentStudent.student_no).padStart(2, "0") : "👤"}
               </div>
               <div>
-                <p className="text-sm font-bold text-slate-800">
-                  {currentStudent
-                    ? `${currentStudent.first_name} ${currentStudent.last_name}`
-                    : "ผู้ใช้งานทั่วไป"}
-                </p>
-                <p className="text-xs text-slate-500">
-                  {currentStudent
-                    ? `เลขประจำตัว: ${currentStudent.student_id} • เลขที่ ${currentStudent.student_no}`
-                    : "ห้องเรียน ม.2/3"}
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-bold text-slate-800">
+                    {isAnonymous
+                      ? "ผู้ไม่ประสงค์ออกนาม (ปิดบังตัวตน)"
+                      : currentStudent
+                      ? `${currentStudent.first_name} ${currentStudent.last_name} (${currentStudent.nickname || ""})`
+                      : "ผู้ใช้งานทั่วไป (ยังไม่ได้เข้าสู่ระบบ)"}
+                  </p>
+                  {currentStudent && !isAnonymous && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      ✓ บันทึกชื่ออัตโนมัติ
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {isAnonymous
+                    ? "คำตอบของคุณจะไม่ระบุชื่อหรือเลขประจำตัวใดๆ"
+                    : currentStudent
+                    ? `เลขประจำตัว: ${currentStudent.student_id} • เลขที่ ${currentStudent.student_no} • ห้อง ม.2/3`
+                    : "คุณสามารถเข้าสู่ระบบพริมจ๋าเพื่อให้บันทึกชื่ออัตโนมัติได้"}
                 </p>
               </div>
             </div>
 
-            {form.allow_anonymous && (
-              <label className="flex items-center gap-2 cursor-pointer bg-slate-50 border border-slate-200 px-4 py-2 rounded-xl hover:bg-slate-100 transition-colors text-xs font-semibold text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={isAnonymous}
-                  onChange={(e) => setIsAnonymous(e.target.checked)}
-                  className="rounded text-pink-600 focus:ring-pink-500 w-4 h-4 cursor-pointer"
-                />
-                <span>ไม่ประสงค์ออกนาม (Anonymous)</span>
-              </label>
-            )}
+            <div className="flex items-center gap-2 shrink-0">
+              {form.allow_anonymous && (
+                <label className="flex items-center gap-2 cursor-pointer bg-slate-50 border border-slate-200 px-4 py-2 rounded-xl hover:bg-slate-100 transition-colors text-xs font-semibold text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={isAnonymous}
+                    onChange={(e) => setIsAnonymous(e.target.checked)}
+                    className="rounded text-pink-600 focus:ring-pink-500 w-4 h-4 cursor-pointer"
+                  />
+                  <span>ไม่ประสงค์ออกนาม (Anonymous)</span>
+                </label>
+              )}
+
+              {!currentStudent && (
+                <Link
+                  href={`/login?redirect=/form?id=${form.id}`}
+                  className="px-3.5 py-2 rounded-xl bg-pink-50 hover:bg-pink-100 border border-pink-200 text-pink-700 text-xs font-bold transition-colors shrink-0"
+                >
+                  เข้าสู่ระบบ
+                </Link>
+              )}
+            </div>
           </div>
 
           {/* Questions Container */}
@@ -442,11 +521,29 @@ export default function SingleFormResponder({
                 </p>
               </div>
 
-              <div className="pt-2">
+              <div className="pt-2 space-y-2.5">
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleShare}
+                    className="flex-1 py-3 px-4 rounded-xl border border-pink-200 bg-pink-50 hover:bg-pink-100 text-pink-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Share2 size={15} />
+                    <span>{isCopied ? "คัดลอกลิงก์แล้ว!" : "แชร์ให้เพื่อน"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleShareLine}
+                    className="py-3 px-5 rounded-xl bg-[#06C755] hover:bg-[#05b34c] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <span>แชร์ LINE</span>
+                  </button>
+                </div>
+
                 <button
                   type="button"
                   onClick={handleCloseModal}
-                  className="w-full py-3.5 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-bold text-sm transition-colors cursor-pointer"
+                  className="w-full py-3.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-sm transition-colors cursor-pointer"
                 >
                   ตกลง / กลับหน้ารวมแบบสอบถาม
                 </button>

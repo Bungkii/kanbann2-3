@@ -23,9 +23,13 @@ import {
   ChevronDown,
   Upload,
   Check,
+  Share2,
+  Edit3,
+  Globe,
+  Lock,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { createForm, deleteForm } from "./actions";
+import { createForm, updateForm, deleteForm } from "./actions";
 import { parseExcelOrCsvForm, normalizeDateInput } from "./excelParser";
 import Link from "next/link";
 
@@ -50,12 +54,14 @@ export default function FormManagementClient({
   currentUser: { isRanked: boolean; role: string; name: string };
 }) {
   const [activeTab, setActiveTab] = useState<"list" | "create" | "excel">("list");
+  const [editingFormId, setEditingFormId] = useState<string | null>(null);
   
   // Manual / Excel Form State
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [maxPoints, setMaxPoints] = useState<string>("");
   const [allowAnonymous, setAllowAnonymous] = useState(false);
+  const [visibility, setVisibility] = useState<"public" | "private">("public");
   const [questions, setQuestions] = useState<any[]>([
     {
       id: "q_1",
@@ -189,7 +195,55 @@ export default function FormManagementClient({
     );
   };
 
-  // Submit Form
+  // Reset Form State
+  const resetFormState = () => {
+    setEditingFormId(null);
+    setTitle("");
+    setDescription("");
+    setMaxPoints("");
+    setAllowAnonymous(false);
+    setVisibility("public");
+    setQuestions([
+      {
+        id: "q_1",
+        title: "ความคิดเห็นหรือข้อเสนอแนะของคุณ",
+        type: "short_answer",
+        required: true,
+        options: [],
+        correct_answer: "",
+        points: 0,
+      },
+    ]);
+  };
+
+  // Populate form for editing
+  const handleEditClick = (form: any) => {
+    setEditingFormId(form.id);
+    setTitle(form.title || "");
+    setDescription(form.description || "");
+    setMaxPoints(form.max_points !== null && form.max_points !== undefined ? String(form.max_points) : "");
+    setAllowAnonymous(Boolean(form.allow_anonymous));
+    setVisibility(form.visibility === "private" ? "private" : "public");
+    setQuestions(
+      form.questions && form.questions.length > 0
+        ? form.questions
+        : [
+            {
+              id: "q_1",
+              title: "ความคิดเห็นหรือข้อเสนอแนะของคุณ",
+              type: "short_answer",
+              required: true,
+              options: [],
+              correct_answer: "",
+              points: 0,
+            },
+          ]
+    );
+    setActiveTab("create");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Submit Form (Create or Update)
   const handleCreateForm = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
@@ -205,39 +259,74 @@ export default function FormManagementClient({
 
     setIsSubmitting(true);
     try {
-      const res = await createForm({
-        title,
-        description,
-        max_points: maxPoints ? Number(maxPoints) : null,
-        allow_anonymous: allowAnonymous,
-        questions,
-      });
+      if (editingFormId) {
+        // Update existing form
+        const res = await updateForm(editingFormId, {
+          title,
+          description,
+          max_points: maxPoints ? Number(maxPoints) : null,
+          allow_anonymous: allowAnonymous,
+          visibility,
+          questions,
+        });
 
-      if (res.success && res.form) {
-        toast.success("สร้างแบบสอบถามสำเร็จ!");
-        setTitle("");
-        setDescription("");
-        setMaxPoints("");
-        setQuestions([
-          {
-            id: "q_1",
-            title: "ความคิดเห็นหรือข้อเสนอแนะของคุณ",
-            type: "short_answer",
-            required: true,
-            options: [],
-            correct_answer: "",
-            points: 0,
-          },
-        ]);
-        setActiveTab("list");
+        if (res.success) {
+          toast.success("บันทึกการแก้ไขแบบสอบถามสำเร็จ!");
+          resetFormState();
+          setActiveTab("list");
+        } else {
+          toast.error(res.error || "ไม่สามารถแก้ไขแบบสอบถามได้");
+        }
       } else {
-        toast.error(res.error || "ไม่สามารถสร้างแบบสอบถามได้");
+        // Create new form
+        const res = await createForm({
+          title,
+          description,
+          max_points: maxPoints ? Number(maxPoints) : null,
+          allow_anonymous: allowAnonymous,
+          visibility,
+          questions,
+        });
+
+        if (res.success && res.form) {
+          toast.success("สร้างแบบสอบถามสำเร็จ!");
+          resetFormState();
+          setActiveTab("list");
+        } else {
+          toast.error(res.error || "ไม่สามารถสร้างแบบสอบถามได้");
+        }
       }
     } catch {
       toast.error("เกิดข้อผิดพลาดในการเชื่อมต่อ");
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Copy or Web Share
+  const shareForm = async (form: any) => {
+    const url = `${window.location.origin}/form?id=${form.id}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `แบบสอบถาม: ${form.title}`,
+          text: `ขอเชิญตอบแบบสอบถามห้อง ม.2/3: ${form.title}`,
+          url: url,
+        });
+        return;
+      } catch (err: any) {
+        if (err.name === "AbortError") return;
+      }
+    }
+    // Fallback to clipboard
+    navigator.clipboard.writeText(url);
+    toast.success("คัดลอกลิงก์แบบสอบถามแล้ว!");
+  };
+
+  const shareLine = (form: any) => {
+    const url = encodeURIComponent(`${window.location.origin}/form?id=${form.id}`);
+    const text = encodeURIComponent(`ขอเชิญตอบแบบสอบถาม ม.2/3: ${form.title}\n`);
+    window.open(`https://line.me/R/msg/text/?${text}${url}`, "_blank");
   };
 
   // Copy URL
@@ -298,19 +387,27 @@ export default function FormManagementClient({
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab("create")}
+            onClick={() => {
+              if (activeTab === "create" && editingFormId) {
+                resetFormState();
+              }
+              setActiveTab("create");
+            }}
             className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
               activeTab === "create"
                 ? "bg-pink-600 text-white shadow-sm"
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            <Plus size={14} />
-            สร้างแบบฟอร์ม
+            {editingFormId ? <Edit3 size={14} /> : <Plus size={14} />}
+            {editingFormId ? "แก้ไขแบบฟอร์ม" : "สร้างแบบฟอร์ม"}
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab("excel")}
+            onClick={() => {
+              resetFormState();
+              setActiveTab("excel");
+            }}
             className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
               activeTab === "excel"
                 ? "bg-emerald-600 text-white shadow-sm"
@@ -349,16 +446,31 @@ export default function FormManagementClient({
                   >
                     <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-pink-500 to-rose-400 opacity-90"></div>
                     <div>
-                      <div className="flex items-start justify-between gap-2 mb-2 pt-1">
-                        <span
-                          className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
-                            item.is_active
-                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                              : "bg-slate-100 text-slate-500 border border-slate-200"
-                          }`}
-                        >
-                          {item.is_active ? "เปิดรับคำตอบ" : "ปิดรับแล้ว"}
-                        </span>
+                      <div className="flex items-start justify-between gap-2 mb-2 pt-1 flex-wrap">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span
+                            className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
+                              item.is_active
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                : "bg-slate-100 text-slate-500 border border-slate-200"
+                            }`}
+                          >
+                            {item.is_active ? "เปิดรับคำตอบ" : "ปิดรับแล้ว"}
+                          </span>
+
+                          {item.visibility === "private" ? (
+                            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
+                              <Lock size={11} />
+                              ส่วนตัว (เฉพาะลิงก์)
+                            </span>
+                          ) : (
+                            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200 flex items-center gap-1">
+                              <Globe size={11} />
+                              สาธารณะ (ค้นหาได้)
+                            </span>
+                          )}
+                        </div>
+
                         <span className="text-[11px] text-slate-400">
                           โดย: {item.creator_name || "Staff"} ({item.creator_role || "Staff"})
                         </span>
@@ -377,7 +489,7 @@ export default function FormManagementClient({
                       </div>
                     </div>
 
-                    <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
                       <Link
                         href={`/form?id=${item.id}`}
                         className="bg-pink-600 hover:bg-pink-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-1.5"
@@ -386,7 +498,34 @@ export default function FormManagementClient({
                         เปิดตอบฟอร์ม
                       </Link>
 
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {/* Edit Button for ranked users / owner */}
+                        {currentUser.isRanked && (
+                          <button
+                            type="button"
+                            onClick={() => handleEditClick(item)}
+                            className="p-2.5 rounded-xl text-amber-600 hover:bg-amber-50 transition-colors border border-amber-200"
+                            title="แก้ไขแบบสอบถาม"
+                          >
+                            <Edit3 size={15} />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => shareForm(item)}
+                          className="p-2.5 rounded-xl text-pink-600 hover:bg-pink-50 transition-colors border border-pink-200"
+                          title="แชร์แบบสอบถาม"
+                        >
+                          <Share2 size={15} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => shareLine(item)}
+                          className="px-2.5 py-1.5 rounded-xl bg-[#06C755] hover:bg-[#05b34c] text-white text-[11px] font-bold transition-colors"
+                          title="แชร์ไปยัง LINE"
+                        >
+                          LINE
+                        </button>
                         <button
                           type="button"
                           onClick={() => copyFormUrl(item.id)}
@@ -528,17 +667,71 @@ export default function FormManagementClient({
               />
             </div>
 
-            <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
-              <input
-                type="checkbox"
-                id="allow_anonymous"
-                checked={allowAnonymous}
-                onChange={(e) => setAllowAnonymous(e.target.checked)}
-                className="rounded text-pink-600 focus:ring-pink-500 w-4 h-4 cursor-pointer"
-              />
-              <label htmlFor="allow_anonymous" className="text-xs font-medium text-slate-700 cursor-pointer">
-                อนุญาตให้ผู้ตอบสามารถเลือก <strong>&quot;ไม่ประสงค์ออกนาม&quot;</strong> ได้
-              </label>
+            {/* Privacy / Visibility Setting */}
+            <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <span className="block text-xs font-bold text-slate-700">การเข้าถึงแบบสอบถาม (Visibility)</span>
+                <p className="text-[11px] text-slate-500">
+                  เลือกให้ทุกคนมองเห็นในหน้ารายการ หรือเฉพาะคนที่มีลิงก์เท่านั้น
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setVisibility("public")}
+                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                    visibility === "public"
+                      ? "bg-sky-50 text-sky-700 border-sky-300 shadow-2xs"
+                      : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                  }`}
+                >
+                  <Globe size={14} />
+                  <span>สาธารณะ (ค้นหาได้)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVisibility("private")}
+                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                    visibility === "private"
+                      ? "bg-amber-50 text-amber-700 border-amber-300 shadow-2xs"
+                      : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                  }`}
+                >
+                  <Lock size={14} />
+                  <span>ส่วนตัว (เข้าถึงผ่านลิงก์เท่านั้น)</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-100 flex-wrap">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="allow_anonymous"
+                  checked={allowAnonymous}
+                  onChange={(e) => setAllowAnonymous(e.target.checked)}
+                  className="rounded text-pink-600 focus:ring-pink-500 w-4 h-4 cursor-pointer"
+                />
+                <label htmlFor="allow_anonymous" className="text-xs font-medium text-slate-700 cursor-pointer">
+                  อนุญาตให้ผู้ตอบสามารถเลือก <strong>&quot;ไม่ประสงค์ออกนาม&quot;</strong> ได้
+                </label>
+              </div>
+
+              {editingFormId && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg">
+                    กำลังแก้ไขแบบสอบถาม
+                  </span>
+                  <button
+                    type="button"
+                    onClick={resetFormState}
+                    className="text-xs text-slate-500 hover:text-slate-800 underline font-semibold cursor-pointer"
+                  >
+                    ยกเลิกการแก้ไข
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -702,7 +895,13 @@ export default function FormManagementClient({
               className="px-8 py-3 rounded-2xl bg-pink-600 hover:bg-pink-700 text-white font-bold text-sm shadow-md transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
             >
               <CheckCircle2 size={18} />
-              <span>{isSubmitting ? "กำลังบันทึก..." : "เผยแพร่แบบสอบถาม"}</span>
+              <span>
+                {isSubmitting
+                  ? "กำลังบันทึก..."
+                  : editingFormId
+                  ? "บันทึกการแก้ไขแบบสอบถาม"
+                  : "เผยแพร่แบบสอบถาม"}
+              </span>
             </button>
           </div>
         </form>
