@@ -196,16 +196,16 @@ export default async function Home() {
             </div>
           )}
 
-          {/* Leader Assessment */}
+          {/* Forms & Surveys (แบบสอบถาม ม.2/3) */}
           {renderCard(
-            bossEvaluationEnabled,
-            "/evaluate-boss",
-            <div className={`bg-white rounded-3xl p-8 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col items-center justify-center transition-all duration-300 ${bossEvaluationEnabled ? 'hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1' : ''} relative overflow-hidden h-full`}>
+            true,
+            "/form",
+            <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col items-center justify-center transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1 relative overflow-hidden h-full">
               <div className="bg-emerald-50 text-emerald-500 p-4 rounded-full mb-4 group-hover:scale-110 transition-transform duration-300">
-                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10.4 12.6a2 2 0 1 1 3 3L8 21l-4 1 1-4Z"/><path d="M18 21v-8a2 2 0 0 0-2-2h-3"/><path d="M4 14.5V7a2 2 0 0 1 2-2h6l4 4"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M15 2H9a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1Z"/><path d="m9 14 2 2 4-4"/></svg>
               </div>
-              <h2 className="text-xl font-bold text-slate-800 mb-1 text-center">ระบบประเมินหัวหน้า</h2>
-              <p className="text-slate-500 text-center text-sm">คลิกเพื่อประเมินได้เลย</p>
+              <h2 className="text-xl font-bold text-slate-800 mb-1 text-center">แบบสอบถาม ม.2/3</h2>
+              <p className="text-slate-500 text-center text-sm">คลิกเพื่อตอบหรือสร้างแบบสอบถาม</p>
             </div>,
             "group flex-1 min-h-[160px] flex flex-col w-full"
           )}

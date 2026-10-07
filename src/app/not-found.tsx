@@ -10,7 +10,7 @@ export default function NotFound() {
     { href: "/kanban", icon: <LayoutDashboard className="w-5 h-5" />, label: "กระดานงาน", bgColor: "bg-blue-50", textColor: "text-blue-600", hoverBorder: "hover:border-blue-200" },
     { href: "/summaries", icon: <BookOpen className="w-5 h-5" />, label: "สรุปสอบ", bgColor: "bg-pink-50", textColor: "text-pink-600", hoverBorder: "hover:border-pink-200" },
     { href: "/election", icon: <Vote className="w-5 h-5" />, label: "เลือกตั้ง", bgColor: "bg-amber-50", textColor: "text-amber-500", hoverBorder: "hover:border-amber-200" },
-    { href: "/evaluate-boss", icon: <UserCheck className="w-5 h-5" />, label: "ประเมินหัวหน้า", bgColor: "bg-emerald-50", textColor: "text-emerald-500", hoverBorder: "hover:border-emerald-200" },
+    { href: "/form", icon: <UserCheck className="w-5 h-5" />, label: "แบบสอบถาม", bgColor: "bg-emerald-50", textColor: "text-emerald-500", hoverBorder: "hover:border-emerald-200" },
     { href: "/settings", icon: <SettingsIcon className="w-5 h-5" />, label: "ตั้งค่าระบบ", bgColor: "bg-rose-50", textColor: "text-rose-600", hoverBorder: "hover:border-rose-200" },
   ];
 
