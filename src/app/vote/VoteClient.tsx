@@ -427,128 +427,145 @@ export default function VoteClient({ initialStudent }: VoteClientProps) {
               </p>
             </div>
 
-            {/* ─── STRICT MODE A: QUORUM (แสดงตน) ─── */}
-            {(controlMode === 'QUORUM' || displayMode === 'QUORUM') && (
-              <div className="bg-white rounded-xl p-4 border border-slate-300 shadow-2xs">
+            {/* ─── STEP 1: MUST CHECK QUORUM FIRST (ถ้ายังไม่แสดงตน บังคับแสดงตนก่อนเท่านั้น) ─── */}
+            {!hasCheckedQuorum ? (
+              <div className="bg-white rounded-xl p-5 border border-slate-300 shadow-2xs space-y-3 text-center">
+                <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 mx-auto flex items-center justify-center">
+                  <UserCheck size={26} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-800">
+                    กรุณากดแสดงตนเข้าร่วมประชุม
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1">
+                    คุณต้องยืนยันองค์ประชุมก่อน จึงจะสามารถเข้าสู่ขั้นตอนการลงมติและร่วมประชุมได้
+                  </p>
+                </div>
                 <button
                   type="button"
                   onClick={handleCheckQuorum}
                   disabled={!isSystemOpen}
-                  className={`w-full rounded-xl py-4 px-4 font-semibold text-sm flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
-                    hasCheckedQuorum
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm'
-                  }`}
+                  className="w-full rounded-xl py-3.5 px-4 font-bold text-sm bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all cursor-pointer flex items-center justify-center gap-2 mt-2"
                 >
-                  <span className="text-base font-bold">
-                    {hasCheckedQuorum ? '✓ ท่านแสดงตนแล้ว' : 'กดเพื่อแสดงตน (ยืนยันองค์ประชุม)'}
-                  </span>
-                  <span className="text-[11px] opacity-90 font-normal">
-                    {hasCheckedQuorum ? 'สถานะ: อยู่ในห้องประชุม' : 'แตะเพื่อบันทึกสถานะการเข้าประชุม'}
-                  </span>
+                  <UserCheck size={18} />
+                  <span>กดแสดงตน (ยืนยันองค์ประชุม)</span>
                 </button>
               </div>
-            )}
-
-            {/* ─── STRICT MODE B: VOTE (3 BUTTONS) ─── */}
-            {controlMode === 'VOTE' && (
-              <div className="bg-white rounded-xl p-4 border border-slate-300 shadow-2xs space-y-2.5">
-                <div className="flex items-center justify-between text-xs font-semibold text-slate-700 mb-1">
-                  <span>การลงมติ:</span>
-                  <span className="text-indigo-600 font-bold">
-                    {myVote === 'APPROVE'
-                      ? 'เห็นด้วย'
-                      : myVote === 'DISAPPROVE'
-                      ? 'ไม่เห็นด้วย'
-                      : myVote === 'ABSTAIN'
-                      ? 'งดออกเสียง'
-                      : 'ยังไม่ได้ลงคะแนน'}
+            ) : (
+              /* ─── STEP 2: PROCEED TO MEETING (เมื่อแสดงตนแล้ว ปลดล็อกหน้าถัดไป) ─── */
+              <div className="space-y-4">
+                {/* Status Badge: ยืนยันองค์ประชุมแล้ว */}
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5 flex items-center justify-between text-emerald-800 text-xs font-semibold">
+                  <span className="flex items-center gap-1.5">
+                    <ShieldCheck size={15} className="text-emerald-600" />
+                    <span>ยืนยันการแสดงตนแล้ว (พร้อมร่วมประชุม)</span>
+                  </span>
+                  <span className="bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded text-[11px] font-bold">
+                    เข้าห้องประชุมแล้ว
                   </span>
                 </div>
 
-                {/* เห็นด้วย (Green) */}
-                <button
-                  type="button"
-                  onClick={() => handleVote('APPROVE')}
-                  disabled={!isSystemOpen}
-                  className={`w-full rounded-xl py-3 px-4 font-semibold text-sm flex items-center justify-between transition-all cursor-pointer ${
-                    myVote === 'APPROVE'
-                      ? 'bg-emerald-600 text-white ring-2 ring-emerald-300'
-                      : 'bg-emerald-500 hover:bg-emerald-600 text-white'
-                  }`}
-                >
-                  <span>เห็นด้วย (Approve)</span>
-                  <span className="text-lg">🟢</span>
-                </button>
+                {/* ─── STRICT MODE B: VOTE (3 BUTTONS) ─── */}
+                {controlMode === 'VOTE' && (
+                  <div className="bg-white rounded-xl p-4 border border-slate-300 shadow-2xs space-y-2.5">
+                    <div className="flex items-center justify-between text-xs font-semibold text-slate-700 mb-1">
+                      <span>การลงมติ:</span>
+                      <span className="text-indigo-600 font-bold">
+                        {myVote === 'APPROVE'
+                          ? 'เห็นด้วย'
+                          : myVote === 'DISAPPROVE'
+                          ? 'ไม่เห็นด้วย'
+                          : myVote === 'ABSTAIN'
+                          ? 'งดออกเสียง'
+                          : 'ยังไม่ได้ลงคะแนน'}
+                      </span>
+                    </div>
 
-                {/* ไม่เห็นด้วย (Red) */}
-                <button
-                  type="button"
-                  onClick={() => handleVote('DISAPPROVE')}
-                  disabled={!isSystemOpen}
-                  className={`w-full rounded-xl py-3 px-4 font-semibold text-sm flex items-center justify-between transition-all cursor-pointer ${
-                    myVote === 'DISAPPROVE'
-                      ? 'bg-rose-600 text-white ring-2 ring-rose-300'
-                      : 'bg-rose-500 hover:bg-rose-600 text-white'
-                  }`}
-                >
-                  <span>ไม่เห็นด้วย (Disapprove)</span>
-                  <span className="text-lg">🔴</span>
-                </button>
+                    {/* เห็นด้วย (Green) */}
+                    <button
+                      type="button"
+                      onClick={() => handleVote('APPROVE')}
+                      disabled={!isSystemOpen}
+                      className={`w-full rounded-xl py-3 px-4 font-semibold text-sm flex items-center justify-between transition-all cursor-pointer ${
+                        myVote === 'APPROVE'
+                          ? 'bg-emerald-600 text-white ring-2 ring-emerald-300'
+                          : 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                      }`}
+                    >
+                      <span>เห็นด้วย (Approve)</span>
+                      <span className="text-lg">🟢</span>
+                    </button>
 
-                {/* งดออกเสียง (Yellow) */}
-                <button
-                  type="button"
-                  onClick={() => handleVote('ABSTAIN')}
-                  disabled={!isSystemOpen}
-                  className={`w-full rounded-xl py-3 px-4 font-semibold text-sm flex items-center justify-between transition-all cursor-pointer ${
-                    myVote === 'ABSTAIN'
-                      ? 'bg-amber-500 text-white ring-2 ring-amber-300'
-                      : 'bg-amber-400 hover:bg-amber-500 text-slate-900'
-                  }`}
-                >
-                  <span>งดออกเสียง (Abstain)</span>
-                  <span className="text-lg">🟡</span>
-                </button>
+                    {/* ไม่เห็นด้วย (Red) */}
+                    <button
+                      type="button"
+                      onClick={() => handleVote('DISAPPROVE')}
+                      disabled={!isSystemOpen}
+                      className={`w-full rounded-xl py-3 px-4 font-semibold text-sm flex items-center justify-between transition-all cursor-pointer ${
+                        myVote === 'DISAPPROVE'
+                          ? 'bg-rose-600 text-white ring-2 ring-rose-300'
+                          : 'bg-rose-500 hover:bg-rose-600 text-white'
+                      }`}
+                    >
+                      <span>ไม่เห็นด้วย (Disapprove)</span>
+                      <span className="text-lg">🔴</span>
+                    </button>
+
+                    {/* งดออกเสียง (Yellow) */}
+                    <button
+                      type="button"
+                      onClick={() => handleVote('ABSTAIN')}
+                      disabled={!isSystemOpen}
+                      className={`w-full rounded-xl py-3 px-4 font-semibold text-sm flex items-center justify-between transition-all cursor-pointer ${
+                        myVote === 'ABSTAIN'
+                          ? 'bg-amber-500 text-white ring-2 ring-amber-300'
+                          : 'bg-amber-400 hover:bg-amber-500 text-slate-900'
+                      }`}
+                    >
+                      <span>งดออกเสียง (Abstain)</span>
+                      <span className="text-lg">🟡</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* ─── DRAFT MOTION VIEW (MIRRORED LIVE FROM ADMIN) ─── */}
+                {(displayMode === 'MOTION' || motionText.trim().length > 0) && (
+                  <div className="bg-white rounded-xl p-4 border border-slate-300 shadow-2xs">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 mb-2">
+                      <FileText size={14} className="text-slate-500" />
+                      <span>ร่างมติที่กำลังพิจารณา:</span>
+                    </div>
+                    <div className="bg-slate-50 rounded-lg p-3 border border-slate-200 text-xs leading-relaxed text-slate-800 whitespace-pre-wrap">
+                      {motionText || '- ไม่มีร่างมติในขณะนี้ -'}
+                    </div>
+                  </div>
+                )}
+
+                {/* ─── SPEAKER DEBATE QUEUE ─── */}
+                <div className="bg-white rounded-xl p-4 border border-slate-300 shadow-2xs">
+                  <div className="flex items-center justify-between mb-2.5">
+                    <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                      <Mic size={14} className="text-indigo-600" />
+                      <span>ขออภิปราย</span>
+                    </span>
+                    <span className="text-[11px] text-slate-500">
+                      {currentSpeaker ? `กำลังพูด: ${currentSpeaker}` : 'ว่าง'}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleToggleSpeakerQueue}
+                    className={`w-full py-2.5 px-3 rounded-lg text-xs font-medium transition-all border cursor-pointer ${
+                      isInSpeakerQueue
+                        ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                        : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span>{isInSpeakerQueue ? '✓ อยู่ในคิวขออภิปรายแล้ว' : 'ขอยกมืออภิปราย (ต่อคิว)'}</span>
+                  </button>
+                </div>
               </div>
             )}
-
-            {/* ─── DRAFT MOTION VIEW (MIRRORED LIVE FROM ADMIN) ─── */}
-            {(displayMode === 'MOTION' || motionText.trim().length > 0) && (
-              <div className="bg-white rounded-xl p-4 border border-slate-300 shadow-2xs">
-                <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 mb-2">
-                  <FileText size={14} className="text-slate-500" />
-                  <span>ร่างมติที่กำลังพิจารณา:</span>
-                </div>
-                <div className="bg-slate-50 rounded-lg p-3 border border-slate-200 text-xs leading-relaxed text-slate-800 whitespace-pre-wrap">
-                  {motionText || '- ไม่มีร่างมติในขณะนี้ -'}
-                </div>
-              </div>
-            )}
-
-            {/* ─── SPEAKER DEBATE QUEUE ─── */}
-            <div className="bg-white rounded-xl p-4 border border-slate-300 shadow-2xs">
-              <div className="flex items-center justify-between mb-2.5">
-                <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                  <Mic size={14} className="text-indigo-600" />
-                  <span>ขออภิปราย</span>
-                </span>
-                <span className="text-[11px] text-slate-500">
-                  {currentSpeaker ? `กำลังพูด: ${currentSpeaker}` : 'ว่าง'}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={handleToggleSpeakerQueue}
-                className={`w-full py-2.5 px-3 rounded-lg text-xs font-medium transition-all border cursor-pointer ${
-                  isInSpeakerQueue
-                    ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
-                    : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                <span>{isInSpeakerQueue ? '✓ อยู่ในคิวขออภิปรายแล้ว' : 'ขอยกมืออภิปราย (ต่อคิว)'}</span>
-              </button>
-            </div>
           </div>
         )}
       </div>
