@@ -32,12 +32,16 @@ interface Student {
 
 const STORAGE_KEY = 'prim_voter_identity_locked';
 
-export default function VoteClient() {
+interface VoteClientProps {
+  initialStudent?: Student | null;
+}
+
+export default function VoteClient({ initialStudent }: VoteClientProps) {
   const [studentIdInput, setStudentIdInput] = useState('');
-  const [currentStudent, setCurrentStudent] = useState<Student | null>(null);
+  const [currentStudent, setCurrentStudent] = useState<Student | null>(initialStudent || null);
   const [previewStudent, setPreviewStudent] = useState<Student | null>(null);
   const [inputError, setInputError] = useState(false);
-  const [isLocked, setIsLocked] = useState(false);
+  const [isLocked, setIsLocked] = useState(!!initialStudent);
 
   // Live state from server / Flask / Supabase
   const [agenda, setAgenda] = useState('ระเบียบวาระที่ ๑ เรื่องที่ประธานแจ้งให้ที่ประชุมทราบ');
@@ -55,8 +59,16 @@ export default function VoteClient() {
   const [recheckCounter, setRecheckCounter] = useState(0);
   const lastRecheckSeen = useRef(0);
 
-  // 1. Check LocalStorage on Mount
+  // 1. Check LocalStorage and initialStudent on Mount
   useEffect(() => {
+    // If user already logged in to Primjaa web session, auto-lock immediately
+    if (initialStudent && initialStudent.student_id) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(initialStudent));
+      setCurrentStudent(initialStudent);
+      setIsLocked(true);
+      return;
+    }
+
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
@@ -69,7 +81,7 @@ export default function VoteClient() {
     } catch {
       localStorage.removeItem(STORAGE_KEY);
     }
-  }, []);
+  }, [initialStudent]);
 
   // 2. Student ID Search & Match
   const handleIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
