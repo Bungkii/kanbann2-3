@@ -50,8 +50,6 @@ export async function getFormsList() {
   const admin = getAdminClient();
   const user = await getCurrentUserRank();
 
-  // If user is ranked, they can see public forms + their own created private forms
-  // Or all forms if they are Leader/Admin/SuperAdmin
   const { data, error } = await admin
     .from('forms')
     .select('*, form_responses(count)')
@@ -63,12 +61,10 @@ export async function getFormsList() {
   }
 
   const list = data || [];
-  // Filter for regular users: only show 'public' forms (or forms with no visibility set)
   if (!user.isRanked) {
     return list.filter((f) => !f.visibility || f.visibility === 'public');
   }
 
-  // Ranked users can see public forms + their own private forms + SuperAdmin/Leader can see all
   return list.filter((f) => {
     if (!f.visibility || f.visibility === 'public') return true;
     if (['Leader', 'SuperAdmin', 'Admin'].includes(user.role)) return true;
@@ -92,7 +88,7 @@ export async function getFormById(formId: string) {
   return data;
 }
 
-// Get responses for a form
+// Get responses for a form (admin/owner)
 export async function getFormResponses(formId: string) {
   if (!formId) return [];
   const admin = getAdminClient();
@@ -106,6 +102,21 @@ export async function getFormResponses(formId: string) {
     return [];
   }
   return data || [];
+}
+
+// Check if a respondent already submitted a form (for duplicate prevention)
+export async function checkDuplicateResponse(formId: string, respondentId: string): Promise<boolean> {
+  if (!formId || !respondentId) return false;
+  const admin = getAdminClient();
+  const { data, error } = await admin
+    .from('form_responses')
+    .select('id')
+    .eq('form_id', formId)
+    .eq('respondent_id', respondentId)
+    .limit(1);
+
+  if (error) return false;
+  return (data || []).length > 0;
 }
 
 // Create a new form (Ranked users only)
@@ -218,7 +229,7 @@ export async function updateForm(formId: string, formData: {
   return { success: true, form: data };
 }
 
-// Toggle form active state
+// Toggle form active state (open/close form for responses)
 export async function toggleFormStatus(formId: string, isActive: boolean) {
   const user = await getCurrentUserRank();
   if (!user.isRanked) {
@@ -226,6 +237,19 @@ export async function toggleFormStatus(formId: string, isActive: boolean) {
   }
 
   const admin = getAdminClient();
+
+  // Verify ownership or admin
+  const { data: existingForm } = await admin
+    .from('forms')
+    .select('id, creator_id')
+    .eq('id', formId)
+    .single();
+
+  if (!existingForm) return { success: false, error: "ไม่พบแบบสอบถาม" };
+
+  const canEdit = ['Leader', 'SuperAdmin', 'Admin'].includes(user.role) || existingForm.creator_id === user.id;
+  if (!canEdit) return { success: false, error: "ไม่มีสิทธิ์แก้ไขแบบสอบถามนี้" };
+
   const { error } = await admin
     .from('forms')
     .update({ is_active: isActive, updated_at: new Date().toISOString() })
@@ -250,7 +274,7 @@ export async function deleteForm(formId: string) {
   return { success: true };
 }
 
-// Submit a form response (with automatic score calculation for Quiz Mode)
+// Submit a form response (with automatic score calculation for Quiz Mode + duplicate prevention)
 export async function submitFormResponse(formId: string, answers: Record<string, any>, isAnonymous: boolean) {
   const admin = getAdminClient();
 
@@ -272,7 +296,6 @@ export async function submitFormResponse(formId: string, answers: Record<string,
   const cookieStore = await cookies();
   const session = getStudentSessionFromCookies(cookieStore as any);
   
-  // Try Supabase auth if session cookie isn't available
   let respondentId = session?.student_id || null;
   let respondentName = session?.full_name || null;
 
@@ -290,17 +313,30 @@ export async function submitFormResponse(formId: string, answers: Record<string,
     respondentId = null;
     respondentName = 'ผู้ไม่ประสงค์ออกนาม';
   } else if (!respondentName && !respondentId) {
-    // Guest respondent without login
     respondentName = 'ผู้ตอบทั่วไป';
+  }
+
+  // --- Duplicate submission prevention (only for identified users, not anonymous) ---
+  if (respondentId && !isAnonymous) {
+    const isDuplicate = await checkDuplicateResponse(formId, respondentId);
+    if (isDuplicate) {
+      return { 
+        success: false, 
+        error: "คุณได้ส่งคำตอบแบบสอบถามนี้ไปแล้ว ไม่สามารถส่งซ้ำได้ครับ",
+        isDuplicate: true,
+      };
+    }
   }
 
   // Auto-calculate score if it is a quiz
   let earnedScore: number | null = null;
   let totalMaxScore: number | null = null;
+  let questionResults: any[] | null = null;
 
   if (form.is_quiz) {
     earnedScore = 0;
     totalMaxScore = 0;
+    questionResults = [];
     const questions = form.questions || [];
 
     for (const q of questions) {
@@ -310,23 +346,54 @@ export async function submitFormResponse(formId: string, answers: Record<string,
       const userAns = answers[q.id];
       const correctAns = q.correct_answer;
 
+      let isCorrect = false;
+      let earnedForQ = 0;
+
       if (correctAns !== undefined && correctAns !== null && String(correctAns).trim() !== "") {
         const cleanCorrect = String(correctAns).trim().toLowerCase();
         
         if (Array.isArray(userAns)) {
-          // Checkboxes match
-          const userJoined = userAns.map((x: string) => String(x).trim().toLowerCase()).sort().join(',');
-          const correctJoined = cleanCorrect.split(/[,;\n]/).map(x => x.trim()).filter(Boolean).sort().join(',');
+          // Checkboxes: support partial credit if user gets some correct choices
+          const userSet = new Set(userAns.map((x: string) => String(x).trim().toLowerCase()));
+          const correctSet = new Set(cleanCorrect.split(/[,;\n]/).map(x => x.trim()).filter(Boolean));
+          
+          // Full credit: exact match
+          const userJoined = [...userSet].sort().join(',');
+          const correctJoined = [...correctSet].sort().join(',');
           if (userJoined === correctJoined) {
-            earnedScore += qPoints;
+            isCorrect = true;
+            earnedForQ = qPoints;
+          } else {
+            // Partial credit: proportion of correct choices selected (minus wrong ones)
+            const correctlySelected = [...userSet].filter(u => correctSet.has(u)).length;
+            const wronglySelected = [...userSet].filter(u => !correctSet.has(u)).length;
+            const partialRatio = Math.max(0, (correctlySelected - wronglySelected)) / correctSet.size;
+            earnedForQ = Math.round(partialRatio * qPoints * 10) / 10;
+            if (earnedForQ > 0) isCorrect = true;
           }
         } else if (userAns !== undefined && userAns !== null) {
           const cleanUser = String(userAns).trim().toLowerCase();
           if (cleanUser === cleanCorrect) {
-            earnedScore += qPoints;
+            isCorrect = true;
+            earnedForQ = qPoints;
           }
         }
+      } else {
+        // No correct answer defined → skip scoring for this question
+        earnedForQ = 0;
       }
+
+      earnedScore += earnedForQ;
+      questionResults.push({
+        qId: q.id,
+        qTitle: q.title,
+        qType: q.type,
+        qPoints,
+        earnedPoints: earnedForQ,
+        isCorrect,
+        userAnswer: userAns,
+        correctAnswer: q.correct_answer,
+      });
     }
 
     if (form.max_points && form.max_points > 0) {
@@ -343,6 +410,7 @@ export async function submitFormResponse(formId: string, answers: Record<string,
       answers: answers || {},
       score: earnedScore,
       max_score: totalMaxScore,
+      question_results: questionResults,
       created_at: new Date().toISOString(),
     });
 
@@ -355,6 +423,7 @@ export async function submitFormResponse(formId: string, answers: Record<string,
     success: true, 
     is_quiz: form.is_quiz, 
     score: earnedScore, 
-    max_score: totalMaxScore 
+    max_score: totalMaxScore,
+    question_results: questionResults,
   };
 }

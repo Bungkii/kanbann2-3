@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   FileSpreadsheet,
   Download,
@@ -31,14 +31,18 @@ import {
   Users,
   FileDown,
   Award,
-  ExternalLink,
   Eye,
   CheckCircle,
   XCircle,
   Search,
+  ArrowUp,
+  ArrowDown,
+  ToggleLeft,
+  ToggleRight,
+  X,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { createForm, updateForm, deleteForm, getFormResponses } from "./actions";
+import { createForm, updateForm, deleteForm, getFormResponses, toggleFormStatus } from "./actions";
 import { parseExcelOrCsvForm, normalizeDateInput } from "./excelParser";
 import Link from "next/link";
 
@@ -92,6 +96,8 @@ export default function FormManagementClient({
   const [responses, setResponses] = useState<any[]>([]);
   const [isLoadingResponses, setIsLoadingResponses] = useState(false);
   const [responseSearchQuery, setResponseSearchQuery] = useState("");
+  const [selectedResponse, setSelectedResponse] = useState<any | null>(null);
+  const [togglingFormId, setTogglingFormId] = useState<string | null>(null);
 
   // Open Responses Dashboard
   const handleOpenResponses = async (form: any) => {
@@ -138,6 +144,15 @@ export default function FormManagementClient({
     }
   };
 
+  // Move Question Up/Down
+  const moveQuestion = (idx: number, dir: "up" | "down") => {
+    const newQ = [...questions];
+    const swapIdx = dir === "up" ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= newQ.length) return;
+    [newQ[idx], newQ[swapIdx]] = [newQ[swapIdx], newQ[idx]];
+    setQuestions(newQ);
+  };
+
   // Add Question
   const addQuestion = (type = "short_answer") => {
     const newQ = {
@@ -150,6 +165,23 @@ export default function FormManagementClient({
       points: isQuiz ? 1 : 0,
     };
     setQuestions([...questions, newQ]);
+  };
+
+  // Toggle form active
+  const handleToggleActive = async (formId: string, currentActive: boolean) => {
+    setTogglingFormId(formId);
+    try {
+      const res = await toggleFormStatus(formId, !currentActive);
+      if (res.success) {
+        toast.success(!currentActive ? "เปิดรับคำตอบแล้ว" : "ปิดรับคำตอบแล้ว");
+      } else {
+        toast.error(res.error || "ไม่สามารถเปลี่ยนสถานะได้");
+      }
+    } catch {
+      toast.error("เกิดข้อผิดพลาด");
+    } finally {
+      setTogglingFormId(null);
+    }
   };
 
   // Remove Question
@@ -599,10 +631,29 @@ export default function FormManagementClient({
                       <div className="flex items-center gap-4 mt-4 text-xs text-slate-500 font-medium">
                         <span>❓ {item.questions?.length || 0} ข้อ</span>
                         <span className="font-semibold text-slate-700">👥 ตอบแล้ว {responseCount} คน</span>
+                        {item.max_points && <span className="text-purple-700">🏆 {item.max_points} คะแนน</span>}
                       </div>
                     </div>
 
                     <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
+                      {/* Toggle Active Button */}
+                      {currentUser.isRanked && (
+                        <button
+                          type="button"
+                          disabled={togglingFormId === item.id}
+                          onClick={() => handleToggleActive(item.id, item.is_active)}
+                          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                            item.is_active
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100"
+                              : "bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200"
+                          } disabled:opacity-50`}
+                          title={item.is_active ? "กดเพื่อปิดรับคำตอบ" : "กดเพื่อเปิดรับคำตอบ"}
+                        >
+                          {item.is_active ? <ToggleRight size={15} /> : <ToggleLeft size={15} />}
+                          {togglingFormId === item.id ? "กำลังเปลี่ยน..." : item.is_active ? "เปิดรับอยู่" : "ปิดรับแล้ว"}
+                        </button>
+                      )}
+
                       <div className="flex items-center gap-2">
                         <Link
                           href={`/form?id=${item.id}`}
@@ -954,6 +1005,16 @@ export default function FormManagementClient({
                             .map((v) => (Array.isArray(v) ? v.join(", ") : String(v)))
                             .join(" | ") || "-"}
                         </td>
+                        <td className="py-3 px-4 text-center">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedResponse(r)}
+                            className="p-1.5 rounded-xl text-purple-600 hover:bg-purple-50 border border-purple-200 transition-colors cursor-pointer"
+                            title="ดูคำตอบแบบเต็ม"
+                          >
+                            <Eye size={14} />
+                          </button>
+                        </td>
                       </tr>
                     ))
                   )}
@@ -1198,6 +1259,28 @@ export default function FormManagementClient({
                 >
                   {/* Header Row: Question #, Text & Type Select */}
                   <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                    {/* Up/Down Reorder Buttons */}
+                    <div className="flex flex-col gap-0.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => moveQuestion(idx, "up")}
+                        disabled={idx === 0}
+                        className="p-1 rounded-lg text-slate-400 hover:text-pink-600 hover:bg-pink-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                        title="เลื่อนข้อขึ้น"
+                      >
+                        <ArrowUp size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveQuestion(idx, "down")}
+                        disabled={idx === questions.length - 1}
+                        className="p-1 rounded-lg text-slate-400 hover:text-pink-600 hover:bg-pink-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                        title="เลื่อนข้อลง"
+                      >
+                        <ArrowDown size={14} />
+                      </button>
+                    </div>
+
                     <span className="w-8 h-8 rounded-full bg-pink-100 text-pink-600 font-bold text-xs flex items-center justify-center shrink-0">
                       {idx + 1}
                     </span>
@@ -1302,19 +1385,40 @@ export default function FormManagementClient({
                       <label className="block text-[11px] font-bold text-slate-600 mb-1">
                         เฉลยคำตอบ (Correct Answer - เว้นว่างได้)
                       </label>
-                      <input
-                        type="text"
-                        value={q.correct_answer || ""}
-                        onChange={(e) => updateQuestion(q.id, "correct_answer", e.target.value)}
-                        placeholder={
-                          isChoiceType
-                            ? "คลิกเลือกที่ตัวเลือกด้านบน หรือพิมพ์เฉลยที่นี่"
-                            : q.type === "date"
-                            ? "เช่น 07/10/2026 หรือ 07/10/2569"
-                            : "คำตอบที่ถูกต้อง..."
-                        }
-                        className="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-1 focus:ring-pink-500"
-                      />
+                      {q.type === "date" ? (
+                        <div className="flex gap-2 items-center">
+                          <input
+                            type="text"
+                            value={q.correct_answer || ""}
+                            onChange={(e) => updateQuestion(q.id, "correct_answer", e.target.value)}
+                            placeholder="DD/MM/YYYY หรือ เลือกจากปฏิทิน"
+                            className="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-1 focus:ring-pink-500"
+                          />
+                          <input
+                            type="date"
+                            onChange={(e) => {
+                              if (e.target.value) {
+                                const [ny, nm, nd] = e.target.value.split("-");
+                                const beYear = String(Number(ny) + 543);
+                                updateQuestion(q.id, "correct_answer", `${nd}/${nm}/${beYear}`);
+                              }
+                            }}
+                            className="px-2 py-1 text-xs rounded-xl border border-slate-200 bg-white text-slate-700 cursor-pointer"
+                          />
+                        </div>
+                      ) : (
+                        <input
+                          type="text"
+                          value={q.correct_answer || ""}
+                          onChange={(e) => updateQuestion(q.id, "correct_answer", e.target.value)}
+                          placeholder={
+                            isChoiceType
+                              ? "คลิกเลือกที่ตัวเลือกด้านบน หรือพิมพ์เฉลยที่นี่"
+                              : "คำตอบที่ถูกต้อง..."
+                          }
+                          className="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-1 focus:ring-pink-500"
+                        />
+                      )}
                     </div>
                     <div>
                       <label className="block text-[11px] font-bold text-slate-600 mb-1">
@@ -1371,6 +1475,119 @@ export default function FormManagementClient({
             </button>
           </div>
         </form>
+      )}
+
+      {/* ============================================================ */}
+      {/* Response Detail Modal - Full Answer View for a Single Person  */}
+      {/* ============================================================ */}
+      {selectedResponse && viewingForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-2xl w-full shadow-2xl relative border border-slate-200 my-auto space-y-5 max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-bold text-slate-800">
+                  คำตอบของ {selectedResponse.respondent_name || "ผู้ไม่ประสงค์ออกนาม"}
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  เลขประจำตัว: {selectedResponse.respondent_id || "-"} •{" "}
+                  {new Date(selectedResponse.created_at).toLocaleString("th-TH", {
+                    day: "2-digit",
+                    month: "long",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedResponse(null)}
+                className="p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Quiz Score Badge */}
+            {viewingForm.is_quiz && selectedResponse.score !== null && (
+              <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4 flex items-center gap-4">
+                <div className="w-14 h-14 rounded-full bg-purple-100 flex items-center justify-center shrink-0">
+                  <Award className="text-purple-600" size={24} />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-purple-600 uppercase tracking-wider">คะแนนที่ได้</p>
+                  <p className="text-2xl font-extrabold text-slate-800">
+                    {selectedResponse.score}
+                    <span className="text-slate-400 text-lg font-medium"> / {selectedResponse.max_score ?? viewingForm.max_points ?? 0}</span>
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Q&A Breakdown */}
+            <div className="space-y-3">
+              {(viewingForm.questions || []).map((q: any, qIdx: number) => {
+                const userAns = selectedResponse.answers?.[q.id];
+                const qResult = selectedResponse.question_results?.find((qr: any) => qr.qId === q.id);
+
+                const displayAns = Array.isArray(userAns)
+                  ? userAns.join(", ")
+                  : String(userAns ?? "-");
+
+                const cardClass = qResult
+                  ? qResult.isCorrect
+                    ? "bg-emerald-50 border-emerald-200"
+                    : qResult.earnedPoints > 0
+                    ? "bg-amber-50 border-amber-200"
+                    : "bg-rose-50 border-rose-200"
+                  : "bg-slate-50 border-slate-200";
+
+                return (
+                  <div
+                    key={q.id || qIdx}
+                    className={`p-4 rounded-2xl border ${cardClass} space-y-1.5`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-xs font-bold text-slate-700">
+                        ข้อ {qIdx + 1}: {q.title}
+                      </p>
+                      {qResult && (
+                        <span className={`text-[11px] font-extrabold px-2 py-0.5 rounded-lg shrink-0 ${
+                          qResult.isCorrect
+                            ? "bg-emerald-100 text-emerald-800"
+                            : qResult.earnedPoints > 0
+                            ? "bg-amber-100 text-amber-800"
+                            : "bg-rose-100 text-rose-700"
+                        }`}>
+                          {qResult.earnedPoints} / {qResult.qPoints} คะแนน
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="text-sm font-semibold text-slate-800">
+                      คำตอบ: {displayAns || <span className="text-slate-400 font-normal italic">ไม่ได้ตอบ</span>}
+                    </p>
+
+                    {qResult?.correctAnswer && !qResult.isCorrect && (
+                      <p className="text-xs text-emerald-700">
+                        เฉลยที่ถูกต้อง: <strong>{qResult.correctAnswer}</strong>
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setSelectedResponse(null)}
+              className="w-full py-3 rounded-2xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-sm transition-colors cursor-pointer"
+            >
+              ปิด
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

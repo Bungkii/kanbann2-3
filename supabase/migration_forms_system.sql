@@ -59,12 +59,18 @@ CREATE TABLE IF NOT EXISTS public.form_responses (
 -- เพิ่มคอลัมน์ใหม่อัตโนมัติใน form_responses
 ALTER TABLE public.form_responses ADD COLUMN IF NOT EXISTS score NUMERIC DEFAULT NULL;
 ALTER TABLE public.form_responses ADD COLUMN IF NOT EXISTS max_score NUMERIC DEFAULT NULL;
+-- คอลัมน์เก็บรายละเอียดผล Quiz รายข้อ (is_correct, earned_points, correct_answer)
+ALTER TABLE public.form_responses ADD COLUMN IF NOT EXISTS question_results JSONB DEFAULT NULL;
 
 -- ดัชนีเพื่อประสิทธิภาพการค้นหา
 CREATE INDEX IF NOT EXISTS idx_forms_created_at ON public.forms(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_forms_creator_id ON public.forms(creator_id);
 CREATE INDEX IF NOT EXISTS idx_form_responses_form_id ON public.form_responses(form_id);
+CREATE INDEX IF NOT EXISTS idx_form_responses_respondent_id ON public.form_responses(respondent_id);
 CREATE INDEX IF NOT EXISTS idx_form_responses_created_at ON public.form_responses(created_at DESC);
+
+-- หมายเหตุ: ระบบกันส่งซ้ำทำใน application layer (actions.ts checkDuplicateResponse)
+-- ไม่ใช้ UNIQUE constraint ใน DB เพราะ respondent_id อาจเป็น null (anonymous)
 
 -- 3. ตั้งค่า Row Level Security (RLS)
 ALTER TABLE public.forms ENABLE ROW LEVEL SECURITY;
