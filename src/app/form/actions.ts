@@ -96,6 +96,7 @@ export async function getFormResponses(formId: string) {
 export async function createForm(formData: {
   title: string;
   description?: string;
+  max_points?: number | null;
   allow_anonymous?: boolean;
   questions: any[];
 }) {

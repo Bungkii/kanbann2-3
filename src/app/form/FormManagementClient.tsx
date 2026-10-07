@@ -1,18 +1,46 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2, CheckCircle2, Copy, Share2, HelpCircle, BarChart3, Lock, ShieldCheck, ArrowLeft, Settings, Send } from "lucide-react";
+import {
+  FileSpreadsheet,
+  Download,
+  UploadCloud,
+  Plus,
+  Trash2,
+  CheckCircle2,
+  Copy,
+  Send,
+  HelpCircle,
+  ShieldCheck,
+  ArrowLeft,
+  Calendar,
+  Clock,
+  Star,
+  CheckSquare,
+  CircleDot,
+  FileText,
+  AlignLeft,
+  ChevronDown,
+  Upload,
+  Check,
+} from "lucide-react";
 import toast from "react-hot-toast";
-import { createForm, toggleFormStatus, deleteForm } from "./actions";
+import { createForm, deleteForm } from "./actions";
+import { parseExcelOrCsvForm, normalizeDateInput } from "./excelParser";
 import Link from "next/link";
 
-interface Question {
-  id: string;
-  title: string;
-  type: "short_answer" | "paragraph" | "radio" | "checkbox" | "rating";
-  required: boolean;
-  options: string[];
-}
+export const GOOGLE_FORM_TYPES = [
+  { value: "short_answer", label: "Short answer (ตอบสั้น)", icon: FileText },
+  { value: "paragraph", label: "Paragraph (ย่อหน้า)", icon: AlignLeft },
+  { value: "multiple_choice", label: "Multiple choice (เลือก 1 ข้อ)", icon: CircleDot },
+  { value: "checkboxes", label: "Checkboxes (เลือกได้หลายข้อ)", icon: CheckSquare },
+  { value: "dropdown", label: "Dropdown (เมนูเลื่อน)", icon: ChevronDown },
+  { value: "file_upload", label: "File upload (อัปโหลดไฟล์)", icon: Upload },
+  { value: "linear_scale", label: "Linear scale (ระดับคะแนน 1-5)", icon: Star },
+  { value: "rating", label: "Rating (ดาว)", icon: Star },
+  { value: "date", label: "Date (วันที่ DD/MM/YYYY)", icon: Calendar },
+  { value: "time", label: "Time (เวลา)", icon: Clock },
+];
 
 export default function FormManagementClient({
   forms,
@@ -21,29 +49,67 @@ export default function FormManagementClient({
   forms: any[];
   currentUser: { isRanked: boolean; role: string; name: string };
 }) {
-  const [activeTab, setActiveTab] = useState<"list" | "create">("list");
+  const [activeTab, setActiveTab] = useState<"list" | "create" | "excel">("list");
+  
+  // Manual / Excel Form State
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [maxPoints, setMaxPoints] = useState<string>("");
   const [allowAnonymous, setAllowAnonymous] = useState(false);
-  const [questions, setQuestions] = useState<Question[]>([
+  const [questions, setQuestions] = useState<any[]>([
     {
       id: "q_1",
       title: "ความคิดเห็นหรือข้อเสนอแนะของคุณ",
-      type: "paragraph",
+      type: "short_answer",
       required: true,
       options: [],
+      correct_answer: "",
+      points: 0,
     },
   ]);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isParsingExcel, setIsParsingExcel] = useState(false);
+
+  // File Upload Handler for .xlsx / .csv
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsParsingExcel(true);
+    const loadingToast = toast.loading("กำลังอ่านไฟล์และถอดแบบฟอร์ม...");
+    try {
+      const parsed = await parseExcelOrCsvForm(file);
+      setTitle(parsed.title);
+      setDescription(parsed.description);
+      if (parsed.maxPoints !== null && parsed.maxPoints !== undefined) {
+        setMaxPoints(String(parsed.maxPoints));
+      }
+      if (parsed.questions.length > 0) {
+        setQuestions(parsed.questions);
+      }
+      toast.dismiss(loadingToast);
+      toast.success(`นำเข้าฟอร์มสำเร็จ! ตรวจพบ ${parsed.questions.length} คำถาม`);
+      setActiveTab("create");
+    } catch (err: any) {
+      toast.dismiss(loadingToast);
+      toast.error(`อ่านไฟล์ไม่สำเร็จ: ${err.message || "รูปแบบไฟล์ไม่ถูกต้อง"}`);
+    } finally {
+      setIsParsingExcel(false);
+      e.target.value = "";
+    }
+  };
 
   // Add Question
-  const addQuestion = (type: Question["type"] = "short_answer") => {
-    const newQ: Question = {
+  const addQuestion = (type = "short_answer") => {
+    const newQ = {
       id: `q_${Date.now()}`,
       title: "",
       type,
       required: false,
-      options: type === "radio" || type === "checkbox" ? ["ตัวเลือกที่ 1", "ตัวเลือกที่ 2"] : [],
+      options: type === "multiple_choice" || type === "checkboxes" || type === "dropdown" ? ["ตัวเลือกที่ 1", "ตัวเลือกที่ 2"] : [],
+      correct_answer: "",
+      points: 0,
     };
     setQuestions([...questions, newQ]);
   };
@@ -58,15 +124,18 @@ export default function FormManagementClient({
   };
 
   // Update Question Field
-  const updateQuestion = (id: string, field: keyof Question, value: any) => {
+  const updateQuestion = (id: string, field: string, value: any) => {
     setQuestions(
       questions.map((q) => {
         if (q.id === id) {
           const updated = { ...q, [field]: value };
           if (field === "type") {
-            if ((value === "radio" || value === "checkbox") && q.options.length === 0) {
+            if ((value === "multiple_choice" || value === "checkboxes" || value === "dropdown") && (!q.options || q.options.length === 0)) {
               updated.options = ["ตัวเลือกที่ 1", "ตัวเลือกที่ 2"];
             }
+          }
+          if (field === "correct_answer" && q.type === "date") {
+            updated.correct_answer = normalizeDateInput(value);
           }
           return updated;
         }
@@ -80,9 +149,10 @@ export default function FormManagementClient({
     setQuestions(
       questions.map((q) => {
         if (q.id === qId) {
+          const currentOpts = q.options || [];
           return {
             ...q,
-            options: [...q.options, `ตัวเลือกที่ ${q.options.length + 1}`],
+            options: [...currentOpts, `ตัวเลือกที่ ${currentOpts.length + 1}`],
           };
         }
         return q;
@@ -97,7 +167,7 @@ export default function FormManagementClient({
         if (q.id === qId) {
           return {
             ...q,
-            options: q.options.filter((_, i) => i !== optIdx),
+            options: (q.options || []).filter((_: any, i: number) => i !== optIdx),
           };
         }
         return q;
@@ -110,7 +180,7 @@ export default function FormManagementClient({
     setQuestions(
       questions.map((q) => {
         if (q.id === qId) {
-          const newOpts = [...q.options];
+          const newOpts = [...(q.options || [])];
           newOpts[optIdx] = text;
           return { ...q, options: newOpts };
         }
@@ -119,7 +189,7 @@ export default function FormManagementClient({
     );
   };
 
-  // Handle Form Creation
+  // Submit Form
   const handleCreateForm = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
@@ -138,6 +208,7 @@ export default function FormManagementClient({
       const res = await createForm({
         title,
         description,
+        max_points: maxPoints ? Number(maxPoints) : null,
         allow_anonymous: allowAnonymous,
         questions,
       });
@@ -146,13 +217,16 @@ export default function FormManagementClient({
         toast.success("สร้างแบบสอบถามสำเร็จ!");
         setTitle("");
         setDescription("");
+        setMaxPoints("");
         setQuestions([
           {
             id: "q_1",
             title: "ความคิดเห็นหรือข้อเสนอแนะของคุณ",
-            type: "paragraph",
+            type: "short_answer",
             required: true,
             options: [],
+            correct_answer: "",
+            points: 0,
           },
         ]);
         setActiveTab("list");
@@ -175,8 +249,8 @@ export default function FormManagementClient({
 
   return (
     <div className="max-w-4xl w-full mx-auto p-4 sm:p-6 space-y-6">
-      {/* Top Header */}
-      <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+      {/* Top Header - Pink Brand Style (Like Evaluate Boss) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b-4 border-pink-500 pb-3">
         <div className="flex items-center gap-3">
           <Link
             href="/"
@@ -185,35 +259,39 @@ export default function FormManagementClient({
             <ArrowLeft size={18} />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
-              <span>📋 ระบบแบบสอบถาม ม.2/3</span>
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
+              <span>ระบบแบบสอบถาม ม.2/3</span>
             </h1>
-            <p className="text-xs text-slate-500">
-              สร้างและตอบแบบสอบถามสำหรับห้องเรียน ม.2/3
+            <p className="text-xs text-slate-500 mt-0.5">
+              สร้างและตอบแบบสอบถาม (รองรับ Google Form Types &amp; Excel Import)
             </p>
           </div>
         </div>
 
-        {currentUser.isRanked && (
+        {currentUser.isRanked ? (
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 flex items-center gap-1">
+            <span className="text-xs font-semibold px-3 py-1.5 rounded-full bg-pink-100 text-pink-700 border border-pink-200 flex items-center gap-1.5 shadow-2xs">
               <ShieldCheck size={14} />
               ยศ: {currentUser.role}
             </span>
           </div>
+        ) : (
+          <Link href="/" className="text-sm font-semibold text-pink-600 hover:underline">
+            กลับหน้าหลัก
+          </Link>
         )}
       </div>
 
       {/* Tabs */}
       {currentUser.isRanked && (
-        <div className="flex gap-2 p-1 bg-slate-100 rounded-xl max-w-sm">
+        <div className="flex flex-wrap gap-2 p-1.5 bg-slate-200/70 rounded-2xl max-w-lg">
           <button
             type="button"
             onClick={() => setActiveTab("list")}
-            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+            className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all cursor-pointer ${
               activeTab === "list"
-                ? "bg-white text-slate-800 shadow-xs"
-                : "text-slate-500 hover:text-slate-800"
+                ? "bg-white text-slate-800 shadow-sm"
+                : "text-slate-600 hover:text-slate-900"
             }`}
           >
             รายการแบบสอบถาม ({forms.length})
@@ -221,14 +299,26 @@ export default function FormManagementClient({
           <button
             type="button"
             onClick={() => setActiveTab("create")}
-            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+            className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
               activeTab === "create"
-                ? "bg-indigo-600 text-white shadow-xs"
-                : "text-slate-500 hover:text-slate-800"
+                ? "bg-pink-600 text-white shadow-sm"
+                : "text-slate-600 hover:text-slate-900"
             }`}
           >
             <Plus size={14} />
-            สร้างแบบสอบถามใหม่
+            สร้างแบบฟอร์ม
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("excel")}
+            className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              activeTab === "excel"
+                ? "bg-emerald-600 text-white shadow-sm"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <FileSpreadsheet size={14} />
+            อัปโหลดไฟล์ Excel
           </button>
         </div>
       )}
@@ -237,30 +327,31 @@ export default function FormManagementClient({
       {activeTab === "list" && (
         <div className="space-y-4">
           {forms.length === 0 ? (
-            <div className="text-center py-16 bg-white rounded-2xl border border-slate-200 p-8 space-y-3">
-              <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 mx-auto flex items-center justify-center">
-                <HelpCircle size={24} />
+            <div className="text-center py-16 bg-white rounded-3xl border border-slate-200 p-8 space-y-3 shadow-sm">
+              <div className="w-14 h-14 rounded-full bg-pink-50 text-pink-500 mx-auto flex items-center justify-center">
+                <HelpCircle size={28} />
               </div>
-              <h3 className="text-base font-bold text-slate-700">ยังไม่มีแบบสอบถามในระบบ</h3>
+              <h3 className="text-lg font-bold text-slate-800">ยังไม่มีแบบสอบถามในระบบ</h3>
               <p className="text-xs text-slate-500 max-w-sm mx-auto">
                 {currentUser.isRanked
-                  ? "คุณสามารถกดปุ่ม 'สร้างแบบสอบถามใหม่' ด้านบน เพื่อเริ่มต้นตั้งคำถามได้ทันที"
-                  : "กรุณารอหัวหน้าหรือผู้มียศสร้างแบบสอบถามและแชร์ลิงก์ให้ครับ"}
+                  ? "กดปุ่ม 'สร้างแบบฟอร์ม' หรือ 'อัปโหลดไฟล์ Excel' ด้านบน เพื่อเริ่มต้นสร้างฟอร์มได้ทันที"
+                  : "กรุณารอผู้มียศสร้างแบบสอบถามและแชร์ลิงก์ให้ครับ"}
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {forms.map((item) => {
                 const responseCount = item.form_responses?.[0]?.count ?? 0;
                 return (
                   <div
                     key={item.id}
-                    className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs hover:border-slate-300 transition-all flex flex-col justify-between"
+                    className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm hover:border-pink-300 transition-all flex flex-col justify-between group relative overflow-hidden"
                   >
+                    <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-pink-500 to-rose-400 opacity-90"></div>
                     <div>
-                      <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex items-start justify-between gap-2 mb-2 pt-1">
                         <span
-                          className={`text-[11px] font-bold px-2 py-0.5 rounded-md ${
+                          className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
                             item.is_active
                               ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                               : "bg-slate-100 text-slate-500 border border-slate-200"
@@ -269,10 +360,10 @@ export default function FormManagementClient({
                           {item.is_active ? "เปิดรับคำตอบ" : "ปิดรับแล้ว"}
                         </span>
                         <span className="text-[11px] text-slate-400">
-                          สร้างโดย: {item.creator_name || "ผู้มียศ"} ({item.creator_role || "Staff"})
+                          โดย: {item.creator_name || "Staff"} ({item.creator_role || "Staff"})
                         </span>
                       </div>
-                      <h3 className="text-base font-bold text-slate-800 line-clamp-2">
+                      <h3 className="text-base font-bold text-slate-800 group-hover:text-pink-600 transition-colors line-clamp-2">
                         {item.title}
                       </h3>
                       {item.description && (
@@ -280,7 +371,7 @@ export default function FormManagementClient({
                           {item.description}
                         </p>
                       )}
-                      <div className="flex items-center gap-4 mt-3 text-xs text-slate-500">
+                      <div className="flex items-center gap-4 mt-4 text-xs text-slate-500 font-medium">
                         <span>❓ {item.questions?.length || 0} ข้อ</span>
                         <span>👥 ตอบแล้ว {responseCount} คน</span>
                       </div>
@@ -289,7 +380,7 @@ export default function FormManagementClient({
                     <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between gap-2">
                       <Link
                         href={`/form?id=${item.id}`}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-xs flex items-center gap-1.5"
+                        className="bg-pink-600 hover:bg-pink-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-1.5"
                       >
                         <Send size={13} />
                         เปิดตอบฟอร์ม
@@ -299,7 +390,7 @@ export default function FormManagementClient({
                         <button
                           type="button"
                           onClick={() => copyFormUrl(item.id)}
-                          className="p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors border border-slate-200"
+                          className="p-2.5 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors border border-slate-200"
                           title="คัดลอกลิงก์"
                         >
                           <Copy size={15} />
@@ -313,7 +404,7 @@ export default function FormManagementClient({
                                 toast.success("ลบแบบสอบถามเรียบร้อย");
                               }
                             }}
-                            className="p-2 rounded-xl text-rose-500 hover:bg-rose-50 transition-colors border border-rose-200"
+                            className="p-2.5 rounded-xl text-rose-500 hover:bg-rose-50 transition-colors border border-rose-200"
                             title="ลบฟอร์ม"
                           >
                             <Trash2 size={15} />
@@ -329,48 +420,124 @@ export default function FormManagementClient({
         </div>
       )}
 
-      {/* TAB 2: CREATE FORM (Ranked Only) */}
+      {/* TAB 3: EXCEL UPLOAD MODAL/PANEL */}
+      {activeTab === "excel" && currentUser.isRanked && (
+        <div className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+            <div>
+              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                <FileSpreadsheet className="text-emerald-600" size={24} />
+                <span>นำเข้าแบบสอบถามจากไฟล์ Excel / CSV</span>
+              </h2>
+              <p className="text-xs text-slate-500 mt-1">
+                อัปโหลดไฟล์ template เพื่อแปลงเป็นแบบสอบถาม Google Form อัตโนมัติ
+              </p>
+            </div>
+
+            {/* Template Download Button */}
+            <a
+              href="/asset/Form_Example.xlsx"
+              download="Form_Example.xlsx"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100 font-bold text-xs shadow-2xs transition-all w-fit"
+            >
+              <Download size={15} />
+              <span>ดาวน์โหลดไฟล์ตัวอย่าง (Form_Example.xlsx)</span>
+            </a>
+          </div>
+
+          {/* Upload Area */}
+          <div className="border-2 border-dashed border-slate-300 rounded-3xl p-8 text-center hover:border-emerald-500 hover:bg-emerald-50/20 transition-all relative">
+            <input
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              onChange={handleFileUpload}
+              disabled={isParsingExcel}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            />
+            <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center mb-3">
+              <UploadCloud size={32} />
+            </div>
+            <h3 className="text-base font-bold text-slate-800">
+              ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์
+            </h3>
+            <p className="text-xs text-slate-500 mt-1">
+              รองรับไฟล์ <strong>.xlsx</strong> และ <strong>.csv</strong> ตามเทมเพลตมาตรฐาน
+            </p>
+          </div>
+
+          {/* Explanation Card */}
+          <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200 text-xs text-slate-600 space-y-2">
+            <h4 className="font-bold text-slate-800">โครงสร้างไฟล์ตัวอย่าง (Form_Example.xlsx):</h4>
+            <ul className="list-disc pl-5 space-y-1">
+              <li><strong>Row 1</strong>: Form title: (A1), ชื่อเรื่อง (B1), Max points: (C1), คะแนนเต็ม (D1)</li>
+              <li><strong>Row 2</strong>: Form description: (A2), คำอธิบาย (B2)</li>
+              <li><strong>Row 3</strong>: แถวหัวตาราง (Question #, Type, Question Text, Answer 1..4, Correct, Points)</li>
+              <li><strong>Row 4 เป็นต้นไป (A4)</strong>: ข้อคำถามแต่ละข้อ โดย Type เลือกได้ตาม Google Form Types (Short answer, Paragraph, Multiple choice, Checkboxes, Dropdown, File upload, Linear scale, Rating, Date, Time)</li>
+              <li>กรณี Type ไม่ใช่ตัวเลือก ให้ใส่คำตอบในช่อง <strong>Correct</strong> (เช่น วันที่ DD/MM/YYYY)</li>
+            </ul>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 2: CREATE / EDIT FORM BUILDER */}
       {activeTab === "create" && currentUser.isRanked && (
         <form onSubmit={handleCreateForm} className="space-y-6">
-          {/* Form Header Info */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                ชื่อหัวข้อแบบสอบถาม <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="เช่น แบบสอบถามความคิดเห็นทัศนศึกษา ม.2/3"
-                required
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-sm"
-              />
+          {/* Header Card (Pink themed card) */}
+          <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-4 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-pink-500 to-rose-400"></div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+              <div className="md:col-span-2">
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  ชื่อหัวข้อแบบสอบถาม (Form title) <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="เช่น แบบประเมินกิจกรรมห้อง หรือ แบบสอบถาม ม.2/3"
+                  required
+                  className="w-full px-4 py-3 rounded-2xl border border-slate-300 text-slate-900 focus:outline-none focus:ring-2 focus:ring-pink-500 font-bold text-base bg-slate-50/50"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  คะแนนเต็ม (Max points - ถ้ามี)
+                </label>
+                <input
+                  type="number"
+                  value={maxPoints}
+                  onChange={(e) => setMaxPoints(e.target.value)}
+                  placeholder="เช่น 100 หรือเว้นว่างได้"
+                  className="w-full px-4 py-3 rounded-2xl border border-slate-300 text-slate-900 focus:outline-none focus:ring-2 focus:ring-pink-500 font-semibold text-sm bg-slate-50/50"
+                />
+              </div>
             </div>
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
-                รายละเอียดคำชี้แจง (ถ้ามี)
+                รายละเอียดคำชี้แจง (Form description - เว้นว่างได้)
               </label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="ระบุคำอธิบายหรือวัตถุประสงค์ของการทำแบบสอบถามนี้..."
+                placeholder="ระบุวัตถุประสงค์ คำอธิบาย หรือข้อตกลง..."
                 rows={2}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-sm"
+                className="w-full px-4 py-2.5 rounded-2xl border border-slate-300 text-slate-900 focus:outline-none focus:ring-2 focus:ring-pink-500 font-medium text-xs bg-slate-50/50"
               />
             </div>
 
-            <div className="flex items-center gap-2 pt-1">
+            <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
               <input
                 type="checkbox"
                 id="allow_anonymous"
                 checked={allowAnonymous}
                 onChange={(e) => setAllowAnonymous(e.target.checked)}
-                className="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4"
+                className="rounded text-pink-600 focus:ring-pink-500 w-4 h-4 cursor-pointer"
               />
               <label htmlFor="allow_anonymous" className="text-xs font-medium text-slate-700 cursor-pointer">
-                อนุญาตให้ผู้ตอบเลือก &quot;ไม่ระบุตัวตน&quot; ได้
+                อนุญาตให้ผู้ตอบสามารถเลือก <strong>&quot;ไม่ประสงค์ออกนาม&quot;</strong> ได้
               </label>
             </div>
           </div>
@@ -378,30 +545,24 @@ export default function FormManagementClient({
           {/* Questions Builder */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-bold text-slate-800">
-                รายการคำถาม ({questions.length} ข้อ)
+              <h2 className="text-base font-bold text-slate-800">
+                รายการข้อคำถาม ({questions.length} ข้อ)
               </h2>
-              <div className="flex items-center gap-1.5">
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => addQuestion("multiple_choice")}
+                  className="px-3 py-1.5 text-xs font-bold rounded-xl bg-pink-50 text-pink-700 border border-pink-200 hover:bg-pink-100 transition-colors cursor-pointer"
+                >
+                  + ปรนัย (Multiple choice)
+                </button>
                 <button
                   type="button"
                   onClick={() => addQuestion("short_answer")}
-                  className="px-3 py-1.5 text-xs font-medium rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 transition-colors"
+                  className="px-3 py-1.5 text-xs font-bold rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer"
                 >
                   + ข้อความสั้น
-                </button>
-                <button
-                  type="button"
-                  onClick={() => addQuestion("radio")}
-                  className="px-3 py-1.5 text-xs font-medium rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 transition-colors"
-                >
-                  + ปรนัย (เลือก 1 ข้อ)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => addQuestion("checkbox")}
-                  className="px-3 py-1.5 text-xs font-medium rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 transition-colors"
-                >
-                  + เลือกได้หลายข้อ
                 </button>
               </div>
             </div>
@@ -409,10 +570,11 @@ export default function FormManagementClient({
             {questions.map((q, idx) => (
               <div
                 key={q.id}
-                className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4 relative"
+                className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4 hover:border-slate-300 transition-all relative"
               >
-                <div className="flex items-center justify-between gap-3">
-                  <span className="w-6 h-6 rounded-full bg-indigo-50 text-indigo-600 font-bold text-xs flex items-center justify-center shrink-0">
+                {/* Header Row: Question #, Text & Type Select */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                  <span className="w-8 h-8 rounded-full bg-pink-100 text-pink-600 font-bold text-xs flex items-center justify-center shrink-0">
                     {idx + 1}
                   </span>
                   <input
@@ -421,46 +583,51 @@ export default function FormManagementClient({
                     onChange={(e) => updateQuestion(q.id, "title", e.target.value)}
                     placeholder={`คำถามข้อที่ ${idx + 1}...`}
                     required
-                    className="flex-1 px-3 py-2 rounded-lg border border-slate-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="flex-1 px-4 py-2.5 rounded-xl border border-slate-300 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-pink-500"
                   />
                   <select
                     value={q.type}
-                    onChange={(e) => updateQuestion(q.id, "type", e.target.value as Question["type"])}
-                    className="px-3 py-2 rounded-lg border border-slate-300 text-xs font-medium bg-slate-50 text-slate-700"
+                    onChange={(e) => updateQuestion(q.id, "type", e.target.value)}
+                    className="px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-pink-500 cursor-pointer"
                   >
-                    <option value="short_answer">ตอบสั้น (1 บรรทัด)</option>
-                    <option value="paragraph">ตอบยาว (ย่อหน้า)</option>
-                    <option value="radio">ตัวเลือก (เลือกได้ข้อเดียว)</option>
-                    <option value="checkbox">ตัวเลือก (เลือกได้หลายข้อ)</option>
+                    {GOOGLE_FORM_TYPES.map((t) => (
+                      <option key={t.value} value={t.value}>
+                        {t.label}
+                      </option>
+                    ))}
                   </select>
                   <button
                     type="button"
                     onClick={() => removeQuestion(q.id)}
-                    className="text-slate-400 hover:text-rose-500 p-1.5 transition-colors"
+                    className="text-slate-400 hover:text-rose-500 p-2 transition-colors self-end sm:self-auto cursor-pointer"
+                    title="ลบคำถามข้อนี้"
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={18} />
                   </button>
                 </div>
 
-                {/* Options for radio / checkbox */}
-                {(q.type === "radio" || q.type === "checkbox") && (
-                  <div className="pl-9 space-y-2">
-                    {q.options.map((opt, optIdx) => (
-                      <div key={optIdx} className="flex items-center gap-2">
-                        <span className="text-slate-400 text-xs">
-                          {q.type === "radio" ? "⚪" : "⬜"}
+                {/* Multiple choice, Checkboxes, Dropdown Options */}
+                {(q.type === "multiple_choice" || q.type === "checkboxes" || q.type === "dropdown") && (
+                  <div className="pl-0 sm:pl-11 space-y-2">
+                    <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                      รายการตัวเลือก (Options):
+                    </p>
+                    {(q.options || []).map((opt: string, optIdx: number) => (
+                      <div key={optIdx} className="flex items-center gap-2.5">
+                        <span className="text-slate-400 text-xs shrink-0">
+                          {q.type === "multiple_choice" ? "⚪" : q.type === "checkboxes" ? "⬜" : "🔽"}
                         </span>
                         <input
                           type="text"
                           value={opt}
                           onChange={(e) => updateOptionText(q.id, optIdx, e.target.value)}
-                          className="flex-1 px-2.5 py-1.5 text-xs rounded-md border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          className="flex-1 px-3 py-1.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-1 focus:ring-pink-500 text-slate-800"
                         />
                         {q.options.length > 1 && (
                           <button
                             type="button"
                             onClick={() => removeOption(q.id, optIdx)}
-                            className="text-slate-400 hover:text-rose-500 text-xs"
+                            className="text-slate-400 hover:text-rose-500 text-xs p-1"
                           >
                             ✕
                           </button>
@@ -470,44 +637,71 @@ export default function FormManagementClient({
                     <button
                       type="button"
                       onClick={() => addOption(q.id)}
-                      className="text-xs text-indigo-600 hover:underline font-medium mt-1 inline-block"
+                      className="text-xs text-pink-600 hover:underline font-bold mt-1 inline-block cursor-pointer"
                     >
                       + เพิ่มตัวเลือก
                     </button>
                   </div>
                 )}
 
-                {/* Question Settings Bar */}
-                <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100 text-xs text-slate-500">
-                  <label className="flex items-center gap-1.5 cursor-pointer">
+                {/* Correct Answer & Points Row */}
+                <div className="pl-0 sm:pl-11 grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                      เฉลยคำตอบ (Correct Answer - เว้นว่างได้)
+                    </label>
+                    <input
+                      type="text"
+                      value={q.correct_answer || ""}
+                      onChange={(e) => updateQuestion(q.id, "correct_answer", e.target.value)}
+                      placeholder={q.type === "date" ? "เช่น 07/10/2026 หรือ 07/10/2569" : "คำตอบที่ถูกต้อง..."}
+                      className="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-1 focus:ring-pink-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                      คะแนนข้อนี้ (Points - ถ้ามี)
+                    </label>
+                    <input
+                      type="number"
+                      value={q.points || 0}
+                      onChange={(e) => updateQuestion(q.id, "points", Number(e.target.value))}
+                      className="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-1 focus:ring-pink-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Footer of Question Card: Required Checkbox */}
+                <div className="flex items-center justify-end pt-3 border-t border-slate-100 text-xs">
+                  <label className="flex items-center gap-2 cursor-pointer font-medium text-slate-600">
                     <input
                       type="checkbox"
                       checked={q.required}
                       onChange={(e) => updateQuestion(q.id, "required", e.target.checked)}
-                      className="rounded text-indigo-600 focus:ring-indigo-500"
+                      className="rounded text-pink-600 focus:ring-pink-500 w-4 h-4"
                     />
-                    <span>จำเป็นต้องตอบ</span>
+                    <span>จำเป็นต้องตอบ (Required)</span>
                   </label>
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Submit Action */}
+          {/* Form Actions */}
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
             <button
               type="button"
               onClick={() => setActiveTab("list")}
-              className="px-5 py-2.5 rounded-xl border border-slate-300 font-medium text-xs text-slate-700 hover:bg-slate-50 transition-colors"
+              className="px-6 py-3 rounded-2xl border border-slate-300 font-bold text-xs text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
             >
               ยกเลิก
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm transition-all flex items-center gap-2 disabled:opacity-50"
+              className="px-8 py-3 rounded-2xl bg-pink-600 hover:bg-pink-700 text-white font-bold text-sm shadow-md transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
             >
-              <CheckCircle2 size={16} />
+              <CheckCircle2 size={18} />
               <span>{isSubmitting ? "กำลังบันทึก..." : "เผยแพร่แบบสอบถาม"}</span>
             </button>
           </div>
