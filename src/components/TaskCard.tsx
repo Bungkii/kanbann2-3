@@ -100,6 +100,8 @@ export default function TaskCard({ task, isOverlay, onDelete, onClick }: { task:
           <img
             src={(task.image_urls && task.image_urls[0]) || task.image_url!}
             alt={task.subject}
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover transition-transform group-hover:scale-105"
           />
           {task.image_urls && task.image_urls.length > 1 && (

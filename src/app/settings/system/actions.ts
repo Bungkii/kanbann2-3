@@ -3,6 +3,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
+import { cache } from "react";
 
 function getAdminClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
@@ -27,7 +28,8 @@ function normalizeValue(raw: any): any {
   return raw;
 }
 
-export async function getSystemSettings() {
+// Deduplicate layout/page reads only within the current server render.
+const readSystemSettings = cache(async () => {
   const adminSupabase = getAdminClient();
   const { data, error } = await adminSupabase
     .from('system_settings')
@@ -44,6 +46,10 @@ export async function getSystemSettings() {
   });
 
   return settings;
+});
+
+export async function getSystemSettings() {
+  return readSystemSettings();
 }
 
 export async function updateSystemSetting(key: string, value: any) {

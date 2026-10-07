@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -22,9 +22,13 @@ import { updateTaskDetails } from '@/app/kanban/actions';
 import { createClient } from '@/utils/supabase/client';
 import { Users, User, Trophy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import HomeworkSolutions from './HomeworkSolutions';
+import dynamic from 'next/dynamic';
 import TaskFilterWidget, { TaskFilterState } from './TaskFilterWidget';
 import TaskImageCarousel from './TaskImageCarousel';
+
+const HomeworkSolutions = dynamic(() => import('./HomeworkSolutions'), {
+  loading: () => <p role="status" className="p-6 text-center text-slate-500">กำลังโหลดเฉลย...</p>,
+});
 
 export type Task = {
   id: string;
@@ -185,7 +189,7 @@ export default function KanbanBoard({
     };
   }, []);
 
-  const updateLocalStatus = (taskId: string, newStatus: string) => {
+  const updateLocalStatus = useCallback((taskId: string, newStatus: string) => {
     setTasks((prevTasks) => {
       const newTasks = prevTasks.map((t) =>
         t.id === taskId ? { ...t, status: newStatus } : t
@@ -221,7 +225,7 @@ export default function KanbanBoard({
     } else {
       toast.success('อัปเดตสถานะแล้ว');
     }
-  };
+  }, [currentStudent]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -259,14 +263,12 @@ export default function KanbanBoard({
     }
   };
 
-  const handleDeleteTask = async (taskId: string) => {
+  const handleDeleteTask = useCallback((taskId: string) => {
     if (confirm('🚨 คำเตือน: คุณกำลังจะลบงานนี้\n(งานนี้จะถูกซ่อนจากหน้าจอของคุณเท่านั้น ไม่กระทบกับคนอื่น) แน่ใจหรือไม่?')) {
       updateLocalStatus(taskId, 'deleted');
-      if (selectedTask?.id === taskId) {
-        setSelectedTask(null);
-      }
+      setSelectedTask(current => current?.id === taskId ? null : current);
     }
-  };
+  }, [updateLocalStatus]);
 
   const handleEditSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -396,10 +398,10 @@ export default function KanbanBoard({
     return filteredActiveTasks;
   }, [filteredActiveTasks]);
 
-  const tasksByColumn = COLUMNS.map((col) => ({
+  const tasksByColumn = useMemo(() => COLUMNS.map((col) => ({
     ...col,
     tasks: sortedTasks.filter((t) => t.status === col.id),
-  }));
+  })), [sortedTasks]);
 
   // Stats for Dashboard
   const totalTasks = activeTasks.length;

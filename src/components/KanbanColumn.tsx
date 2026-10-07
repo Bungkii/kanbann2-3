@@ -16,7 +16,7 @@ type ColumnProps = {
   onTaskClick?: (task: Task) => void;
 };
 
-export default function KanbanColumn({ column, onDeleteTask, onTaskClick }: ColumnProps) {
+export default React.memo(function KanbanColumn({ column, onDeleteTask, onTaskClick }: ColumnProps) {
   const { setNodeRef } = useDroppable({
     id: column.id,
   });
@@ -48,4 +48,4 @@ export default function KanbanColumn({ column, onDeleteTask, onTaskClick }: Colu
       </div>
     </div>
   );
-}
+});

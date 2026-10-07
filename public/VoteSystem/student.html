@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ระบบลงมติและแสดงตน | พริมจ๋า ม.2/3</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Prompt:wght@400;500;600;700;800&family=Kanit:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --primary-light: #eef2ff;
+            --rose: #f43f5e;
+            --rose-hover: #e11d48;
+            --rose-light: #fff1f2;
+            --rose-border: #ffe4e6;
+            --slate-bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --green: #10b981;
+            --green-hover: #059669;
+            --green-light: #ecfdf5;
+            --red: #ef4444;
+            --red-hover: #dc2626;
+            --red-light: #fef2f2;
+            --yellow: #f59e0b;
+            --yellow-hover: #d97706;
+            --yellow-light: #fffbeb;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+            --radius-lg: 1rem;
+            --radius-xl: 1.25rem;
+            --radius-2xl: 1.5rem;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans Thai', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--slate-bg);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 16px;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+
+        .ambient-glow {
+            position: fixed;
+            top: -120px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 500px;
+            height: 350px;
+            background: radial-gradient(circle, rgba(244,63,94,0.15) 0%, rgba(79,70,229,0.12) 50%, rgba(248,250,252,0) 80%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+            position: relative;
+            z-index: 1;
+            margin: auto 0;
+            padding: 8px 0;
+        }
+
+        /* Header Card */
+        .prim-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .prim-logo-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            background: linear-gradient(135deg, #fff1f2 0%, #eef2ff 100%);
+            border: 1px solid var(--rose-border);
+            border-radius: 9999px;
+            margin-bottom: 12px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .prim-logo-badge .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--rose);
+            box-shadow: 0 0 8px rgba(244,63,94,0.6);
+            animation: pulse-dot 2s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.85); }
+        }
+
+        .prim-logo-badge span {
+            font-size: 13px;
+            font-weight: 700;
+            color: #be123c;
+            letter-spacing: -0.01em;
+        }
+
+        .prim-title {
+            font-family: 'Prompt', sans-serif;
+            font-size: 26px;
+            font-weight: 800;
+            color: #0f172a;
+            letter-spacing: -0.02em;
+            line-height: 1.25;
+            margin-bottom: 6px;
+        }
+
+        .prim-subtitle {
+            font-size: 14px;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        /* Glassmorphic Card */
+        .glass-card {
+            background: var(--card-bg);
+            border-radius: var(--radius-2xl);
+            border: 1px solid var(--border-color);
+            padding: 24px 20px;
+            box-shadow: var(--shadow-xl);
+            position: relative;
+            backdrop-filter: blur(12px);
+        }
+
+        /* Voter Profile Pill (Permanently Locked) */
+        .voter-profile-bar {
+            background: linear-gradient(to right, #f8fafc, #fff1f2);
+            border: 1px solid var(--rose-border);
+            border-radius: var(--radius-xl);
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .voter-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .voter-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--rose) 0%, var(--primary) 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Prompt', sans-serif;
+            font-weight: 700;
+            font-size: 15px;
+            box-shadow: 0 4px 10px rgba(244,63,94,0.3);
+            flex-shrink: 0;
+        }
+
+        .voter-details {
+            line-height: 1.3;
+        }
+
+        .voter-name {
+            font-weight: 700;
+            font-size: 15px;
+            color: var(--text-main);
+        }
+
+        .voter-id-tag {
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .locked-badge {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            font-size: 11px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+
+        /* Agenda Banner */
+        .agenda-banner {
+            background: #f8fafc;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+            padding: 12px 14px;
+            margin-bottom: 18px;
+        }
+
+        .agenda-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--primary);
+            letter-spacing: 0.05em;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .agenda-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-main);
+            line-height: 1.4;
+        }
+
+        /* Timer Section */
+        .timer-card {
+            background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%);
+            border-radius: var(--radius-xl);
+            padding: 16px;
+            color: white;
+            text-align: center;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 20px rgba(15,23,42,0.15);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .timer-card::after {
+            content: '';
+            position: absolute;
+            top: 0; right: 0; bottom: 0; left: 0;
+            background: radial-gradient(circle at top right, rgba(244,63,94,0.2), transparent 70%);
+            pointer-events: none;
+        }
+
+        .timer-header {
+            font-size: 12px;
+            color: #94a3b8;
+            font-weight: 500;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .timer-clock {
+            font-family: 'Prompt', monospace;
+            font-size: 44px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            line-height: 1.1;
+            color: #ffffff;
+            text-shadow: 0 0 20px rgba(255,255,255,0.25);
+        }
+
+        .timer-clock.pulse-red {
+            color: #f87171;
+            text-shadow: 0 0 20px rgba(239,68,68,0.5);
+            animation: pulse-clock 1s infinite;
+        }
+
+        @keyframes pulse-clock {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+        }
+
+        .timer-subtext {
+            font-size: 12px;
+            color: #cbd5e1;
+            margin-top: 4px;
+        }
+
+        /* Big Action Buttons for Voting */
+        .vote-btn-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .btn-vote {
+            border: none;
+            outline: none;
+            border-radius: var(--radius-xl);
+            padding: 18px 20px;
+            font-family: 'Prompt', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--shadow-md);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .btn-vote:active {
+            transform: scale(0.98);
+        }
+
+        .btn-vote.btn-approve {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            box-shadow: 0 8px 18px rgba(16,185,129,0.35);
+        }
+        .btn-vote.btn-approve:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        }
+
+        .btn-vote.btn-disapprove {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            box-shadow: 0 8px 18px rgba(239,68,68,0.35);
+        }
+        .btn-vote.btn-disapprove:hover {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        }
+
+        .btn-vote.btn-abstain {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            box-shadow: 0 8px 18px rgba(245,158,11,0.35);
+        }
+        .btn-vote.btn-abstain:hover {
+            background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+        }
+
+        .btn-vote .btn-text-group {
+            display: flex;
+            flex-direction: column;
+            text-align: left;
+        }
+
+        .btn-vote .btn-main-label {
+            font-size: 20px;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .btn-vote .btn-sub-label {
+            font-size: 12px;
+            opacity: 0.85;
+            font-weight: 400;
+        }
+
+        .btn-vote .btn-icon {
+            font-size: 28px;
+            flex-shrink: 0;
+        }
+
+        .btn-vote.selected {
+            border: 3px solid #ffffff;
+            box-shadow: 0 0 0 3px rgba(79,70,229,0.7), 0 10px 25px rgba(0,0,0,0.25);
+            transform: scale(1.02);
+        }
+
+        .btn-vote.selected::after {
+            content: '✓ บันทึกแล้ว';
+            position: absolute;
+            top: 6px;
+            right: 12px;
+            font-size: 11px;
+            background: rgba(255,255,255,0.3);
+            padding: 2px 8px;
+            border-radius: 9999px;
+            font-weight: 600;
+        }
+
+        /* Quorum View Button */
+        .btn-quorum {
+            width: 100%;
+            background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+            border: none;
+            border-radius: var(--radius-xl);
+            padding: 24px 20px;
+            font-family: 'Prompt', sans-serif;
+            font-size: 22px;
+            font-weight: 800;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 10px 25px rgba(16,185,129,0.35);
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-quorum:hover {
+            filter: brightness(1.05);
+        }
+
+        .btn-quorum:active {
+            transform: scale(0.97);
+        }
+
+        .btn-quorum.checked {
+            background: linear-gradient(135deg, #059669 0%, #065f46 100%);
+            border: 3px solid #6ee7b7;
+        }
+
+        /* Login Screen Form */
+        .login-input-group {
+            margin-bottom: 16px;
+        }
+
+        .login-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .login-input {
+            width: 100%;
+            padding: 14px 16px;
+            font-size: 18px;
+            font-weight: 600;
+            font-family: 'Prompt', monospace;
+            border-radius: var(--radius-lg);
+            border: 1.5px solid var(--border-color);
+            background: #ffffff;
+            color: var(--text-main);
+            outline: none;
+            transition: all 0.2s;
+            letter-spacing: 2px;
+            text-align: center;
+        }
+
+        .login-input:focus {
+            border-color: var(--rose);
+            box-shadow: 0 0 0 3px rgba(244,63,94,0.2);
+        }
+
+        .student-preview-card {
+            background: #fff1f2;
+            border: 1px solid var(--rose-border);
+            border-radius: var(--radius-lg);
+            padding: 12px 14px;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: fadeIn 0.2s ease-in;
+        }
+
+        .student-preview-card .prev-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: var(--rose);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .student-preview-card .prev-name {
+            font-size: 14px;
+            font-weight: 700;
+            color: #881337;
+        }
+
+        .student-preview-card .prev-no {
+            font-size: 12px;
+            color: #be123c;
+        }
+
+        .btn-prim-submit {
+            width: 100%;
+            padding: 15px;
+            font-family: 'Prompt', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--rose) 0%, var(--primary) 100%);
+            color: white;
+            border: none;
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            box-shadow: 0 8px 18px rgba(244,63,94,0.3);
+            transition: all 0.2s;
+        }
+
+        .btn-prim-submit:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .btn-prim-submit:not(:disabled):hover {
+            filter: brightness(1.05);
+            transform: translateY(-1px);
+        }
+
+        /* Speaker & Debate Queue Card */
+        .debate-section {
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            padding: 16px;
+            margin-top: 18px;
+        }
+
+        .btn-debate-queue {
+            width: 100%;
+            padding: 14px;
+            font-family: 'Prompt', sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+            background: #ffffff;
+            color: #d97706;
+            border: 2px dashed #f59e0b;
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-debate-queue:hover {
+            background: #fffbeb;
+        }
+
+        .btn-debate-queue.queued {
+            background: #fef3c7;
+            border-style: solid;
+            color: #b45309;
+        }
+
+        /* Draft Motion Box */
+        .motion-box {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            padding: 16px;
+            margin-top: 18px;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .motion-box h4 {
+            font-family: 'Prompt', sans-serif;
+            font-size: 15px;
+            color: #334155;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .motion-content {
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: var(--radius-lg);
+            border: 1px solid #e2e8f0;
+            white-space: pre-wrap;
+            font-family: 'IBM Plex Sans Thai', sans-serif;
+            font-size: 14px;
+            color: #1e293b;
+        }
+
+        .strike-red {
+            text-decoration: line-through;
+            color: #ef4444;
+            font-weight: 600;
+            background: #fee2e2;
+            padding: 0 4px;
+            border-radius: 4px;
+        }
+
+        .highlight-yellow {
+            background-color: #fef08a;
+            color: #854d0e;
+            font-weight: 600;
+            padding: 0 4px;
+            border-radius: 4px;
+        }
+
+        /* Status Pills */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-badge.open {
+            background: #ecfdf5;
+            color: #059669;
+            border: 1px solid #a7f3d0;
+        }
+
+        .status-badge.closed {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        /* Recheck Quorum Notification Banner */
+        .recheck-banner {
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+            border: 2px solid #f87171;
+            border-radius: var(--radius-lg);
+            padding: 14px;
+            margin-bottom: 16px;
+            text-align: center;
+            animation: bounceIn 0.3s ease-out;
+        }
+
+        .recheck-banner h3 {
+            color: #b91c1c;
+            font-family: 'Prompt', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .recheck-banner p {
+            font-size: 13px;
+            color: #7f1d1d;
+        }
+
+        /* Footer notice */
+        .prim-footer {
+            text-align: center;
+            margin-top: 18px;
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
+        .prim-footer a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0.95); opacity: 0; }
+            70% { transform: scale(1.02); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <div class="ambient-glow"></div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="prim-header">
+            <div class="prim-logo-badge">
+                <span class="dot"></span>
+                <span>ห้อง ม.2/3 • ระบบพริมจ๋า VOTE</span>
+            </div>
+            <h1 class="prim-title">ระบบลงมติ & แสดงตน</h1>
+            <p class="prim-subtitle">การประชุมสภาห้องเรียน ม.2/3 ชุดที่ ๑</p>
+        </div>
+
+        <!-- 1. LOGIN SCREEN (Shown only if no student in localStorage) -->
+        <div id="screen-login" class="glass-card hidden">
+            <h2 style="font-family:'Prompt',sans-serif; font-size:18px; font-weight:700; color:#0f172a; margin-bottom:12px; text-align:center;">
+                เข้าสู่ระบบแสดงตน
+            </h2>
+            <p style="font-size:13px; color:#64748b; text-align:center; margin-bottom:20px;">
+                กรุณาระบุเลขประจำตัวนักเรียน 5 หลัก (ระบบจะผูกกับอุปกรณ์นี้ถาวร)
+            </p>
+
+            <div class="login-input-group">
+                <label class="login-label" for="student-id-input">เลขประจำตัวนักเรียน (5 หลัก)</label>
+                <input type="text" id="student-id-input" class="login-input" placeholder="เช่น 30233 หรือ 30260" maxlength="5" inputmode="numeric" autocomplete="off" autofocus>
+            </div>
+
+            <!-- Preview Card -->
+            <div id="student-preview" class="student-preview-card hidden">
+                <div class="prev-avatar" id="prev-avatar">01</div>
+                <div>
+                    <div class="prev-name" id="prev-name">ด.ญ.กัญญาวีร์ สินสมบูรณ์</div>
+                    <div class="prev-no" id="prev-no">เลขที่ 1 • ชื่อเล่น ไอวี่</div>
+                </div>
+            </div>
+
+            <div id="login-error" style="color:#ef4444; font-size:13px; font-weight:600; text-align:center; margin-bottom:12px;" class="hidden">
+                ไม่พบเลขประจำตัวนักเรียนนี้ในระบบ ม.2/3
+            </div>
+
+            <button type="button" id="btn-login" class="btn-prim-submit" disabled>
+                ยืนยันตัวตนเข้าระบบ
+            </button>
+
+            <div style="margin-top:16px; background:#fff1f2; border:1px solid #ffe4e6; border-radius:12px; padding:10px 12px; font-size:11px; color:#9f1239; line-height:1.4;">
+                🔒 <strong>มาตรการความปลอดภัย:</strong> เมื่อผูกบัญชีแล้ว เครื่องนี้จะไม่สามารถล็อกเอาท์ได้ เพื่อป้องกันการโหวตแทนกันตามมติสภาห้อง
+            </div>
+        </div>
+
+        <!-- 2. MAIN VOTER CLIENT (Shown when localStorage exists) -->
+        <div id="screen-voter" class="glass-card hidden">
+            <!-- Bound Student Badge (No Logout Allowed!) -->
+            <div class="voter-profile-bar">
+                <div class="voter-info">
+                    <div class="voter-avatar" id="user-avatar">00</div>
+                    <div class="voter-details">
+                        <div class="voter-name" id="user-name">-</div>
+                        <div class="voter-id-tag">
+                            <span id="user-id-text">ID: -----</span>
+                            <span>•</span>
+                            <span id="user-no-text">เลขที่ --</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="locked-badge" title="เครื่องนี้ถูกผูกเข้ากับสมาชิกท่านนี้ถาวร">
+                    🔒 ผูกเครื่องแล้ว
+                </div>
+            </div>
+
+            <!-- Recheck Quorum Banner (Triggered when 3-clicks reset happens) -->
+            <div id="recheck-quorum-alert" class="recheck-banner hidden">
+                <h3>⚠️ ประธานสั่งตรวจสอบองค์ประชุมใหม่!</h3>
+                <p>กรุณากดปุ่มสีเขียวด้านล่างเพื่อยืนยันว่าท่านยังอยู่ในห้องประชุม</p>
+            </div>
+
+            <!-- Meeting Agenda Banner -->
+            <div class="agenda-banner">
+                <div class="agenda-label">
+                    <span>📌 วาระการประชุมปัจจุบัน</span>
+                    <span id="sys-status-badge" class="status-badge open" style="margin-left:auto;">🟢 เปิดระบบ</span>
+                </div>
+                <div class="agenda-title" id="agenda-display">
+                    ระเบียบวาระที่ ๑ เรื่องที่ประธานแจ้งให้ที่ประชุมทราบ
+                </div>
+            </div>
+
+            <!-- Central Countdown Timer -->
+            <div class="timer-card" id="timer-box">
+                <div class="timer-header">
+                    <span>⏱️ เวลาคงเหลือในการลงมติ / ประชุม</span>
+                </div>
+                <div class="timer-clock" id="timer-countdown">--:--</div>
+                <div class="timer-subtext" id="timer-mode-subtext">ระบบเปิดรับการออกเสียง</div>
+            </div>
+
+            <!-- QUORUM MODE (CHECK IN) -->
+            <div id="section-quorum" class="hidden">
+                <button type="button" id="btn-submit-quorum" class="btn-quorum">
+                    <span id="quorum-icon" style="font-size:32px;">✅</span>
+                    <span id="quorum-label">กดเพื่อแสดงตน (ยืนยันองค์ประชุม)</span>
+                    <span id="quorum-sub" style="font-size:12px; font-weight:400; opacity:0.9;">แตะเพื่อบันทึกสถานะว่าท่านอยู่ในห้อง</span>
+                </button>
+            </div>
+
+            <!-- VOTE MODE (3 BIG BUTTONS) -->
+            <div id="section-vote" class="hidden">
+                <div style="font-size:13px; font-weight:700; color:#475569; margin-bottom:10px; display:flex; align-items:center; justify-content:space-between;">
+                    <span>🗳️ เลือกการลงมติของท่าน:</span>
+                    <span id="my-vote-status-text" style="color:var(--primary); font-weight:700;">ยังไม่ได้ลงคะแนน</span>
+                </div>
+
+                <div class="vote-btn-grid">
+                    <!-- APPROVE (GREEN) -->
+                    <button type="button" class="btn-vote btn-approve" data-choice="APPROVE" id="btn-vote-approve">
+                        <div class="btn-text-group">
+                            <span class="btn-main-label">เห็นด้วย</span>
+                            <span class="btn-sub-label">เห็นชอบ / รับหลักการ (Approve)</span>
+                        </div>
+                        <span class="btn-icon">🟢</span>
+                    </button>
+
+                    <!-- DISAPPROVE (RED) -->
+                    <button type="button" class="btn-vote btn-disapprove" data-choice="DISAPPROVE" id="btn-vote-disapprove">
+                        <div class="btn-text-group">
+                            <span class="btn-main-label">ไม่เห็นด้วย</span>
+                            <span class="btn-sub-label">ไม่เห็นชอบ / ปฏิเสธ (Disapprove)</span>
+                        </div>
+                        <span class="btn-icon">🔴</span>
+                    </button>
+
+                    <!-- ABSTAIN (YELLOW) -->
+                    <button type="button" class="btn-vote btn-abstain" data-choice="ABSTAIN" id="btn-vote-abstain">
+                        <div class="btn-text-group">
+                            <span class="btn-main-label">งดออกเสียง</span>
+                            <span class="btn-sub-label">ไม่ออกเสียงในญัตตินี้ (Abstain)</span>
+                        </div>
+                        <span class="btn-icon">🟡</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- DRAFT MOTION VIEW (MIRRORED LIVE FROM ADMIN) -->
+            <div id="section-motion" class="motion-box hidden">
+                <h4>📜 ร่างมติ / ร่างข้อบัญญัติที่กำลังพิจารณา:</h4>
+                <div class="motion-content" id="motion-live-text">
+                    - ไม่มีร่างมติในขณะนี้ -
+                </div>
+            </div>
+
+            <!-- SPEAKER DEBATE QUEUE -->
+            <div class="debate-section">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                    <span style="font-size:13px; font-weight:700; color:#334155;">🎙️ การขออภิปรายในที่ประชุม</span>
+                    <span id="speaker-current-badge" style="font-size:11px; background:#e0e7ff; color:#3730a3; padding:2px 8px; border-radius:9999px; font-weight:600;">ผู้พูดปัจจุบัน: ว่าง</span>
+                </div>
+                <button type="button" id="btn-queue-speaker" class="btn-debate-queue">
+                    <span>🙋‍♂️ ขอยกมืออภิปราย (กดเพื่อต่อคิวพูด)</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="prim-footer">
+            พัฒนาสำหรับสภาห้อง ม.2/3 • ซิงค์ตรงกับหน้าจอหลัก Smart Parliament System
+        </div>
+    </div>
+
+    <!-- JS Logic -->
+    <script>
+        const STORAGE_KEY = 'prim_voter_identity_locked';
+        let currentStudent = null;
+        let studentsDatabase = [];
+        let lastRecheckQuorumCounter = 0;
+        let pollTimer = null;
+
+        // Elements
+        const screenLogin = document.getElementById('screen-login');
+        const screenVoter = document.getElementById('screen-voter');
+        const studentIdInput = document.getElementById('student-id-input');
+        const studentPreview = document.getElementById('student-preview');
+        const prevAvatar = document.getElementById('prev-avatar');
+        const prevName = document.getElementById('prev-name');
+        const prevNo = document.getElementById('prev-no');
+        const loginError = document.getElementById('login-error');
+        const btnLogin = document.getElementById('btn-login');
+
+        // Voter Elements
+        const userAvatar = document.getElementById('user-avatar');
+        const userName = document.getElementById('user-name');
+        const userIdText = document.getElementById('user-id-text');
+        const userNoText = document.getElementById('user-no-text');
+        const agendaDisplay = document.getElementById('agenda-display');
+        const sysStatusBadge = document.getElementById('sys-status-badge');
+        const timerCountdown = document.getElementById('timer-countdown');
+        const timerModeSubtext = document.getElementById('timer-mode-subtext');
+        const recheckAlert = document.getElementById('recheck-quorum-alert');
+
+        const sectionQuorum = document.getElementById('section-quorum');
+        const sectionVote = document.getElementById('section-vote');
+        const sectionMotion = document.getElementById('section-motion');
+        const motionLiveText = document.getElementById('motion-live-text');
+
+        const btnSubmitQuorum = document.getElementById('btn-submit-quorum');
+        const quorumIcon = document.getElementById('quorum-icon');
+        const quorumLabel = document.getElementById('quorum-label');
+        const quorumSub = document.getElementById('quorum-sub');
+
+        const btnApprove = document.getElementById('btn-vote-approve');
+        const btnDisapprove = document.getElementById('btn-vote-disapprove');
+        const btnAbstain = document.getElementById('btn-vote-abstain');
+        const myVoteStatusText = document.getElementById('my-vote-status-text');
+
+        const btnQueueSpeaker = document.getElementById('btn-queue-speaker');
+        const speakerCurrentBadge = document.getElementById('speaker-current-badge');
+
+        // 1. Initial Load: Check local storage
+        window.addEventListener('DOMContentLoaded', async () => {
+            await loadStudentsList();
+            checkExistingAuth();
+        });
+
+        async function loadStudentsList() {
+            try {
+                const res = await fetch('/api/students_data');
+                if (res.ok) {
+                    studentsDatabase = await res.json();
+                }
+            } catch (e) {
+                console.error("Failed to load students db:", e);
+            }
+        }
+
+        function checkExistingAuth() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try {
+                    currentStudent = JSON.parse(saved);
+                    showVoterScreen();
+                    startSyncLoop();
+                    return;
+                } catch (e) {
+                    localStorage.removeItem(STORAGE_KEY);
+                }
+            }
+            showLoginScreen();
+        }
+
+        function showLoginScreen() {
+            screenLogin.classList.remove('hidden');
+            screenVoter.classList.add('hidden');
+            if (pollTimer) clearInterval(pollTimer);
+        }
+
+        function showVoterScreen() {
+            screenLogin.classList.add('hidden');
+            screenVoter.classList.remove('hidden');
+
+            const noPadded = String(currentStudent.student_no).padStart(2, '0');
+            userAvatar.innerText = noPadded;
+            userName.innerText = currentStudent.full_name || `${currentStudent.first_name} ${currentStudent.last_name}`;
+            userIdText.innerText = `ID: ${currentStudent.student_id}`;
+            userNoText.innerText = `เลขที่ ${currentStudent.student_no} (${currentStudent.nickname || '-'})`;
+        }
+
+        // 2. Student ID input & search
+        studentIdInput.addEventListener('input', (e) => {
+            const val = e.target.value.replace(/\D/g, '').slice(0, 5);
+            e.target.value = val;
+
+            if (val.length === 5) {
+                const match = studentsDatabase.find(s => String(s.student_id) === val);
+                if (match) {
+                    loginError.classList.add('hidden');
+                    prevAvatar.innerText = String(match.student_no).padStart(2, '0');
+                    prevName.innerText = match.full_name || `${match.first_name} ${match.last_name}`;
+                    prevNo.innerText = `เลขที่ ${match.student_no} • ชื่อเล่น ${match.nickname || '-'}`;
+                    studentPreview.classList.remove('hidden');
+                    btnLogin.disabled = false;
+                    currentStudent = match;
+                } else {
+                    studentPreview.classList.add('hidden');
+                    loginError.classList.remove('hidden');
+                    btnLogin.disabled = true;
+                    currentStudent = null;
+                }
+            } else {
+                studentPreview.classList.add('hidden');
+                loginError.classList.add('hidden');
+                btnLogin.disabled = true;
+                currentStudent = null;
+            }
+        });
+
+        // 3. Confirm Login (Lock permanently into Local Storage)
+        btnLogin.addEventListener('click', () => {
+            if (!currentStudent) return;
+            // Write locked identity
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(currentStudent));
+            showVoterScreen();
+            startSyncLoop();
+        });
+
+        // 4. Polling Sync Loop with Python Backend
+        function startSyncLoop() {
+            if (pollTimer) clearInterval(pollTimer);
+            pollServerState();
+            pollTimer = setInterval(pollServerState, 1000);
+        }
+
+        async function pollServerState() {
+            if (!currentStudent) return;
+            try {
+                const res = await fetch(`/api/state?student_id=${encodeURIComponent(currentStudent.student_id)}&student_no=${encodeURIComponent(currentStudent.student_no)}`);
+                if (!res.ok) return;
+                const data = await res.json();
+                applyState(data);
+            } catch (err) {
+                console.error("Poll error:", err);
+            }
+        }
+
+        function applyState(data) {
+            // Update Agenda
+            if (data.agenda) {
+                agendaDisplay.innerText = data.agenda;
+            }
+
+            // System open/closed status
+            if (data.is_system_open) {
+                sysStatusBadge.className = 'status-badge open';
+                sysStatusBadge.innerText = '🟢 เปิดระบบ';
+            } else {
+                sysStatusBadge.className = 'status-badge closed';
+                sysStatusBadge.innerText = '🔴 ปิดระบบ';
+            }
+
+            // Central Timer
+            if (data.timer_str) {
+                timerCountdown.innerText = data.timer_str;
+                if (data.remaining_seconds < 0) {
+                    timerCountdown.classList.add('pulse-red');
+                } else {
+                    timerCountdown.classList.remove('pulse-red');
+                }
+            }
+            if (data.timer_status === 'PAUSED') {
+                timerModeSubtext.innerText = '⏸️ เวลาถูกหยุดชั่วคราว (Paused)';
+            } else if (data.timer_status === 'RUNNING') {
+                timerModeSubtext.innerText = '⏱️ กำลังนับถอยหลังการประชุม';
+            } else {
+                timerModeSubtext.innerText = '⏹️ เวลายังไม่ได้เริ่มนับ';
+            }
+
+            // 3-Click Recheck Quorum Trigger
+            if (data.recheck_quorum_counter && data.recheck_quorum_counter !== lastRecheckQuorumCounter) {
+                lastRecheckQuorumCounter = data.recheck_quorum_counter;
+                recheckAlert.classList.remove('hidden');
+                // Auto scroll to top
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else if (data.has_checked_quorum) {
+                recheckAlert.classList.add('hidden');
+            }
+
+            // Switch Display Modes: Quorum vs Vote vs Motion
+            const controlMode = data.control_mode || 'QUORUM';
+            const displayMode = data.display_mode || 'QUORUM';
+
+            if (controlMode === 'QUORUM' || displayMode === 'QUORUM') {
+                sectionQuorum.classList.remove('hidden');
+                sectionVote.classList.add('hidden');
+                
+                // Update Quorum Button State
+                if (data.has_checked_quorum) {
+                    btnSubmitQuorum.classList.add('checked');
+                    quorumIcon.innerText = '✅';
+                    quorumLabel.innerText = 'ท่านได้แสดงตนเรียบร้อยแล้ว';
+                    quorumSub.innerText = 'สถานะ: อยู่ในห้องประชุมสภา';
+                } else {
+                    btnSubmitQuorum.classList.remove('checked');
+                    quorumIcon.innerText = '🟢';
+                    quorumLabel.innerText = 'กดเพื่อแสดงตน (ยืนยันองค์ประชุม)';
+                    quorumSub.innerText = 'แตะเพื่อบันทึกสถานะว่าท่านอยู่ในห้อง';
+                }
+            } else {
+                sectionQuorum.classList.add('hidden');
+                sectionVote.classList.remove('hidden');
+
+                // Update My Vote
+                updateVoteButtons(data.my_vote || 'NONE');
+            }
+
+            // Live Motion Text (if Admin is in MOTION view or motion text exists)
+            if (displayMode === 'MOTION' || (data.motion_text && data.motion_text.trim())) {
+                sectionMotion.classList.remove('hidden');
+                renderMotionMarkup(data.motion_text || '', data.motion_tags || []);
+            } else {
+                sectionMotion.classList.add('hidden');
+            }
+
+            // Speaker Queue
+            if (data.current_speaker) {
+                speakerCurrentBadge.innerText = `ผู้พูดปัจจุบัน: ${data.current_speaker}`;
+            } else {
+                speakerCurrentBadge.innerText = 'ผู้พูดปัจจุบัน: ว่าง';
+            }
+
+            if (data.is_in_speaker_queue) {
+                btnQueueSpeaker.classList.add('queued');
+                btnQueueSpeaker.innerText = '✓ อยู่ในคิวขออภิปรายแล้ว (รอเรียกคิว)';
+            } else {
+                btnQueueSpeaker.classList.remove('queued');
+                btnQueueSpeaker.innerText = '🙋‍♂️ ขอยกมืออภิปราย (กดเพื่อต่อคิวพูด)';
+            }
+        }
+
+        function updateVoteButtons(choice) {
+            btnApprove.classList.remove('selected');
+            btnDisapprove.classList.remove('selected');
+            btnAbstain.classList.remove('selected');
+
+            const mapText = {
+                'APPROVE': 'เห็นด้วย (Approve)',
+                'DISAPPROVE': 'ไม่เห็นด้วย (Disapprove)',
+                'ABSTAIN': 'งดออกเสียง (Abstain)',
+                'NONE': 'ยังไม่ได้ลงคะแนน'
+            };
+            myVoteStatusText.innerText = mapText[choice] || 'ยังไม่ได้ลงคะแนน';
+
+            if (choice === 'APPROVE') btnApprove.classList.add('selected');
+            else if (choice === 'DISAPPROVE') btnDisapprove.classList.add('selected');
+            else if (choice === 'ABSTAIN') btnAbstain.classList.add('selected');
+        }
+
+        function renderMotionMarkup(text, tags) {
+            // If tags are passed, render highlighted or strike-red
+            let safeText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            motionLiveText.innerHTML = safeText;
+        }
+
+        // 5. Actions: Quorum Click
+        btnSubmitQuorum.addEventListener('click', async () => {
+            if (!currentStudent) return;
+            try {
+                const res = await fetch('/api/student/quorum', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        student_id: currentStudent.student_id,
+                        student_no: currentStudent.student_no,
+                        student_name: currentStudent.full_name || `${currentStudent.first_name} ${currentStudent.last_name}`,
+                        status: true
+                    })
+                });
+                if (res.ok) {
+                    btnSubmitQuorum.classList.add('checked');
+                    quorumLabel.innerText = 'ท่านได้แสดงตนเรียบร้อยแล้ว';
+                    recheckAlert.classList.add('hidden');
+                }
+            } catch (e) {
+                console.error("Quorum submission error:", e);
+            }
+        });
+
+        // 6. Actions: Vote Clicks (Approve, Disapprove, Abstain)
+        [btnApprove, btnDisapprove, btnAbstain].forEach(btn => {
+            btn.addEventListener('click', async () => {
+                if (!currentStudent) return;
+                const choice = btn.getAttribute('data-choice');
+                updateVoteButtons(choice);
+
+                try {
+                    await fetch('/api/student/vote', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            student_id: currentStudent.student_id,
+                            student_no: currentStudent.student_no,
+                            student_name: currentStudent.full_name || `${currentStudent.first_name} ${currentStudent.last_name}`,
+                            choice: choice
+                        })
+                    });
+                } catch (e) {
+                    console.error("Vote submission error:", e);
+                }
+            });
+        });
+
+        // 7. Actions: Speaker Queue Request
+        btnQueueSpeaker.addEventListener('click', async () => {
+            if (!currentStudent) return;
+            try {
+                const res = await fetch('/api/student/speaker_queue', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        student_id: currentStudent.student_id,
+                        student_name: currentStudent.full_name || `${currentStudent.first_name} ${currentStudent.last_name}`
+                    })
+                });
+                const data = await res.json();
+                if (data.status === 'added') {
+                    btnQueueSpeaker.classList.add('queued');
+                    btnQueueSpeaker.innerText = '✓ อยู่ในคิวขออภิปรายแล้ว (รอเรียกคิว)';
+                } else if (data.status === 'removed') {
+                    btnQueueSpeaker.classList.remove('queued');
+                    btnQueueSpeaker.innerText = '🙋‍♂️ ขอยกมืออภิปราย (กดเพื่อต่อคิวพูด)';
+                }
+            } catch (e) {
+                console.error("Speaker queue error:", e);
+            }
+        });
+    </script>
+</body>
+</html>

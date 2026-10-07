@@ -1,4 +1,3 @@
-import { createClient } from '@/utils/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import KanbanBoard from '@/components/KanbanBoard';
 import LineBroadcastButtons from '@/components/LineBroadcastButtons';
@@ -15,40 +14,30 @@ function getAdminClient() {
 export const dynamic = 'force-dynamic';
 
 export default async function KanbanPage() {
-  const supabase = await createClient();
   const adminDb = getAdminClient();
 
-  const { data: tasks, error } = await adminDb
-    .from('homework_tasks')
-    .select('*')
-    .order('created_at', { ascending: false });
-
-  const { data: { session } } = await supabase.auth.getSession();
-  const isAuthenticated = !!session;
+  const [{ data: tasks, error }, studentSession, { data: statusSettings }] = await Promise.all([
+    adminDb.from('homework_tasks').select('*').order('created_at', { ascending: false }),
+    getCurrentStudentSession(),
+    adminDb.from('system_settings').select('key, value')
+      .in('key', ['primja_status', 'primja_offline_until']),
+  ]);
+  const isAuthenticated = !!studentSession;
 
   if (error) {
     console.error('Error fetching tasks:', error);
   }
 
   // Check student role to determine if they can add/manage tasks
-  const studentSession = await getCurrentStudentSession();
   const CAN_ADD_ROLES = ['Leader', 'Finance', 'Admin', 'SuperAdmin'];
   const canAddTask = studentSession ? CAN_ADD_ROLES.includes(studentSession.role) : false;
 
-  const { data: statusSetting } = await adminDb
-    .from('system_settings')
-    .select('value')
-    .eq('key', 'primja_status')
-    .single();
+  const statusSetting = statusSettings?.find(setting => setting.key === 'primja_status');
 
   const isOffline = statusSetting?.value === 'offline';
 
   if (isOffline) {
-    const { data: timeSetting } = await adminDb
-      .from('system_settings')
-      .select('value')
-      .eq('key', 'primja_offline_until')
-      .single();
+    const timeSetting = statusSettings?.find(setting => setting.key === 'primja_offline_until');
       
     let offlineMsg = 'พริมจ๋ากำลังปรับปรุงระบบอยู่จ้า 🛠️';
     if (timeSetting?.value) {
