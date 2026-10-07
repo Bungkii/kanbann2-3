@@ -115,6 +115,7 @@ export async function createForm(formData: {
   max_points?: number | null;
   allow_anonymous?: boolean;
   visibility?: 'public' | 'private';
+  is_quiz?: boolean;
   questions: any[];
 }) {
   const user = await getCurrentUserRank();
@@ -136,6 +137,7 @@ export async function createForm(formData: {
       creator_name: user.name,
       creator_role: user.role,
       is_active: true,
+      is_quiz: formData.is_quiz || false,
       allow_anonymous: formData.allow_anonymous || false,
       visibility: formData.visibility || 'public',
       max_points: formData.max_points ?? null,
@@ -161,6 +163,7 @@ export async function updateForm(formId: string, formData: {
   max_points?: number | null;
   allow_anonymous?: boolean;
   visibility?: 'public' | 'private';
+  is_quiz?: boolean;
   questions: any[];
 }) {
   const user = await getCurrentUserRank();
@@ -197,6 +200,7 @@ export async function updateForm(formId: string, formData: {
       description: formData.description?.trim() || '',
       allow_anonymous: formData.allow_anonymous || false,
       visibility: formData.visibility || 'public',
+      is_quiz: formData.is_quiz || false,
       max_points: formData.max_points ?? null,
       questions: formData.questions || [],
       updated_at: new Date().toISOString(),
@@ -246,14 +250,14 @@ export async function deleteForm(formId: string) {
   return { success: true };
 }
 
-// Submit a form response
+// Submit a form response (with automatic score calculation for Quiz Mode)
 export async function submitFormResponse(formId: string, answers: Record<string, any>, isAnonymous: boolean) {
   const admin = getAdminClient();
 
   // Check form exists and is active
   const { data: form, error: formError } = await admin
     .from('forms')
-    .select('id, is_active, allow_anonymous')
+    .select('id, title, is_active, allow_anonymous, is_quiz, max_points, questions')
     .eq('id', formId)
     .single();
 
@@ -290,6 +294,46 @@ export async function submitFormResponse(formId: string, answers: Record<string,
     respondentName = 'ผู้ตอบทั่วไป';
   }
 
+  // Auto-calculate score if it is a quiz
+  let earnedScore: number | null = null;
+  let totalMaxScore: number | null = null;
+
+  if (form.is_quiz) {
+    earnedScore = 0;
+    totalMaxScore = 0;
+    const questions = form.questions || [];
+
+    for (const q of questions) {
+      const qPoints = Number(q.points) || 1;
+      totalMaxScore += qPoints;
+
+      const userAns = answers[q.id];
+      const correctAns = q.correct_answer;
+
+      if (correctAns !== undefined && correctAns !== null && String(correctAns).trim() !== "") {
+        const cleanCorrect = String(correctAns).trim().toLowerCase();
+        
+        if (Array.isArray(userAns)) {
+          // Checkboxes match
+          const userJoined = userAns.map((x: string) => String(x).trim().toLowerCase()).sort().join(',');
+          const correctJoined = cleanCorrect.split(/[,;\n]/).map(x => x.trim()).filter(Boolean).sort().join(',');
+          if (userJoined === correctJoined) {
+            earnedScore += qPoints;
+          }
+        } else if (userAns !== undefined && userAns !== null) {
+          const cleanUser = String(userAns).trim().toLowerCase();
+          if (cleanUser === cleanCorrect) {
+            earnedScore += qPoints;
+          }
+        }
+      }
+    }
+
+    if (form.max_points && form.max_points > 0) {
+      totalMaxScore = form.max_points;
+    }
+  }
+
   const { error: insertError } = await admin
     .from('form_responses')
     .insert({
@@ -297,6 +341,8 @@ export async function submitFormResponse(formId: string, answers: Record<string,
       respondent_id: respondentId,
       respondent_name: respondentName,
       answers: answers || {},
+      score: earnedScore,
+      max_score: totalMaxScore,
       created_at: new Date().toISOString(),
     });
 
@@ -305,5 +351,10 @@ export async function submitFormResponse(formId: string, answers: Record<string,
   }
 
   revalidatePath(`/form`);
-  return { success: true };
+  return { 
+    success: true, 
+    is_quiz: form.is_quiz, 
+    score: earnedScore, 
+    max_score: totalMaxScore 
+  };
 }

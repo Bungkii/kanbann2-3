@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS public.forms (
     creator_name TEXT,                   -- ชื่อผู้สร้าง
     creator_role TEXT,                   -- ยศผู้สร้าง (Leader, Finance, Admin, SuperAdmin)
     is_active BOOLEAN DEFAULT true,       -- เปิด/ปิดรับคำตอบ
+    is_quiz BOOLEAN DEFAULT false,       -- เป็นแบบทดสอบที่มีการตรวจและให้คะแนนหรือไม่ (Quiz Mode)
     allow_anonymous BOOLEAN DEFAULT false,-- อนุญาตให้ตอบแบบไม่ระบุตัวตนหรือไม่
     visibility TEXT DEFAULT 'public',     -- 'public' (ค้นหาและแสดงในรายการ) หรือ 'private' (ส่วนตัว เข้าถึงผ่านลิงก์เท่านั้น)
     max_points NUMERIC DEFAULT NULL,      -- คะแนนเต็มรวม (ถ้ามี)
@@ -34,6 +35,7 @@ CREATE TABLE IF NOT EXISTS public.forms (
 );
 
 -- เพิ่มคอลัมน์ใหม่อัตโนมัติ (กรณีสร้างตารางไปแล้ว)
+ALTER TABLE public.forms ADD COLUMN IF NOT EXISTS is_quiz BOOLEAN DEFAULT false;
 ALTER TABLE public.forms ADD COLUMN IF NOT EXISTS visibility TEXT DEFAULT 'public';
 ALTER TABLE public.forms ADD COLUMN IF NOT EXISTS max_points NUMERIC DEFAULT NULL;
 
@@ -44,6 +46,8 @@ CREATE TABLE IF NOT EXISTS public.form_responses (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     respondent_id TEXT,                  -- เลขประจำตัวนักเรียน 5 หลัก (ถ้าไม่ระบุตัวตนจะเป็น null)
     respondent_name TEXT,                -- ชื่อนามสกุลนักเรียน
+    score NUMERIC DEFAULT NULL,          -- คะแนนที่ได้ (กรณีเป็นแบบทดสอบ Quiz Mode)
+    max_score NUMERIC DEFAULT NULL,      -- คะแนนเต็ม
     answers JSONB NOT NULL DEFAULT '{}'::jsonb
     -- answers schema:
     -- {
@@ -51,6 +55,10 @@ CREATE TABLE IF NOT EXISTS public.form_responses (
     --   "q2": ["ตัวเลือก ก", "ตัวเลือก ข"]
     -- }
 );
+
+-- เพิ่มคอลัมน์ใหม่อัตโนมัติใน form_responses
+ALTER TABLE public.form_responses ADD COLUMN IF NOT EXISTS score NUMERIC DEFAULT NULL;
+ALTER TABLE public.form_responses ADD COLUMN IF NOT EXISTS max_score NUMERIC DEFAULT NULL;
 
 -- ดัชนีเพื่อประสิทธิภาพการค้นหา
 CREATE INDEX IF NOT EXISTS idx_forms_created_at ON public.forms(created_at DESC);

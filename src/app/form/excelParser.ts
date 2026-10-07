@@ -51,6 +51,7 @@ export interface ParsedExcelForm {
   title: string;
   description: string;
   maxPoints: number | null;
+  isQuiz?: boolean;
   questions: any[];
 }
 
@@ -140,10 +141,13 @@ export async function parseExcelOrCsvForm(file: File): Promise<ParsedExcelForm> 
     });
   }
 
+    const hasQuizFeatures = (maxPoints !== null && maxPoints > 0) || questions.some(q => q.points > 0 || (q.correct_answer && String(q.correct_answer).trim() !== ""));
+
   return {
     title: title || file.name.replace(/\.[^/.]+$/, ""),
     description: description || "",
     maxPoints,
+    isQuiz: hasQuizFeatures,
     questions,
   };
 }

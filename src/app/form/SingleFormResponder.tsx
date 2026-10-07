@@ -37,6 +37,7 @@ export default function SingleFormResponder({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const [quizResult, setQuizResult] = useState<{ score: number; maxScore: number } | null>(null);
 
   const handleShare = async () => {
     if (typeof window === "undefined") return;
@@ -123,6 +124,9 @@ export default function SingleFormResponder({
     try {
       const res = await submitFormResponse(form.id, answers, isAnonymous);
       if (res.success) {
+        if (res.is_quiz && res.score !== undefined && res.score !== null) {
+          setQuizResult({ score: res.score, maxScore: res.max_score ?? form.max_points ?? 0 });
+        }
         setShowModal(true);
       } else {
         toast.error(res.error || "เกิดข้อผิดพลาดในการส่งข้อมูล");
@@ -172,9 +176,16 @@ export default function SingleFormResponder({
         {/* Top Header - Pink Brand Style (Exact Evaluate Boss) */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 font-sans border-b-4 border-pink-500 pb-2 inline-block">
-              {form.title}
-            </h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 font-sans border-b-4 border-pink-500 pb-2 inline-block">
+                {form.title}
+              </h1>
+              {form.is_quiz && (
+                <span className="text-xs font-bold px-2.5 py-1 rounded-xl bg-purple-100 text-purple-700 border border-purple-200 shadow-2xs">
+                  📝 แบบทดสอบ (Quiz Mode) {form.max_points ? `• คะแนนเต็ม ${form.max_points}` : ""}
+                </span>
+              )}
+            </div>
             {form.description && (
               <p className="text-xs sm:text-sm text-slate-500 mt-2 whitespace-pre-wrap">
                 {form.description}
@@ -519,6 +530,18 @@ export default function SingleFormResponder({
                 <p className="text-slate-600 font-medium text-sm">
                   ระบบได้บันทึกคำตอบของคุณเข้าสู่ฐานข้อมูลห้อง ม.2/3 เรียบร้อยแล้ว ขอบคุณสำหรับความร่วมมือครับ
                 </p>
+
+                {quizResult && (
+                  <div className="mt-4 p-4 rounded-2xl bg-gradient-to-r from-pink-50 to-rose-50 border border-pink-200 text-center">
+                    <span className="text-xs font-bold text-pink-600 uppercase tracking-wider block mb-1">
+                      คะแนนที่ได้ (Quiz Score)
+                    </span>
+                    <div className="text-3xl font-extrabold text-slate-900">
+                      <span className="text-pink-600">{quizResult.score}</span>
+                      <span className="text-slate-400 text-xl font-medium"> / {quizResult.maxScore}</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="pt-2 space-y-2.5">
