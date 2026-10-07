@@ -1329,3 +1329,120 @@ export function createTarnManualFlexMessage(pdfUrl: string) {
     },
   };
 }
+
+export function createParliamentMeetingFlexMessage(url: string = "https://primjaa.bungkii.app/vote") {
+  return {
+    type: "flex",
+    altText: "🏛️ ประชุมสภาห้อง ม.2/3 เริ่มแล้วจ้า! แตะเพื่อเข้าร่วมและลงมติ",
+    contents: {
+      type: "bubble",
+      size: "mega",
+      header: {
+        type: "box",
+        layout: "vertical",
+        backgroundColor: "#1e293b",
+        paddingAll: "xl",
+        contents: [
+          {
+            type: "text",
+            text: "🏛️ สภาห้องเรียน ม.2/3",
+            weight: "bold",
+            size: "xl",
+            color: "#ffffff",
+          },
+          {
+            type: "text",
+            text: "ระบบแสดงตนและลงมติออนไลน์ (Primjaa Vote)",
+            color: "#94a3b8",
+            size: "xs",
+            margin: "xs",
+          },
+        ],
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        spacing: "md",
+        paddingAll: "xl",
+        backgroundColor: "#ffffff",
+        contents: [
+          {
+            type: "box",
+            layout: "horizontal",
+            contents: [
+              {
+                type: "text",
+                text: "สถานะ:",
+                size: "sm",
+                color: "#64748b",
+                flex: 2,
+              },
+              {
+                type: "text",
+                text: "กำลังเปิดประชุม 🟢",
+                size: "sm",
+                weight: "bold",
+                color: "#16a34a",
+                flex: 5,
+              },
+            ],
+          },
+          {
+            type: "box",
+            layout: "horizontal",
+            contents: [
+              {
+                type: "text",
+                text: "ขั้นตอน:",
+                size: "sm",
+                color: "#64748b",
+                flex: 2,
+              },
+              {
+                type: "text",
+                text: "แสดงตนเข้าร่วม / ลงมติ",
+                size: "sm",
+                weight: "bold",
+                color: "#0f172a",
+                flex: 5,
+              },
+            ],
+          },
+          {
+            type: "separator",
+            margin: "md",
+            color: "#e2e8f0",
+          },
+          {
+            type: "text",
+            text: "เพื่อนๆ สามารถกดลิงก์ด้านล่างเพื่อแสดงตนและกดลงคะแนนเสียงได้ทันที หากล็อกอินพริมจ๋าไว้แล้วระบบจะจำชื่อให้อัตโนมัติ",
+            size: "xs",
+            color: "#475569",
+            wrap: true,
+            margin: "md",
+          },
+        ],
+      },
+      footer: {
+        type: "box",
+        layout: "vertical",
+        spacing: "sm",
+        paddingAll: "lg",
+        backgroundColor: "#f8fafc",
+        contents: [
+          {
+            type: "button",
+            style: "primary",
+            color: "#4f46e5",
+            height: "md",
+            action: {
+              type: "uri",
+              label: "🗳️ เข้าห้องประชุม / ลงมติ",
+              uri: url,
+            },
+          },
+        ],
+      },
+    },
+  };
+}

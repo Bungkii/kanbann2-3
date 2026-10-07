@@ -120,6 +120,15 @@ export async function POST(request: Request) {
           continue;
         }
 
+        // ถ้าพิมพ์คำว่า "พริมจ๋า ประชุมจร้า"
+        const cleanText = text.replace(/\s+/g, '');
+        if (cleanText === 'พริมจ๋าประชุมจร้า' || cleanText === 'พริมจ๋าประชุมจ้า' || cleanText === 'พริมจ๋าประชุม') {
+          const { createParliamentMeetingFlexMessage } = await import('@/utils/line/flex');
+          const flexMsg = createParliamentMeetingFlexMessage('https://primjaa.bungkii.app/vote');
+          await replyToLine(event.replyToken, [flexMsg], lineToken);
+          continue;
+        }
+
         // ถ้าพิมพ์คำว่า "พริมจ๋า ดูไอดี" หรือ "พริมจ๋าดูไอดี"
         if (text === 'พริมจ๋า ดูไอดี' || text === 'พริมจ๋าดูไอดี') {
           const groupId = event.source.groupId || event.source.roomId;

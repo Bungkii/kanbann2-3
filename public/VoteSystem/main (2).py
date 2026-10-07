@@ -200,6 +200,7 @@ class SmartParliamentSystem:
         self.create_widgets()
         self.start_main_clock_loop()
         self.start_android_server()
+        self.start_supabase_sync_listener()
 
     def get_local_ip(self):
         try:
@@ -640,6 +641,68 @@ class SmartParliamentSystem:
             return render_template_string(receipt_html)
 
         threading.Thread(target=lambda: app_flask.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False), daemon=True).start()
+
+    def start_supabase_sync_listener(self):
+        """Poll Supabase parliament_votes table in the background so votes/check-ins show up on screen automatically."""
+        def _sync_worker():
+            last_checked_time = datetime.datetime.utcnow() - datetime.timedelta(minutes=30)
+            while True:
+                time.sleep(2)
+                if not supabase_client:
+                    continue
+                try:
+                    res = supabase_client.table("parliament_votes") \
+                        .select("*") \
+                        .gt("created_at", last_checked_time.isoformat()) \
+                        .order("created_at", desc=False) \
+                        .limit(50) \
+                        .execute()
+                    rows = res.data or []
+                    if rows:
+                        has_changes = False
+                        for row in rows:
+                            sid = str(row.get('student_id', ''))
+                            rtype = row.get('record_type', '')
+                            choice = row.get('choice', '')
+                            c_at = row.get('created_at', '')
+                            if c_at:
+                                try:
+                                    last_checked_time = datetime.datetime.fromisoformat(c_at.replace("Z", "+00:00")).replace(tzinfo=None)
+                                except Exception:
+                                    pass
+
+                            # Match student
+                            target = None
+                            for n in STUDENTS:
+                                if sid and (n.startswith(f"{sid:0>2} ") or sid in n):
+                                    target = n
+                                    break
+                            if not target and sid:
+                                for r in RAW_STUDENTS_LIST:
+                                    if str(r.get('student_id')) == sid:
+                                        t_no = int(r.get('student_no', 0))
+                                        for n in STUDENTS:
+                                            if n.startswith(f"{t_no:02d} "):
+                                                target = n
+                                                break
+                                        break
+                            if target:
+                                if rtype == "QUORUM":
+                                    is_pres = choice == "PRESENT"
+                                    if self.attendance_status.get(target) != is_pres:
+                                        self.attendance_status[target] = is_pres
+                                        has_changes = True
+                                elif rtype == "VOTE":
+                                    if self.vote_status.get(target) != choice:
+                                        self.vote_status[target] = choice
+                                        has_changes = True
+                        if has_changes:
+                            self.root.after(0, self.refresh_grid_buttons)
+                            self.root.after(0, self.force_render)
+                except Exception:
+                    pass
+
+        threading.Thread(target=_sync_worker, daemon=True).start()
 
     def sync_time_from_ntp(self):
         try:
@@ -1162,7 +1225,18 @@ class SmartParliamentSystem:
             # Real Time Clock (Left) & Real Date (Right) — Exact BMA Parliament View
             now = self.get_current_time()
             self.display_canvas.create_text(48*s, 35*s, text=now.strftime("%I:%M %p").lstrip("0"), fill="#e0e0e0", font=(FONT_BODY, int(15*s)), anchor="w", tags="txt_clock_time")
-            self.display_canvas.create_text(self.sw - (48*s), 35*s, text=now.strftime("%A, %B %d, %Y"), fill="#e0e0e0", font=(FONT_BODY, int(15*s)), anchor="e", tags="txt_clock_date")
+            
+            # Top-Right: Date & BMA emblem
+            self.display_canvas.create_text(self.sw - (175*s), 35*s, text=now.strftime("%A, %B %d, %Y"), fill="#c0c0c0", font=(FONT_BODY, int(14*s)), anchor="e", tags="txt_clock_date")
+            
+            # Emblem circle (สภากรุงเทพมหานคร)
+            emb_cx = self.sw - (145*s)
+            emb_cy = 35*s
+            emb_r = 16*s
+            self.display_canvas.create_oval(emb_cx - emb_r, emb_cy - emb_r, emb_cx + emb_r, emb_cy + emb_r, fill="#404543", outline="#d1d5db", width=1.5)
+            self.display_canvas.create_text(emb_cx, emb_cy, text="🏛️", font=(FONT_BODY, int(11*s)), anchor="center")
+            self.display_canvas.create_text(self.sw - (120*s), 30*s, text="สภากรุงเทพมหานคร", fill="#d1d5db", font=(FONT_BODY, int(11*s), "bold"), anchor="w")
+            self.display_canvas.create_text(self.sw - (120*s), 44*s, text="THE BANGKOK METROPOLITAN COUNCIL", fill="#9ca3af", font=(FONT_BODY, int(6.5*s)), anchor="w")
 
         if self.display_mode not in ["SPEAKER", "BREAK", "ATTENDANCE_SUMMARY", "VOTE_RESULT_GOLD", "END_MEETING", "MOTION", "STANDBY"]:
             # Title in TH Sarabun New font
@@ -1306,45 +1380,49 @@ class SmartParliamentSystem:
         self.display_canvas.create_text(self.sw/2, 570*s, text="", font=(FONT_BODY, int(120*s), "bold"), tags="txt_speaker_timer")
 
     def draw_grid_view(self, mode, s):
+        # Exact layout matching Bangkok Metropolitan Council Parliament Display
         rows_per_col = 18
-        col_w = (self.sw - 120*s) / 3
-        row_h = 24 * s
+        # Calculate width for 3 columns with gaps matching reference
+        col_gap = 18 * s
         start_x = 48 * s
+        available_w = self.sw - (start_x * 2)
+        col_w = (available_w - (col_gap * 2)) / 3
+        row_h = 24 * s
+        start_y = 245 * s
         
-        # Section subhead
+        # Section subheads
         self.display_canvas.create_text(48*s, 115*s, text="Vote result", fill="#94a3b8", font=(FONT_BODY, int(11*s)), anchor="w")
-        self.display_canvas.create_text(48*s, 220*s, text="Individual Results", fill="#94a3b8", font=(FONT_BODY, int(11*s)), anchor="w")
+        self.display_canvas.create_text(48*s, 225*s, text="Individual Results", fill="#94a3b8", font=(FONT_BODY, int(11*s)), anchor="w")
 
-        # Summary Box
+        # Summary Box in upper-center area
         self.draw_bma_summary_box(mode, s)
 
         # 3 Columns grid of 52 students
-        start_y = 240 * s
         cmap = {"APPROVE": "#00E676", "DISAPPROVE": "#FF5252", "ABSTAIN": "#FFEB3B", "NOVOTE": "#9C27B0", "NONE": "#475569"}
 
         for i, name in enumerate(STUDENTS):
             col_idx = i // rows_per_col
             row_idx = i % rows_per_col
-            x = start_x + (col_idx * (col_w + 14*s))
+            x = start_x + (col_idx * (col_w + col_gap))
             y = start_y + (row_idx * (row_h + 4*s))
 
-            # Row Pill Background
-            self.display_canvas.create_rectangle(x, y, x + col_w, y + row_h, fill="#373e3b", outline="#444d49")
+            # Row Pill Background with subtle border
+            self.display_canvas.create_rectangle(x, y, x + col_w, y + row_h, fill="#373e3b", outline="#444d49", width=1)
 
-            # Indicator Dot/Pill
+            # Indicator Dot/Vertical Pill on left of row
             if mode == "QUORUM":
                 ind_color = "#00E676" if self.attendance_status[name] else "#475569"
             else:
                 ind_color = cmap.get(self.vote_status[name], "#475569")
 
-            self.display_canvas.create_rectangle(x + (8*s), y + (4*s), x + (13*s), y + row_h - (4*s), fill=ind_color, outline="")
-            self.display_canvas.create_text(x + (22*s), y + (row_h/2), text=name, fill="white", font=(FONT_BODY, int(10*s)), anchor="w")
+            self.display_canvas.create_rectangle(x + (6*s), y + (4*s), x + (11*s), y + row_h - (4*s), fill=ind_color, outline="")
+            self.display_canvas.create_text(x + (20*s), y + (row_h/2), text=name, fill="white", font=(FONT_BODY, int(10.5*s)), anchor="w")
 
-        # Footers (Elapsed Time or Passed badge)
+        # Footers (Elapsed Time in Quorum mode, or Passed badge in Vote mode)
         if mode == "QUORUM":
             el_m, el_s = divmod(self.elapsed_seconds, 60)
-            elapsed_str = f"Elapsed time  {el_m:02d}:{el_s:02d}"
-            self.display_canvas.create_text(self.sw/2, self.sh - (30*s), text=elapsed_str, fill="#94a3b8", font=(FONT_BODY, int(11*s)), anchor="center")
+            elapsed_str = f"Elapsed time    {el_m:02d}:{el_s:02d}"
+            self.display_canvas.create_text(self.sw/2, self.sh - (35*s), text=elapsed_str, fill="#cbd5e1", font=(FONT_BODY, int(12*s)), anchor="center")
         else:
             present_c = sum(self.attendance_status.values())
             app_c = sum(1 for v in self.vote_status.values() if v == "APPROVE")
@@ -1352,15 +1430,15 @@ class SmartParliamentSystem:
             bg_badge = "#22c55e" if is_passed else "#ef4444"
             txt_badge = "Passed" if is_passed else "Not Passed"
             
-            bw = 140 * s; bh = 30 * s
+            bw = 130 * s; bh = 28 * s
             cx = self.sw / 2; cy = self.sh - (35*s)
             self.display_canvas.create_rectangle(cx - bw/2, cy - bh/2, cx + bw/2, cy + bh/2, fill=bg_badge, outline="")
-            self.display_canvas.create_text(cx, cy, text=txt_badge, fill="white", font=(FONT_BODY, int(13*s), "bold"), anchor="center")
+            self.display_canvas.create_text(cx, cy, text=txt_badge, fill="white", font=(FONT_BODY, int(12.5*s), "bold"), anchor="center")
 
     def draw_bma_summary_box(self, mode, s):
-        center_x = self.sw * 0.45
+        center_x = self.sw / 2
         start_y = 100 * s
-        box_w = 260 * s
+        box_w = 265 * s
         
         present_count = sum(self.attendance_status.values())
         app = sum(1 for v in self.vote_status.values() if v == "APPROVE")
@@ -1372,7 +1450,7 @@ class SmartParliamentSystem:
         if mode == "QUORUM":
             items = [
                 ("#00E676", "ยืนยันตัวตน", present_count),
-                ("#9C27B0", "จำนวนผู้เข้าร่วมประชุม", present_count if self.is_system_open.get() else 0)
+                ("#9C27B0", "จำนวนผู้เข้าร่วมประชุม", present_count)
             ]
         else:
             items = [
@@ -1384,21 +1462,25 @@ class SmartParliamentSystem:
                 ("#2196F3", "จำนวนผู้เข้าร่วมประชุม", present_count)
             ]
 
-        row_h = 18 * s
+        row_h = 24 * s
         box_h = (len(items) * row_h) + (10 * s)
         box_x = center_x - (box_w / 2)
 
-        self.display_canvas.create_rectangle(box_x, start_y, box_x + box_w, start_y + box_h, fill="#373e3b", outline="#444d49")
+        # Outer card container
+        self.display_canvas.create_rectangle(box_x, start_y, box_x + box_w, start_y + box_h, fill="#373e3b", outline="#444d49", width=1)
 
         for i, (col, lbl, val) in enumerate(items):
-            y = start_y + (i * row_h) + (10 * s)
-            self.display_canvas.create_oval(box_x + (10*s), y - (4*s), box_x + (18*s), y + (4*s), fill=col, outline="")
-            self.display_canvas.create_text(box_x + (26*s), y, text=lbl, fill="white", font=(FONT_BODY, int(9.5*s)), anchor="w")
+            y = start_y + (i * row_h) + (row_h / 2) + (5 * s)
+            # Circle status dot
+            self.display_canvas.create_oval(box_x + (12*s), y - (5*s), box_x + (22*s), y + (5*s), fill=col, outline="")
+            # Label
+            self.display_canvas.create_text(box_x + (30*s), y, text=lbl, fill="white", font=(FONT_BODY, int(10.5*s)), anchor="w")
             
-            badge_w = 40 * s
+            # Value Box
+            badge_w = 42 * s
             bx = box_x + box_w - badge_w - (8*s)
-            self.display_canvas.create_rectangle(bx, y - (7*s), bx + badge_w, y + (7*s), fill="#444d49", outline="")
-            self.display_canvas.create_text(bx + (badge_w/2), y, text=str(val), fill="white", font=(FONT_BODY, int(10*s), "bold"), anchor="center")
+            self.display_canvas.create_rectangle(bx, y - (9*s), bx + badge_w, y + (9*s), fill="#444d49", outline="")
+            self.display_canvas.create_text(bx + (badge_w/2), y, text=str(val), fill="white", font=(FONT_BODY, int(11*s), "bold"), anchor="center")
 
     def draw_seat_map(self, s):
         self.display_canvas.create_text(self.sw/2, 120*s, text="แผนผังที่นั่งในห้องประชุมสภา (Seat Map)", fill="#a0afaa", font=(FONT_TITLE, int(26*s), "bold"))
