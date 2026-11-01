@@ -1446,3 +1446,150 @@ export function createParliamentMeetingFlexMessage(url: string = "https://primja
     },
   };
 }
+
+
+export function createAiTasksImportedFlexMessage(tasks: any[], modelUsed = 'Gemini 3.5 Flash Lite', draftId?: string) {
+  const count = tasks.length;
+  const header = {
+    type: 'box',
+    layout: 'vertical',
+    backgroundColor: '#4F46E5',
+    paddingAll: 'xl',
+    contents: [
+      {
+        type: 'text',
+        text: draftId ? '✨ ตรวจรายการการบ้านก่อนบันทึก' : '✨ บันทึกการบ้านสำเร็จ!',
+        weight: 'bold',
+        size: 'lg',
+        color: '#FFFFFF',
+      },
+      {
+        type: 'text',
+        text: `ถอดความด้วย AI (${modelUsed}) ทั้งหมด ${count} วิชา`,
+        color: '#C7D2FE',
+        size: 'xs',
+        margin: 'xs',
+      },
+    ],
+  };
+
+  const bodyContents: any[] = [];
+
+  tasks.forEach((task: any, index: number) => {
+    const dueDate = new Date(task.due_date);
+    const dateFormatted = !isNaN(dueDate.getTime())
+      ? dueDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit', timeZone: 'Asia/Bangkok' })
+      : 'ตามที่ระบุ';
+
+    const metaContents: any[] = [
+      {
+        type: 'text',
+        text: `🗓️ กำหนดส่ง: ${dateFormatted}`,
+        size: 'xs',
+        color: '#6366F1',
+        weight: 'bold',
+      },
+    ];
+
+    if (task.submission_method) {
+      metaContents.push({
+        type: 'text',
+        text: `📦 วิธีส่ง: ${task.submission_method}`,
+        size: 'xs',
+        color: '#059669',
+      });
+    }
+
+    if (task.teacher_name) {
+      metaContents.push({
+        type: 'text',
+        text: `👤 ผู้สอน: ${task.teacher_name}`,
+        size: 'xs',
+        color: '#64748B',
+      });
+    }
+
+    bodyContents.push({
+      type: 'box',
+      layout: 'vertical',
+      margin: index === 0 ? 'none' : 'md',
+      paddingAll: 'md',
+      backgroundColor: '#F8FAFC',
+      cornerRadius: 'md',
+      contents: [
+        {
+          type: 'text',
+          text: `📌 ${task.subject}`,
+          weight: 'bold',
+          size: 'md',
+          color: '#1E1B4B',
+          wrap: true,
+        },
+        {
+          type: 'text',
+          text: task.details || '',
+          size: 'sm',
+          color: '#475569',
+          wrap: true,
+          margin: 'xs',
+        },
+        {
+          type: 'box',
+          layout: 'vertical',
+          margin: 'sm',
+          spacing: 'xs',
+          contents: metaContents,
+        },
+      ],
+    });
+  });
+
+  const body = {
+    type: 'box',
+    layout: 'vertical',
+    contents: bodyContents,
+    paddingAll: 'lg',
+  };
+
+  const footer = {
+    type: 'box',
+    layout: 'vertical',
+    spacing: 'sm',
+    paddingAll: 'lg',
+    backgroundColor: '#FFFFFF',
+    contents: draftId ? [
+      {
+        type: 'button', style: 'primary', color: '#4F46E5', height: 'md',
+        action: { type: 'postback', label: '✅ ข้อมูลถูกต้อง บันทึกเลย', data: `ai_homework_confirm:${draftId}`, displayText: 'ยืนยันบันทึกการบ้าน' },
+      },
+      {
+        type: 'button', style: 'secondary', height: 'md',
+        action: { type: 'uri', label: '✏️ ไม่ถูกต้อง แก้ไขในเว็บ', uri: `https://primjaa.bungkii.app/add?aiDraft=${draftId}` },
+      },
+    ] : [
+      {
+        type: 'button',
+        style: 'primary',
+        color: '#4F46E5',
+        height: 'md',
+        action: {
+          type: 'uri',
+          label: '📋 ดูกระดานการบ้าน',
+          uri: 'https://primjaa.bungkii.app/kanban',
+        },
+      },
+    ],
+  };
+
+  return {
+    type: 'flex',
+    altText: draftId ? `ตรวจการบ้าน ${count} รายการก่อนบันทึก` : `บันทึกการบ้านสำเร็จ ${count} รายการ`,
+    contents: {
+      type: 'bubble',
+      size: 'kilo',
+      header,
+      body,
+      footer,
+    },
+  };
+}

@@ -44,7 +44,7 @@ export default async function SystemSettingsPage() {
             </div>
           </div>
 
-          <SystemSettingsForm initialSettings={settings} />
+          <SystemSettingsForm initialSettings={settings} canManageGeminiKey={currentUserRole === 'SuperAdmin'} />
         </div>
       </div>
     </PageTransition>

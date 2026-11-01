@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createMenuFlexMessage, createMorningFlexMessage, createEveningFlexMessage, createVoteLeaderFlexMessage, createTodayAddedFlexMessage, Task } from '@/utils/line/flex';
 import { createClient } from '@supabase/supabase-js';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 
 // GET handler สำหรับ LINE Webhook verification
 export async function GET() {
@@ -31,7 +32,16 @@ async function replyToLine(replyToken: string, messages: any[], lineToken: strin
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const rawBody = await request.text();
+    const channelSecret = process.env.LINE_CHANNEL_SECRET;
+    const receivedSignature = request.headers.get('x-line-signature');
+    if (!channelSecret || !receivedSignature) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const expectedSignature = createHmac('sha256', channelSecret).update(rawBody).digest();
+    const signature = Buffer.from(receivedSignature, 'base64');
+    if (signature.length !== expectedSignature.length || !timingSafeEqual(signature, expectedSignature)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const body = JSON.parse(rawBody);
     console.log('Webhook received:', JSON.stringify(body).substring(0, 500));
 
     const lineToken = process.env.LINE_CHANNEL_ACCESS_TOKEN;
@@ -50,6 +60,34 @@ export async function POST(request: Request) {
     console.log(`Processing ${events.length} event(s)`);
 
     for (const event of events) {
+      if (event.type === 'postback' && typeof event.postback?.data === 'string' && event.postback.data.startsWith('ai_homework_confirm:')) {
+        const draftId = event.postback.data.slice('ai_homework_confirm:'.length);
+        const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+        const { data: draft } = await supabase.from('ai_homework_drafts').select('*').eq('id', draftId).single();
+        const sourceId = event.source?.groupId || event.source?.roomId || event.source?.userId;
+        const sameChat = draft?.line_source_type === event.source?.type && draft?.line_source_id === sourceId;
+        const sameSender = !draft?.line_user_id || draft.line_user_id === event.source?.userId;
+        if (!draft || draft.status !== 'pending' || new Date(draft.expires_at) <= new Date() || !sameChat || !sameSender) {
+          await replyToLine(event.replyToken, [{ type: 'text', text: 'รายการนี้หมดอายุ ถูกบันทึกแล้ว หรือไม่มีสิทธิ์ยืนยัน กรุณาส่งข้อความการบ้านใหม่' }], lineToken);
+          continue;
+        }
+        const { data: claimed } = await supabase.from('ai_homework_drafts').update({ status: 'processing' }).eq('id', draftId).eq('status', 'pending').select('id').single();
+        if (!claimed) {
+          await replyToLine(event.replyToken, [{ type: 'text', text: 'รายการนี้กำลังถูกบันทึกหรือบันทึกไปแล้ว' }], lineToken);
+          continue;
+        }
+        const { saveParsedTasksToDatabase } = await import('@/utils/geminiTaskParser');
+        const { createAiTasksImportedFlexMessage } = await import('@/utils/line/flex');
+        const saved = await saveParsedTasksToDatabase(draft.tasks, 'line_bot');
+        if (!saved.success) {
+          await supabase.from('ai_homework_drafts').update({ status: 'pending' }).eq('id', draftId);
+          await replyToLine(event.replyToken, [{ type: 'text', text: `บันทึกไม่สำเร็จ: ${saved.error || 'กรุณาลองอีกครั้ง'}` }], lineToken);
+          continue;
+        }
+        await supabase.from('ai_homework_drafts').update({ status: 'saved' }).eq('id', draftId);
+        await replyToLine(event.replyToken, [createAiTasksImportedFlexMessage(draft.tasks, draft.model_used)], lineToken);
+        continue;
+      }
       if (event.type === 'message' && event.message.type === 'text') {
         const text = event.message.text.trim().replace(/^["']|["']$/g, '');
         console.log(`Received text message: "${text}"`);
@@ -85,6 +123,83 @@ export async function POST(request: Request) {
           }
         }
         // ----------------------
+
+        // ── AI Homework Parser ──
+        const isQuerySummaryCommand = [
+          'พริมจ๋า งานวันนี้', 'พริมจ๋างานวันนี้',
+          'พริมจ๋า งานค้าง', 'พริมจ๋างานค้าง',
+          'พริมจ๋า สรุปงาน', 'พริมจ๋าสรุปงาน'
+        ].includes(text);
+
+        const isExplicitAiAddCommand =
+          text.startsWith('พริมจ๋า จดงาน') || text.startsWith('พริมจ๋าจดงาน') ||
+          text.startsWith('พริมจ๋า เพิ่มงาน') || text.startsWith('พริมจ๋าเพิ่มงาน') ||
+          text.startsWith('พริมจ๋า บันทึกงาน') || text.startsWith('พริมจ๋าบันทึกงาน') ||
+          text.startsWith('พริมจ๋า ai') || text.startsWith('พริมจ๋าai');
+
+        const pinCount = (text.match(/[📌📍]/g) || []).length;
+        const hasDatedHomeworkHeader = /งาน\s*\d{1,2}\s*\/\s*\d{1,2}\s*\/\s*\d{2,4}/u.test(text);
+        const startsWithHomeworkHeader = /^(งาน\s*(\d{1,2}[\/\.-]|ประจำวัน|วันนี้)?|การบ้าน|สรุปการบ้าน|ภาระงาน|งานวันนี้)/i.test(text);
+        const hasDueOrDelivery = text.includes('ส่ง') || text.includes('นำมา') || text.includes('กำหนดส่ง') || text.includes('เดดไลน์') || text.includes('deadline');
+
+        const isHomeworkPost = !isQuerySummaryCommand && (
+          isExplicitAiAddCommand ||
+          hasDatedHomeworkHeader ||
+          (startsWithHomeworkHeader && (pinCount >= 1 || hasDueOrDelivery || text.includes('\n'))) ||
+          (pinCount >= 1 && (hasDueOrDelivery || text.includes('\n')))
+        );
+
+        if (isHomeworkPost) {
+          console.log('[LINE Webhook] Detected homework broadcast message. Parsing with AI Gemini...');
+          let textToParse = text;
+          if (isExplicitAiAddCommand) {
+            textToParse = text
+              .replace(/^พริมจ๋า\s*(จดงาน|เพิ่มงาน|บันทึกงาน|ai)[:\s]*/i, '')
+              .trim();
+          }
+
+          if (!textToParse) {
+            await replyToLine(event.replyToken, [{
+              type: 'text',
+              text: 'กรุณาใส่ข้อความการบ้านหลังคำสั่งด้วยจ้า เช่น:\nพริมจ๋า จดงาน:\n📌 อังกฤษ\nทำ story board\nส่ง 30/10'
+            }], lineToken);
+            continue;
+          }
+
+          const { parseHomeworkWithGemini } = await import('@/utils/geminiTaskParser');
+          const { createAiTasksImportedFlexMessage } = await import('@/utils/line/flex');
+
+          const parseResult = await parseHomeworkWithGemini(textToParse);
+
+          if (!parseResult.tasks || parseResult.tasks.length === 0) {
+            await replyToLine(event.replyToken, [{
+              type: 'text',
+              text: 'พริมจ๋าพยายามอ่านข้อความแล้ว แต่ยังไม่พบวิชาหรือรายละเอียดงานที่ชัดเจนเลยจ้า ลองตรวจดูรูปแบบข้อความอีกครั้งนะ 🥺'
+            }], lineToken);
+            continue;
+          }
+
+          const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+          const { data: draft, error: draftError } = await supabase.from('ai_homework_drafts').insert({
+            line_user_id: event.source?.userId || null,
+            line_source_type: event.source?.type || 'user',
+            line_source_id: event.source?.groupId || event.source?.roomId || event.source?.userId || null,
+            tasks: parseResult.tasks,
+            model_used: parseResult.modelUsed,
+          }).select('id').single();
+
+          if (draftError || !draft) {
+            await replyToLine(event.replyToken, [{
+              type: 'text',
+              text: 'สร้างรายการรอตรวจไม่สำเร็จ กรุณาลองอีกครั้งหรือติดต่อผู้ดูแลระบบ'
+            }], lineToken);
+            continue;
+          }
+
+          const flexMsg = createAiTasksImportedFlexMessage(parseResult.tasks, parseResult.modelUsed, draft.id);
+          await replyToLine(event.replyToken, [flexMsg], lineToken);
+          continue;
+        }
 
         // ถ้าพิมพ์ "พริมจ๋าเนื้อหาออกสอบ"
         if (text.startsWith('พริมจ๋าเนื้อหาออกสอบ') || text.startsWith('พริมจ๋า เนื้อหาออกสอบ')) {

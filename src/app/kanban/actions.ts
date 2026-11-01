@@ -58,10 +58,18 @@ export async function updateTaskDetails(
 ) {
   const supabase = getAdminClient()
 
-  const { error } = await supabase
+  let updateData: Record<string, any> = { ...data }
+  let { error } = await supabase
     .from('homework_tasks')
-    .update(data)
+    .update(updateData)
     .eq('id', taskId)
+
+  if (error && error.message.includes("'image_urls'")) {
+    console.warn('[updateTaskDetails] image_urls missing in schema cache, retrying without it')
+    delete updateData.image_urls
+    const retry = await supabase.from('homework_tasks').update(updateData).eq('id', taskId)
+    error = retry.error
+  }
 
   if (error) {
     console.error('Error updating task details:', error)
@@ -109,4 +117,3 @@ export async function getStudentTaskCompletionsAction(studentId: string) {
   const { getStudentTaskCompletions } = await import('@/utils/studentTaskCompletions');
   return await getStudentTaskCompletions(studentId);
 }
-

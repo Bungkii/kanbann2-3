@@ -18,6 +18,8 @@ CREATE TABLE IF NOT EXISTS homework_tasks (
     work_type text DEFAULT 'individual'::text,
     group_size integer,
     max_score numeric,
+    image_urls text[] DEFAULT '{}'::text[],
+    created_by text,
     created_at timestamp with time zone DEFAULT now()
 );
 

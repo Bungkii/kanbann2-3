@@ -42,6 +42,7 @@ const readSystemSettings = cache(async () => {
 
   const settings: Record<string, any> = {};
   (data || []).forEach((row) => {
+    if (row.key === 'gemini_api_key') return;
     settings[row.key] = normalizeValue(row.value);
   });
 
@@ -66,6 +67,9 @@ export async function updateSystemSetting(key: string, value: any) {
       success: false, 
       error: 'คุณไม่มีสิทธิ์ในการตั้งค่าระบบ (ต้องเป็นผู้มียศ เช่น Leader, Finance, Admin, SuperAdmin)' 
     };
+  }
+  if (key === 'gemini_api_key' && userRole !== 'SuperAdmin') {
+    return { success: false, error: 'เฉพาะ SuperAdmin ที่ตั้งค่า Gemini API Key ได้' };
   }
 
   const adminSupabase = getAdminClient();

@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, User, Trophy, ArrowLeft, Image as ImageIcon, Send, X, ClipboardList, Info, ShieldX } from 'lucide-react';
+import { Users, User, Trophy, ArrowLeft, Image as ImageIcon, Send, X, ClipboardList, Info, ShieldX, Sparkles } from 'lucide-react';
+import AiHomeworkImportModal from '@/components/AiHomeworkImportModal';
 
 const CAN_ADD_ROLES = ['Leader', 'Finance', 'Admin', 'SuperAdmin'];
 
@@ -16,6 +17,8 @@ export default function AddTaskPage() {
   const [workType, setWorkType] = useState<'individual' | 'group'>('individual');
   const [teacherNames, setTeacherNames] = useState<string[]>([]);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+  const [aiDraftId, setAiDraftId] = useState<string | null>(null);
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -23,6 +26,13 @@ export default function AddTaskPage() {
   const [offlineInfo, setOfflineInfo] = useState<{ isOffline: boolean; until: string | null }>({ isOffline: false, until: null });
 
   useEffect(() => {
+    const draft = new URLSearchParams(window.location.search).get('aiDraft');
+    if (draft) {
+      queueMicrotask(() => {
+        setAiDraftId(draft);
+        setIsAiModalOpen(true);
+      });
+    }
     // Check user role from cookie
     try {
       const match = document.cookie.match(/(?:^|;\s*)primja_user=([^;]+)/);
@@ -199,6 +209,27 @@ export default function AddTaskPage() {
           จดไว้นะ (จะขึ้นบอร์ดให้เพื่อนเห็นเพื่อเช็คงานด้วยกัน)
         </p>
         
+        {/* Quick AI Import Banner */}
+        <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 border border-indigo-200/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="bg-indigo-600 text-white p-2 rounded-xl shadow-sm">
+              <Sparkles size={18} />
+            </div>
+            <div>
+              <p className="font-semibold text-sm text-slate-800">มีข้อความการบ้านยาวๆ จาก LINE หรือไม่?</p>
+              <p className="text-xs text-slate-500">ใช้ Gemini 3.5 Flash Lite ถอดข้อความและแยกวิชาให้ทันที</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsAiModalOpen(true)}
+            className="w-full sm:w-auto bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center justify-center gap-1.5 shrink-0"
+          >
+            <Sparkles size={14} />
+            วางข้อความถอดด้วย AI
+          </button>
+        </div>
+
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="md:col-span-2">
@@ -359,6 +390,12 @@ export default function AddTaskPage() {
           </div>
         </form>
       </motion.div>
+
+      <AiHomeworkImportModal
+        isOpen={isAiModalOpen}
+        onClose={() => setIsAiModalOpen(false)}
+        draftId={aiDraftId}
+      />
     </main>
   );
 }

@@ -43,6 +43,7 @@ export type Task = {
   work_type?: string | null;
   group_size?: number | null;
   max_score?: number | null;
+  created_by?: string | null;
 };
 
 const COLUMNS = [

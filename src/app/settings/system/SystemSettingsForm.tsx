@@ -41,8 +41,10 @@ function parsePopupImages(raw: any): PopupImage[] {
 
 export default function SystemSettingsForm({
   initialSettings,
+  canManageGeminiKey,
 }: {
   initialSettings: Record<string, any>;
+  canManageGeminiKey: boolean;
 }) {
   const [settings, setSettings] = useState<Record<string, boolean>>(() => {
     const d: Record<string, boolean> = {};
@@ -56,6 +58,8 @@ export default function SystemSettingsForm({
   const [isExporting, setIsExporting] = useState(false);
   const [announcementText, setAnnouncementText] = useState(initialSettings.announcement_text || "");
   const [isSavingAnnouncement, setIsSavingAnnouncement] = useState(false);
+  const [geminiApiKey, setGeminiApiKey] = useState(initialSettings.gemini_api_key || "");
+  const [isSavingGemini, setIsSavingGemini] = useState(false);
 
   // Maintenance screen customizations
   const [maintenanceTitle, setMaintenanceTitle] = useState(initialSettings.maintenance_title || "ปิดปรับปรุงระบบชั่วคราว");
@@ -124,6 +128,14 @@ export default function SystemSettingsForm({
     const result = await updateSystemSetting("announcement_text", announcementText);
     setIsSavingAnnouncement(false);
     if (result.success) toast.success("บันทึกข้อความประกาศสำเร็จ!");
+    else toast.error("เกิดข้อผิดพลาดในการบันทึก");
+  };
+
+  const handleSaveGemini = async () => {
+    setIsSavingGemini(true);
+    const result = await updateSystemSetting("gemini_api_key", geminiApiKey.trim());
+    setIsSavingGemini(false);
+    if (result.success) toast.success("บันทึก Gemini API Key สำเร็จ!");
     else toast.error("เกิดข้อผิดพลาดในการบันทึก");
   };
 
@@ -261,6 +273,46 @@ export default function SystemSettingsForm({
           </div>
         </div>
       )}
+
+
+      {canManageGeminiKey && <>
+      {/* Gemini AI Settings */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-2xl border border-blue-200 flex flex-col gap-4">
+        <div className="flex items-center gap-3">
+          <div className="bg-blue-100 text-blue-600 p-2.5 rounded-xl">
+            <Sparkles size={22} />
+          </div>
+          <div>
+            <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">
+              ตั้งค่า AI ถอดข้อความการบ้าน (Gemini 3.5 Flash-Lite)
+            </h3>
+            <p className="text-sm text-slate-500">
+              นำ Gemini API Key จาก Google AI Studio มาใส่ที่นี่ เพื่อให้ระบบ LINE Bot และหน้าเว็บสามารถถอดการบ้านอัตโนมัติได้
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <input
+            type="password"
+            value={geminiApiKey}
+            onChange={(e) => setGeminiApiKey(e.target.value)}
+            placeholder="ใส่ Google Gemini API Key (AIzaSy...)"
+            className="flex-1 px-4 py-2.5 rounded-xl bg-white border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-mono"
+          />
+          <button
+            type="button"
+            onClick={handleSaveGemini}
+            disabled={isSavingGemini}
+            className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 text-sm shadow-sm shrink-0"
+          >
+            {isSavingGemini ? "กำลังบันทึก..." : "บันทึก API Key"}
+          </button>
+        </div>
+        <p className="text-xs text-slate-400">
+          คีย์ที่บันทึกแล้วจะไม่แสดงกลับในช่องนี้ หากเซิร์ฟเวอร์ตั้ง GEMINI_API_KEY ไว้ ระบบจะใช้ค่านั้นก่อน
+        </p>
+      </div>
+      </>}
 
       {/* Maintenance Screen Settings */}
       <div className="bg-slate-900 text-white p-6 rounded-2xl border border-slate-800 flex flex-col gap-5 shadow-xl">

@@ -39,7 +39,7 @@ export async function addTaskAction(formData: FormData) {
 
   const supabase = getAdminClient()
 
-  const { error } = await supabase.from('homework_tasks').insert([{
+  const baseTask: Record<string, any> = {
     subject,
     due_date: new Date(dueDate).toISOString(),
     details,
@@ -51,8 +51,31 @@ export async function addTaskAction(formData: FormData) {
     work_type: workType,
     group_size: groupSizeRaw ? parseInt(groupSizeRaw) : null,
     max_score: maxScoreRaw ? parseFloat(maxScoreRaw) : null,
+  }
+
+  // Attempt insert with created_by
+  let insertPayload: Record<string, any> = {
+    ...baseTask,
     created_by: session.student_id,
-  }])
+  }
+
+  let { error } = await supabase.from('homework_tasks').insert([insertPayload])
+
+  // Fallback 1: If 'created_by' column does not exist in schema cache yet
+  if (error && error.message.includes("'created_by'")) {
+    console.warn('[addTaskAction] created_by column missing in schema cache, retrying without created_by')
+    insertPayload = { ...baseTask }
+    const retry = await supabase.from('homework_tasks').insert([insertPayload])
+    error = retry.error
+  }
+
+  // Fallback 2: If 'image_urls' column does not exist in schema cache yet
+  if (error && error.message.includes("'image_urls'")) {
+    console.warn('[addTaskAction] image_urls column missing in schema cache, retrying without image_urls')
+    delete insertPayload.image_urls
+    const retry = await supabase.from('homework_tasks').insert([insertPayload])
+    error = retry.error
+  }
 
   if (error) {
     console.error('[addTaskAction] Supabase error:', error)
@@ -80,7 +103,15 @@ export async function updateTaskDetailsAction(
   if (!session) return { error: 'กรุณาเข้าสู่ระบบก่อน' }
 
   const supabase = getAdminClient()
-  const { error } = await supabase.from('homework_tasks').update(data).eq('id', taskId)
+  let updateData: Record<string, any> = { ...data }
+  let { error } = await supabase.from('homework_tasks').update(updateData).eq('id', taskId)
+
+  if (error && error.message.includes("'image_urls'")) {
+    console.warn('[updateTaskDetailsAction] image_urls missing in schema cache, retrying without it')
+    delete updateData.image_urls
+    const retry = await supabase.from('homework_tasks').update(updateData).eq('id', taskId)
+    error = retry.error
+  }
 
   if (error) {
     console.error('[updateTaskDetailsAction] error:', error)
@@ -130,4 +161,57 @@ export async function getExistingTeacherNames(): Promise<string[]> {
     }
   }
   return names
+}
+
+
+/**
+ * Parses homework text with Gemini 3.5 Flash Lite
+ */
+export async function parseHomeworkWithAiAction(rawText: string) {
+  const session = await getCurrentStudentSession()
+  if (!session) return { error: 'กรุณาเข้าสู่ระบบก่อน' }
+
+  try {
+    const { parseHomeworkWithGemini } = await import('@/utils/geminiTaskParser')
+    const result = await parseHomeworkWithGemini(rawText)
+    return { success: true, tasks: result.tasks, modelUsed: result.modelUsed }
+  } catch (err: any) {
+    return { error: err.message || 'เกิดข้อผิดพลาดในการวิเคราะห์ข้อความ' }
+  }
+}
+
+/**
+ * Saves AI-parsed tasks directly into the database
+ */
+export async function getAiHomeworkDraftAction(draftId: string) {
+  const session = await getCurrentStudentSession()
+  if (!session) return { error: 'กรุณาเข้าสู่ระบบก่อน' }
+  if (!/^[0-9a-f-]{36}$/i.test(draftId)) return { error: 'ลิงก์ไม่ถูกต้อง' }
+  const supabase = getAdminClient()
+  const { data, error } = await supabase.from('ai_homework_drafts').select('tasks, model_used, status, expires_at').eq('id', draftId).single()
+  if (error || !data || data.status !== 'pending' || new Date(data.expires_at) <= new Date()) return { error: 'รายการนี้หมดอายุหรือบันทึกแล้ว' }
+  return { tasks: data.tasks, modelUsed: data.model_used }
+}
+
+export async function saveAiParsedTasksAction(tasks: any[], draftId?: string) {
+  const session = await getCurrentStudentSession()
+  if (!session) return { success: false, error: 'กรุณาเข้าสู่ระบบก่อน' }
+
+  try {
+    const supabase = getAdminClient()
+    if (draftId) {
+      const { data: claimed } = await supabase.from('ai_homework_drafts').update({ status: 'processing' }).eq('id', draftId).eq('status', 'pending').gt('expires_at', new Date().toISOString()).select('id').single()
+      if (!claimed) return { success: false, error: 'รายการนี้หมดอายุหรือบันทึกแล้ว' }
+    }
+    const { saveParsedTasksToDatabase } = await import('@/utils/geminiTaskParser')
+    const result = await saveParsedTasksToDatabase(tasks, session.student_id)
+    if (draftId) await supabase.from('ai_homework_drafts').update({ status: result.success ? 'saved' : 'pending' }).eq('id', draftId)
+    if (result.success) {
+      revalidatePath('/kanban')
+      revalidatePath('/add')
+    }
+    return result
+  } catch (err: any) {
+    return { success: false, error: err.message || 'บันทึกไม่สำเร็จ' }
+  }
 }
