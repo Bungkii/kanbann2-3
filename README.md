@@ -16,6 +16,7 @@
 
 ### 1. 📝 ระบบสำหรับคนจดงาน (Add Work)
 - แบบฟอร์มเพิ่มรายการการบ้านหรืองานที่ได้รับมอบหมาย
+- วางข้อความการบ้านจาก LINE ให้ AI แยกวิชา รายละเอียด วันส่ง และวิธีส่ง แล้วตรวจแก้รายการก่อนบันทึก
 - ระบุวิชา, วันที่ส่ง, รายละเอียด (รองรับ Rich Text Editor), ชื่อครูผู้สอน, ช่องทางการส่ง
 - กำหนดประเภทงานได้ว่าเป็น **งานเดี่ยว** หรือ **งานกลุ่ม**
 - รองรับการอัปโหลดภาพประกอบตัวอย่างงาน (จัดเก็บผ่าน Supabase Storage)
@@ -120,7 +121,27 @@
 | `พริมจ๋า งานวันนี้` | ดูรายการการบ้านที่มีกำหนดส่งในวันนี้ |
 | `พริมจ๋า งานค้าง` | ดูงานทั้งหมดที่ยังไม่ได้ส่งหรือเลยกำหนดส่ง |
 | `พริมจ๋า สรุปงาน` | ดูรายการการบ้านและงานทั้งหมดในระบบ |
+| `งาน 29/10/2026` พร้อมรายละเอียดงาน | บอทอ่านรายการการบ้านอัตโนมัติ โดยไม่ต้องพิมพ์คำสั่งนำหน้า |
+| `พริมจ๋า จดงาน` ตามด้วยรายละเอียดงาน | สั่งให้บอทอ่านการบ้านโดยตรง |
 | `พริมจ๋าเนื้อหาออกสอบ <ชื่อวิชา>` | ดูเนื้อหาและขอบเขตข้อสอบ (ปรนัย/อัตนัย) ของวิชานั้นๆ เช่น `พริมจ๋าเนื้อหาออกสอบ คณิต` |
+
+#### ทดลองจดงานผ่าน LINE
+
+ส่งข้อความนี้ในแชตส่วนตัวหรือกลุ่มที่มีบอท:
+
+```text
+งาน 29/10/2026
+📌อังกฤษ
+ทำ storyboard เรื่องสยองขวัญ 8 ฉาก ใส่สมุด
+ส่ง 30/10/2026
+📌ไทย
+วิเคราะห์ข่าวในสมุด
+ส่ง 02/11/2026
+```
+
+บอทใช้ Gemini 3.5 Flash-Lite อ่านก่อน หากเรียกไม่สำเร็จจะลอง Gemini 2.5 Flash-Lite, Gemini 2.5 Flash และตัวแยกข้อความสำรองตามลำดับ จากนั้นส่ง Flex Message สรุปแต่ละวิชา รายละเอียด และวันส่ง **ยังไม่บันทึกลงกระดาน** กด **ข้อมูลถูกต้อง บันทึกเลย** เพื่อบันทึกจริงและรับ Flex แจ้งผล หรือกด **ไม่ถูกต้อง แก้ไขในเว็บ** เพื่อเปิดรายการเดิมที่หน้า `/add` แล้วแก้ก่อนบันทึก รายการรอตรวจหมดอายุใน 24 ชั่วโมง และถ้ากำหนดส่งไม่ชัด เช่น “สัปดาห์ที่ 3 ของการเปิดเทอม” ควรตรวจวันส่งในหน้าพรีวิวก่อนยืนยัน
+
+ในกลุ่ม บอทตอบกลับในกลุ่มเดียวกัน และปุ่มยืนยันตรวจกลุ่มต้นทางกับผู้ส่งเมื่อ LINE ระบุรหัสผู้ใช้ ผู้แก้ไขผ่านเว็บต้องเข้าสู่ระบบและมีสิทธิ์เพิ่มงาน
 
 ### 📅 หมวดชีวิตประจำวัน & ตารางเรียน
 | คำสั่ง | คำอธิบาย |
@@ -207,6 +228,9 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 # LINE Messaging API Configuration
 LINE_CHANNEL_ACCESS_TOKEN=your-line-channel-access-token
 LINE_CHANNEL_SECRET=your-line-channel-secret
+
+# AI homework parser (server only)
+GEMINI_API_KEY=your-gemini-api-key
 ```
 
 ### 3. ตั้งค่าฐานข้อมูลบน Supabase
@@ -218,6 +242,10 @@ LINE_CHANNEL_SECRET=your-line-channel-secret
   - `migration_add_expenses.sql` (รายจ่ายกองทุนห้อง)
   - `migration_add_system_settings.sql` (การตั้งค่าระบบและรูปป๊อปอัป)
   - `migration_add_boss_evaluations.sql` (ระบบประเมินหัวหน้า)
+  - `migration_add_created_by_homework_tasks.sql` (ผู้สร้างงานและภาพหลายรูป)
+  - `migration_ai_homework_drafts.sql` (รายการการบ้านรอตรวจจาก LINE)
+
+`GEMINI_API_KEY` จาก environment มีลำดับก่อนคีย์ที่ SuperAdmin ตั้งในหน้าระบบ อย่าใส่คีย์จริงลงใน README หรือ commit ขึ้น Git
 
 ### 4. รัน Development Server
 ```bash
@@ -235,10 +263,11 @@ npm run start
 
 ## 🔗 การตั้งค่า LINE Messaging API Webhook
 1. สมัครบัญชีและสร้าง Channel (Messaging API) ที่ [LINE Developers Console](https://developers.line.biz/)
-2. คัดลอก `Channel Access Token (Long-lived)` ไปใส่ในตัวแปร `LINE_CHANNEL_ACCESS_TOKEN` ของ `.env.local`
+2. คัดลอก `Channel Access Token (Long-lived)` และ `Channel Secret` ไปใส่ในตัวแปร `LINE_CHANNEL_ACCESS_TOKEN` และ `LINE_CHANNEL_SECRET` ของ `.env.local` (หรือตัวแปรบนเซิร์ฟเวอร์ที่ deploy) Webhook ตรวจลายเซ็นด้วย secret นี้ก่อนประมวลผล
 3. ในแท็บ **Messaging API**:
    - ตั้งค่า **Webhook URL** เป็น: `https://your-domain.com/api/webhook/line`
    - เปิดสวิตช์ **Use webhook**
+   - หากต้องการให้ตอบในกลุ่ม เปิด **Allow bot to join group chats** แล้วเพิ่มบอทเข้ากลุ่ม
    - ปิด **Auto-reply messages** ใน LINE Official Account Manager เพื่อให้บอทพริมจ๋าตอบได้อย่างราบรื่น
 
 ---
